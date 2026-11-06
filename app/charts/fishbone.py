@@ -25,6 +25,7 @@ class FishboneAxisRenderer(BaseAxisRenderer):
     """Causes grouped on bones along a spine that ends in the problem."""
 
     Name: str = "Fishbone Diagram"
+    WhenToUse: str = "Use it to organise the possible causes of a problem before investigating them."
     # With the other quality charts' kin, not the distributions it never was one of.
     Category: str = "Diagnostic plots"
     Description: str = (

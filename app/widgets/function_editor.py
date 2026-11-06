@@ -8,7 +8,7 @@ Function, New Chart and Chart properties > Series each edited some of these thei
                   Code's are its def's arguments (each needs its value here)
     Expression    the text: a few lines, growing as it is written - checked as text, never run to be checked
                   (todo ID47)
-    x range       from / to / points / spacing; y range the same, shown only when the formula uses y
+    x range       xmin / xmax / points / spacing; y range the same, shown only when the formula uses y
 
 The values and the range are a chart's (its series' query keeps them: sympy_store.source_sql); the formula is
 the project's, shared by every chart of the function. New Chart shows the values and the range only.
@@ -93,11 +93,11 @@ class _GrowingText(QPlainTextEdit):
 
 
 class RangeRow(QWidget):
-    """From, to - and under them how many points and how they are spaced: two short lines, not one wide one."""
+    """xmin, xmax (or ymin, ymax) - and under them how many points and how they are spaced: two short lines, not one wide one."""
 
     changed = Signal()
 
-    def __init__(self, parent: QWidget | None = None) -> None:
+    def __init__(self, parent: QWidget | None = None, *, axis: str = "x") -> None:
         super().__init__(parent)
         layout = QVBoxLayout(self)
         stdSizeAndlayout(layout)
@@ -115,8 +115,9 @@ class RangeRow(QWidget):
         self.spacing.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToContents)
         self.spacing.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
         self.points.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        ends.addWidget(QLabel(f"{axis}min", self))
         ends.addWidget(self.start, 1)
-        ends.addWidget(QLabel(_("to"), self))
+        ends.addWidget(QLabel(f"{axis}max", self))
         ends.addWidget(self.stop, 1)
         layout.addLayout(ends)
         # Points and Scale a line each, labelled: Chart properties is narrow, and a label beside an expanding
@@ -207,7 +208,7 @@ class FunctionEditor(QFrame):
         form = QFormLayout(self)
         stdSizeAndlayout(form)
         form.setContentsMargins(0, 0, 0, 0)
-        # Labels line up with the top of their field: x range: beside its From line, not between its two lines.
+        # Labels line up with the top of their field.
         form.setLabelAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
         self.kind = QComboBox(self)
         self.kind.addItem(_("Expression"), EXPRESSION)
@@ -225,14 +226,14 @@ class FunctionEditor(QFrame):
         self.text = _GrowingText(self)
         self._text_label = QLabel(_("Expression:"), self)
         self.x_row = RangeRow(self)
-        self.y_row = RangeRow(self)
+        self.y_row = RangeRow(self, axis="y")
         form.addRow(_("Kind:"), self.kind)
         form.addRow(_("Description:"), self.description)
         form.addRow(_("Parameters:"), self.symbols)
         form.addRow("", self._symbols_note)
         form.addRow(self._text_label, self.text)
-        form.addRow(_("x range:"), self.x_row)
-        form.addRow(_("y range:"), self.y_row)
+        form.addRow(self.x_row)
+        form.addRow(self.y_row)
         self._form = form
 
         self.kind.currentIndexChanged.connect(self._formula_changed)

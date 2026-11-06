@@ -16,6 +16,7 @@ from dataclasses import dataclass, field
 from typing import Any, cast
 
 from PySide6.QtCore import Qt
+from PySide6.QtGui import QPixmap
 from PySide6.QtWidgets import (
     QComboBox,
     QFormLayout,
@@ -56,10 +57,10 @@ from app.styles.style import (
     stdSizeAndlayout,
 )
 from app.utils.config import get_constant
-from app.utils.i18n import _
+from app.utils.i18n import _, tr
 from app.utils.messages import show_message
 from app.widgets.function_editor import FunctionEditor
-from app.widgets.renderer_picker import RendererPicker, remember_chart
+from app.widgets.renderer_picker import RendererPicker, preview_path, remember_chart
 
 
 @dataclass(slots=True)
@@ -202,6 +203,13 @@ class NewPlotTabDialog(ColumnsDialog):
         renderer_details = CardFrame(self, "rendererDetailsCard")
         renderer_details_layout = renderer_details.layout()
         renderer_details_layout.addWidget(self._renderer_name)
+        self._renderer_preview = QLabel()
+        self._renderer_preview.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        renderer_details_layout.addWidget(self._renderer_preview)
+        self._renderer_when = QLabel()
+        self._renderer_when.setWordWrap(True)
+        renderer_details_layout.addWidget(self._renderer_description)
+        renderer_details_layout.addWidget(self._renderer_when)
 
         renderer_details_layout.addWidget(self._renderer_link)
         self._renderer_details = renderer_details
@@ -375,7 +383,7 @@ class NewPlotTabDialog(ColumnsDialog):
         editor_form_layout = QFormLayout(editor_form)
         stdSizeAndlayout(editor_form_layout)
         editor_form_layout.addRow(_("Data source:"), self._combo_table)
-        editor_form_layout.addRow(_("Function:"), self._function_panel)
+        editor_form_layout.addRow(self._function_panel)
         editor_form_layout.setRowVisible(self._function_panel, False)
         editor_form_layout.addRow(_("Series name:"), self._edit_series_name)
         editor_form_layout.addRow(_("Query:"), self._edit_sql)
@@ -406,6 +414,8 @@ class NewPlotTabDialog(ColumnsDialog):
         """Return the dialog result after accept."""
         return self._result
 
+    #: How wide the chart type's example is shown.
+    PREVIEW_WIDTH: int = 180
     #: Selected on open: the chart almost every new figure turns out to be.
     DEFAULT_RENDERER: str = "Scatter Plot"
 
@@ -435,6 +445,8 @@ class NewPlotTabDialog(ColumnsDialog):
         if renderer_class is None:
             self._renderer_name.clear()
             self._renderer_description.clear()
+            self._renderer_when.hide()
+            self._renderer_preview.hide()
             set_doc_link(self._renderer_link, "", "")
             self._renderer_link.hide()
             return
@@ -443,7 +455,17 @@ class NewPlotTabDialog(ColumnsDialog):
         link = str(renderer_class.Link or "").strip()
 
         self._renderer_name.setText(renderer_name or renderer_class.__name__)
-        self._renderer_description.clear()
+        description = str(renderer_class.Description or "")
+        self._renderer_description.setText("" if description == renderer_class.Name else tr(description))
+        self._renderer_description.setVisible(description != renderer_class.Name)
+        when = tr(str(renderer_class.WhenToUse or ""))
+        self._renderer_when.setText(when)
+        self._renderer_when.setVisible(bool(when))
+        preview = QPixmap(str(preview_path(renderer_class.Name)))
+        if not preview.isNull():
+            preview.setDevicePixelRatio(preview.width() / self.PREVIEW_WIDTH)  # sharp on a Retina screen
+        self._renderer_preview.setPixmap(preview)
+        self._renderer_preview.setVisible(not preview.isNull())
 
         # set_doc_link() clears the tooltip along with the text when link is
         # empty - going through it unconditionally is what keeps a renderer

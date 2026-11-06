@@ -29,6 +29,7 @@ class LollipopAxisRenderer(BaseAxisRenderer):
     """A stem from the baseline and a dot at each category's value."""
 
     Name: str = "Lollipop Chart"
+    WhenToUse: str = "Use it instead of bars to compare many categories with less ink."
     Category: str = "Pairwise data"
     Description: str = (
         "A value per category as a thin stem with a dot at its end: a bar chart with less ink, "

@@ -35,6 +35,7 @@ class EventPlotAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Event Plot"
+    WhenToUse: str = "Use it to show when discrete events occur, as in spike trains or logs, row by row."
     Category: str = "Statistical distributions"
     Description: str = (
         "A row of tick marks per series at each x where an event happened - "

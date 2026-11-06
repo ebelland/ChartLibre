@@ -30,6 +30,7 @@ class WindRoseAxisRenderer(BaseAxisRenderer):
     """Polar bars: counts per direction sector, stacked by bands of a value."""
 
     Name: str = "Wind Rose"
+    WhenToUse: str = "Use it to show how often each direction occurs, and with what strength."
     Category: str = "Specialized charts"
     Description: str = (
         "How often each direction occurs, as bars around a circle, stacked by bands of a "

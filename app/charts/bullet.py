@@ -27,6 +27,7 @@ class BulletAxisRenderer(BaseAxisRenderer):
     """A value bar, a target line and qualitative bands, one row per measure."""
 
     Name: str = "Bullet Chart"
+    WhenToUse: str = "Use it to compare a measure with its target and qualitative ranges."
     Category: str = "Specialized charts"
     Description: str = (
         "A measure against its target, over grey bands for poor, fair and good: a compact gauge, one "

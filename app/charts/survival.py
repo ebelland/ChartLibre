@@ -39,6 +39,7 @@ class KaplanMeierAxisRenderer(BaseAxisRenderer):
     """Step survival curves with censoring ticks, confidence bands and the log-rank test."""
 
     Name: str = "Kaplan-Meier"
+    WhenToUse: str = "Use it for time to an event when some subjects have not reached it yet."
     Category: str = "Diagnostic plots"
     Description: str = (
         "Survival curves from time-to-event data with censored rows, their confidence bands, "

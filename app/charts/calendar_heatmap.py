@@ -30,6 +30,7 @@ class CalendarHeatmapAxisRenderer(BaseAxisRenderer):
     """Days as squares in a calendar grid, coloured by value."""
 
     Name: str = "Calendar Heatmap"
+    WhenToUse: str = "Use it to spot weekly and seasonal patterns in daily values."
     Category: str = "Gridded data"
     Description: str = (
         "A daily value as one coloured square per day, laid out like a calendar - weekdays down, weeks "

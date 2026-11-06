@@ -4,7 +4,12 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 
 from app.scanners.axis_renderer_scanner import renderers
-from app.widgets.renderer_picker import NUM_RECENT, RendererPicker, recent_charts, remember_chart
+from app.widgets.renderer_picker import (
+    NUM_RECENT,
+    RendererPicker,
+    recent_charts,
+    remember_chart,
+)
 
 _NAMES = [str(chart["value"]) for chart in renderers]
 
@@ -73,3 +78,18 @@ def test_a_selected_rows_picture_does_not_vanish_into_the_highlight(qapp) -> Non
                if image.pixelColor(x, y).alpha() == 255}
     assert colours == {"#ffffff"}
 
+
+def test_every_chart_says_when_to_use_it_and_has_an_example() -> None:
+    from app.widgets.renderer_picker import preview_path
+
+    assert [name for name in _NAMES if not preview_path(name).exists()] == []
+    import importlib
+
+    for chart in renderers:
+        cls = getattr(importlib.import_module(_module(chart["path"])), chart["name"])
+        assert cls.WhenToUse, chart["value"]
+
+
+
+def _module(path: str) -> str:
+    return "app.charts." + path.rsplit("/", 1)[-1].removesuffix(".py").rsplit("\\", 1)[-1]

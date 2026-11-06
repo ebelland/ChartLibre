@@ -25,6 +25,7 @@ class Hist2dAxisRenderer(BaseAxisRenderer):
     """Counts of x/y pairs in rectangular bins, as colours."""
 
     Name: str = "2D Histogram"
+    WhenToUse: str = "Use it to see where two variables concentrate when points would overlap."
     Category: str = "Statistical distributions"
     Description: str = (
         "x/y pairs counted in a grid of rectangular bins and shown as colours: where a scatter with too "

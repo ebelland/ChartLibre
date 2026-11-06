@@ -34,6 +34,7 @@ class TimelineAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
     """
 
     Name: str = "Timeline"
+    WhenToUse: str = "Use it to show when a list of events happened, with their labels."
     Category: str = "Specialized charts"
     Description: str = (
         "Dated events on a baseline, each on a stem with its label, for "

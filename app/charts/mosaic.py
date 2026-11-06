@@ -40,6 +40,7 @@ class MosaicAxisRenderer(BaseAxisRenderer):
     """A two-way contingency table drawn as tiles whose areas are the proportions."""
 
     Name: str = "Mosaic Plot"
+    WhenToUse: str = "Use it to see the association between two or more categorical variables."
     Category: str = "Diagnostic plots"
     Description: str = (
         "Two categorical variables as tiles whose areas are the share of rows in each pair, "

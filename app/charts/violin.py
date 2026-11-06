@@ -54,6 +54,7 @@ class ViolinAxisRenderer(BoxAxisRenderer, BaseAxisRenderer):
     OptionalRoles = ["group", "color"]
 
     Name = "Violin Plot"
+    WhenToUse: str = "Use it to compare the full shape of distributions between groups."
     Category: str = "Statistical distributions"
     Description = "Show the estimated distribution of one or more samples."
     Keywords: str = "violino violin density densita groups gruppi"

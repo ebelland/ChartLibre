@@ -53,6 +53,7 @@ class TableAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Table"
+    WhenToUse: str = "Use it to show exact values beside or instead of a chart."
     Category: str = "Specialized charts"
     Description: str = "A data table, rows and columns of text rather than a plot."
     Link: str = "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.table.html"

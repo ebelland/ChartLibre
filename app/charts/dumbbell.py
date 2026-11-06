@@ -28,6 +28,7 @@ class DumbbellAxisRenderer(BaseAxisRenderer):
     """Two dots per row joined by a line."""
 
     Name: str = "Dumbbell Plot"
+    WhenToUse: str = "Use it to show the gap between two values for each category."
     Category: str = "Pairwise data"
     Description: str = (
         "Two values per category - before and after, two methods, two years - as two dots joined by a "

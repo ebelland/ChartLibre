@@ -33,6 +33,7 @@ class ForestAxisRenderer(BaseAxisRenderer):
     """Point estimates and confidence intervals, one row each, against a line of no effect."""
 
     Name: str = "Forest Plot"
+    WhenToUse: str = "Use it to compare estimates and their confidence intervals, as in a meta-analysis."
     Category: str = "Diagnostic plots"
     Description: str = (
         "Estimates and their confidence intervals, one row per study or effect, against a line "

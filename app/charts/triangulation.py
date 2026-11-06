@@ -77,6 +77,7 @@ class TriplotAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Triangular Mesh"
+    WhenToUse: str = "Use it to show the mesh itself, as in finite-element models."
     Category: str = "Irregularly gridded data"
     Description: str = (
         "The triangulation of scattered points, drawn as edges and vertices. "
@@ -175,6 +176,7 @@ class TripcolorAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Triangular Color Mesh"
+    WhenToUse: str = "Use it to colour values over an unstructured triangular mesh."
     Category: str = "Irregularly gridded data"
     Description: str = (
         "Scattered samples triangulated and filled by value - the "

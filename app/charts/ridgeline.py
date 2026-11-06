@@ -26,6 +26,7 @@ class RidgelineAxisRenderer(BaseAxisRenderer):
     """One density curve per group on stacked baselines."""
 
     Name: str = "Ridgeline Plot"
+    WhenToUse: str = "Use it to compare the distribution shapes of many groups."
     Category: str = "Statistical distributions"
     Description: str = (
         "Each group's distribution as a smooth density curve, stacked and slightly overlapping: "

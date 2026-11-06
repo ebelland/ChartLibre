@@ -263,6 +263,8 @@ class BaseAxisRenderer:
     #: family unless it says otherwise.
     Category: str = "Pairwise data"
     Description: str = "Base class"
+    #: One sentence on when this chart is the right one, shown by New plot.
+    WhenToUse: str = ""
     Link:str=""
     RequiredRoles: ClassVar[list[str]] = []
     OptionalRoles: ClassVar[list[str]] = []

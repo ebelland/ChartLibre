@@ -33,6 +33,7 @@ class SpectrogramAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Spectrogram"
+    WhenToUse: str = "Use it to see how the frequency content of a signal changes over time."
     Category: str = "Gridded data"
     Description: str = (
         "Frequency content of a signal over time, as colour - when a "

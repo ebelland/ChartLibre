@@ -49,6 +49,7 @@ class PieAxisRenderer(BaseAxisRenderer):
     MaxSeries: int | None = 1
 
     Name: str = "Pie Chart"
+    WhenToUse: str = "Use it to show the shares of a total with only a few categories."
     Category: str = "Statistical distributions"
     Description: str = "Pie or donut chart of one series."
     Link: str = (

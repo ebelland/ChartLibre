@@ -25,6 +25,7 @@ class ParallelPlotAxisRenderer(BaseAxisRenderer):
     """One vertical axis per variable; a line per row."""
 
     Name: str = "Parallel Plot"
+    WhenToUse: str = "Use it to compare observations across several variables and find patterns or clusters."
     Category: str = "Diagnostic plots"
     Description: str = (
         "Each row a line across one vertical axis per column, each on its own scale: patterns, groups "

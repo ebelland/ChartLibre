@@ -32,6 +32,7 @@ class WaferMapAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Wafer Map"
+    WhenToUse: str = "Use it to see where defects or measurements fall across a semiconductor wafer."
     Category: str = "Quality and process"
     Description: str = (
         "A wafer to scale - its notch or flat, edge exclusion and die grid - with points, a contour "

@@ -5,7 +5,9 @@ English one (the chart_type written to the database); only what is read goes thr
 """
 from __future__ import annotations
 
+import re
 from collections.abc import Mapping, Sequence
+from pathlib import Path
 
 from PySide6.QtCore import QPointF, QRectF, QSize, Qt, Signal
 from PySide6.QtGui import QColor, QIcon, QPainter, QPalette, QPen, QPixmap, QPolygonF
@@ -16,7 +18,6 @@ from PySide6.QtWidgets import (
     QListWidget,
     QListWidgetItem,
     QStackedWidget,
-    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -24,6 +25,7 @@ from PySide6.QtWidgets import (
 from app.styles.style import mark_editor_panel
 from app.utils.config import get_constant, get_value, set_value
 from app.utils.i18n import _, tr
+from app.widgets.chart_jump_bar import jump_arrow
 
 #: How many charts "Recent" shows.
 NUM_RECENT: int = get_constant("num_recent_charts", 3)
@@ -43,6 +45,12 @@ CATEGORY_ORDER: tuple[str, ...] = (
 
 _ICON = QSize(44, 30)
 _KIND, _VALUE = Qt.ItemDataRole.UserRole, Qt.ItemDataRole.UserRole + 1
+
+
+def preview_path(chart_type: str) -> Path:
+    """Where the chart type's example is (dev/tools/make_chart_previews.py draws them)."""
+    slug = re.sub(r"[^a-z0-9]+", "_", chart_type.lower()).strip("_")
+    return Path(__file__).resolve().parents[1] / "charts" / "previews" / f"{slug}.png"
 
 
 def recent_charts(known: Sequence[str]) -> list[str]:
@@ -157,18 +165,16 @@ class RendererPicker(QWidget):
         self.home.itemClicked.connect(self._home_chosen)
         self.home.itemActivated.connect(self._home_chosen)
 
-        self.back = QToolButton()
-        self.back.setArrowType(Qt.ArrowType.LeftArrow)
-        self.back.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonTextBesideIcon)
-        self.back.setText(_("Back"))
-        self.back.setToolTip(_("Back to the categories"))
-        self.back.clicked.connect(self.show_home)
+        self.back = jump_arrow(self, "chart_previous", self.show_home, tooltip=_("Back to the categories"))
+        self.back.setAccessibleName(_("Back"))
+        self.title_icon = QLabel()
         self.title = QLabel()
         self.title.setWordWrap(True)
         self.title.setStyleSheet("font-weight: 600;")
         header = QHBoxLayout()
         header.setContentsMargins(0, 0, 0, 0)
         header.addWidget(self.back, 0)
+        header.addWidget(self.title_icon, 0)
         header.addWidget(self.title, 1)
 
         self.charts = QListWidget()
@@ -226,6 +232,9 @@ class RendererPicker(QWidget):
         """The second page, with the family's charts."""
         self._category = category
         self.title.setText(tr(category))
+        ink = self.palette().color(QPalette.ColorRole.Highlight)
+        self.title_icon.setPixmap(_category_pixmap(category, ink))
+        self.title_icon.show()
         self._fill_charts([chart for chart in self._charts if str(chart.get("category") or "") == category])
         self.pages.setCurrentIndex(1)
 
@@ -310,5 +319,6 @@ class RendererPicker(QWidget):
 
         found = [chart for chart in self._charts if matches(chart)]
         self.title.setText(_("Results ({count})").format(count=len(found)))
+        self.title_icon.hide()
         self._fill_charts(found)
         self.pages.setCurrentIndex(1)

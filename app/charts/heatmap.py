@@ -59,6 +59,7 @@ class HeatmapAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Heatmap"
+    WhenToUse: str = "Use it to see a value across two categories or a regular grid, such as a correlation matrix."
     Category: str = "Gridded data"
     Description: str = (
         "Raw per-cell colour over a regular x/y grid, no interpolation "

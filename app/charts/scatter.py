@@ -76,6 +76,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
     ]
 
     Name = "Scatter Plot"
+    WhenToUse: str = "Use it to see the relation between two numeric variables."
     Category: str = "Pairwise data"
     Description = "Scatter Plot"
     Keywords: str = "dispersione scatter xy correlation correlazione punti points"

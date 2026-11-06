@@ -30,6 +30,7 @@ class JointAxisRenderer(BaseAxisRenderer):
     """A scatter with marginal distributions on its top and right."""
 
     Name: str = "Joint Plot"
+    WhenToUse: str = "Use it to see the relation between two variables and each one's distribution together."
     Category: str = "Statistical distributions"
     Description: str = (
         "A scatter of x against y with each one's distribution - histogram or density - along the top "

@@ -58,6 +58,7 @@ class BoxAxisRenderer(BaseAxisRenderer):
     RequiredRoles = ["value"]
     OptionalRoles = ["group", "color"]
     Name = "Box Plot"
+    WhenToUse: str = "Use it to compare medians, spread and outliers between groups."
     Category: str = "Statistical distributions"
     Description = "Draw a box and whisker plot."
     Keywords: str = "box plot boxplot scatola baffi whisker quartili quartiles groups gruppi"

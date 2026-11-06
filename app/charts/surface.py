@@ -83,6 +83,7 @@ class SurfaceAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Surface Plot"
+    WhenToUse: str = "Use it to show the shape of z = f(x, y) on a regular grid."
     Category: str = "3D and volumetric data"
     Description: str = "3D surface over a regular x/y grid."
     Keywords: str = "superficie 3d response surface superficie di risposta"
@@ -243,6 +244,7 @@ class TriSurfaceAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Surface Plot (Scattered)"
+    WhenToUse: str = "Use it to show a surface from points that are not on a grid."
     Category: str = "3D and volumetric data"
     Description: str = "3D triangulated surface for scattered (non-gridded) x/y/z data."
     Link: str = "https://matplotlib.org/stable/gallery/mplot3d/trisurf3d.html"
@@ -329,6 +331,7 @@ class Scatter3DAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Scatter Plot (3D)"
+    WhenToUse: str = "Use it to explore three numeric variables together."
     Category: str = "3D and volumetric data"
     Description: str = (
         "Points in three dimensions, optionally coloured and sized by further "
@@ -504,6 +507,7 @@ class Line3DAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "3D Line Plot"
+    WhenToUse: str = "Use it for a path or a trajectory in space."
     Category: str = "3D and volumetric data"
     Description: str = (
         "A trajectory or parametric curve through three dimensions, points "

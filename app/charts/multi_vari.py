@@ -29,6 +29,7 @@ class MultiVariAxisRenderer(BaseAxisRenderer):
     """Values by an outer and an inner factor, with the cell and group means."""
 
     Name: str = "Multi-Vari Chart"
+    WhenToUse: str = "Use it to see which source of variation dominates in a process, across nested factors."
     Category: str = "Quality and process"
     Description: str = (
         "Each value by an outer factor and an inner one, with the cell means joined and each group's mean: "

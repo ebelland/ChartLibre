@@ -26,6 +26,7 @@ class WaterfallAxisRenderer(BaseAxisRenderer):
     """Floating bars of a running total."""
 
     Name: str = "Waterfall Chart"
+    WhenToUse: str = "Use it to show how positive and negative steps add up to a final value."
     Category: str = "Pairwise data"
     Description: str = (
         "A running total as floating bars: what each step added or took away between a start and an "

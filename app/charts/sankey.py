@@ -54,6 +54,7 @@ class SankeyAxisRenderer(BaseAxisRenderer):
     """Nodes in columns joined by ribbons of width proportional to the flow."""
 
     Name: str = "Sankey Diagram"
+    WhenToUse: str = "Use it to show how quantities flow from sources to destinations."
     Category: str = "Specialized charts"
     Description: str = (
         "Flows between stages as ribbons as wide as the quantity: where something came from, where "

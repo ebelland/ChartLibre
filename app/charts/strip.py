@@ -65,6 +65,7 @@ class StripAxisRenderer(BaseAxisRenderer):
     """Each value as a point, grouped along x."""
 
     Name: str = "Strip Plot"
+    WhenToUse: str = "Use it to see every observation by group, with few or moderate points."
     Category: str = "Statistical distributions"
     Description: str = (
         "Every value of each group as a point, jittered or packed as a beeswarm: the data itself "

@@ -24,6 +24,7 @@ class SlopeAxisRenderer(BaseAxisRenderer):
     """One line per category between two columns of values."""
 
     Name: str = "Slope Chart"
+    WhenToUse: str = "Use it to compare how several items changed between two moments."
     Category: str = "Pairwise data"
     Description: str = (
         "Each category's value at two moments, joined by a line: which rose, which fell, which "

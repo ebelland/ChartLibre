@@ -99,6 +99,7 @@ class HistogramAxisRenderer(BaseAxisRenderer):
     OptionalRoles: ClassVar[list[str]] = ["dataset", "weight", "color"]
 
     Name: str = "Histogram"
+    WhenToUse: str = "Use it to see the shape of the distribution of one numeric variable."
     Category: str = "Statistical distributions"
     Description: str = "Histogram supporting multiple data sets."
     Keywords: str = "istogramma frequency frequenza distribution distribuzione bins classi"

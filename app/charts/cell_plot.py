@@ -23,6 +23,7 @@ class CellPlotAxisRenderer(BaseAxisRenderer):
     """A cell per value, coloured on its column's scale."""
 
     Name: str = "Cell Plot"
+    WhenToUse: str = "Use it to compare values in a table of rows and columns with a colour in each cell."
     Category: str = "Gridded data"
     Description: str = (
         "The table as coloured cells, one column per variable and one row per row, each column on its "

@@ -113,6 +113,7 @@ class EcdfAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
     OptionalRoles: ClassVar[list[str]] = ["weight"]
 
     Name: str = "ECDF"
+    WhenToUse: str = "Use it to compare distributions and read percentiles without choosing bins."
     Category: str = "Statistical distributions"
     Description: str = "Empirical cumulative distribution function."
     Keywords: str = "cumulative cumulativa distribution distribuzione empirical empirica"

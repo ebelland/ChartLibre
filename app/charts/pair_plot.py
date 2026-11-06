@@ -32,6 +32,7 @@ class PairPlotAxisRenderer(BaseAxisRenderer):
     """A scatter-plot matrix with the distributions on the diagonal."""
 
     Name: str = "Pair Plot"
+    WhenToUse: str = "Use it to explore the relations among several variables at once."
     Category: str = "Diagnostic plots"
     Description: str = (
         "Every numeric variable against every other in one grid, with each one's distribution "

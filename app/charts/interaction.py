@@ -36,6 +36,7 @@ class InteractionAxisRenderer(BaseAxisRenderer):
     """Cell means of a response, one line per level of a second factor."""
 
     Name: str = "Interaction Plot"
+    WhenToUse: str = "Use it to check whether the effect of one factor depends on another."
     Category: str = "Diagnostic plots"
     Description: str = (
         "Mean response at each level of one factor, one line per level of another: parallel "

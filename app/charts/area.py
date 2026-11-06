@@ -55,6 +55,7 @@ class StackplotAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Stack Plot"
+    WhenToUse: str = "Use it to show how parts build up a total over time."
     Category: str = "Pairwise data"
     Description: str = (
         "Series stacked into filled bands over a shared x, for showing how a "
@@ -147,6 +148,7 @@ class StairsAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Stairs"
+    WhenToUse: str = "Use it for values that hold until the next change, or precomputed bins."
     Category: str = "Pairwise data"
     Description: str = (
         "A step outline over bin edges, for values that hold constant between "
@@ -250,6 +252,7 @@ class StemAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Stem Plot"
+    WhenToUse: str = "Use it for discrete values, such as a sampled signal or a spectrum."
     Category: str = "Pairwise data"
     Description: str = (
         "A stem from a baseline to each value, for impulses, spectra and "
@@ -355,6 +358,7 @@ class FillBetweenAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Fill Between"
+    WhenToUse: str = "Use it to show a range around a line, or the difference between two curves."
     Category: str = "Pairwise data"
     Description: str = (
         "The region between two y curves over a shared x, for confidence "
@@ -453,6 +457,7 @@ class BarbsAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Wind Barbs"
+    WhenToUse: str = "Use it for wind speed and direction on a map or grid, in the meteorological notation."
     #: Where Matplotlib itself files it, alongside quiver and streamplot -
     #: see app/charts/vector_field.py, which holds the other two. It read
     #: "Pairwise data" until they existed, which put the three members of one

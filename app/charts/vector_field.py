@@ -102,6 +102,7 @@ class QuiverAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Quiver"
+    WhenToUse: str = "Use it to show direction and strength at each point of a vector field."
     Category: str = "Gridded data"
     Description: str = (
         "An arrow at each sample showing a vector field's direction and "
@@ -258,6 +259,7 @@ class StreamAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Stream Plot"
+    WhenToUse: str = "Use it to show the overall flow of a vector field on a regular grid."
     Category: str = "Gridded data"
     Description: str = (
         "Streamlines traced through a vector field, for seeing where a flow "

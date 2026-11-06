@@ -24,6 +24,7 @@ class Quiver3DAxisRenderer(BaseAxisRenderer):
     """An arrow at each point of a 3D vector field."""
 
     Name: str = "Quiver 3D"
+    WhenToUse: str = "Use it to show direction and strength of a vector field in space."
     Category: str = "3D and volumetric data"
     Description: str = "An arrow at each point in space showing a 3D vector field's direction and size (u, v, w)."
     Keywords: str = "quiver 3d vector field campo vettoriale frecce arrows flusso flow"

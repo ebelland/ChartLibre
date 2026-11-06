@@ -71,6 +71,7 @@ class QQPlotAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
     """Sample quantiles against the quantiles of a fitted distribution."""
 
     Name: str = "Q-Q Plot"
+    WhenToUse: str = "Use it to check whether data follow a distribution, looking especially at the tails."
     Category: str = "Diagnostic plots"
     Description: str = (
         "Sample quantiles against those of a fitted distribution: a straight line means the "
@@ -185,6 +186,7 @@ class PPPlotAxisRenderer(QQPlotAxisRenderer, BaseAxisRenderer):
     """Sample probabilities against the fitted distribution's, on the unit square."""
 
     Name: str = "P-P Plot"
+    WhenToUse: str = "Use it to check whether data follow a distribution, looking especially at the centre."
     Category: str = "Diagnostic plots"
     Description: str = (
         "Sample probabilities against those of a fitted distribution: points on the diagonal "

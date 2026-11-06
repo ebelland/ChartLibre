@@ -31,6 +31,7 @@ class ImagePlotAxisRenderer(BaseAxisRenderer):
     """A matrix (a table of numbers) or an image file, as pixels."""
 
     Name: str = "Image Plot"
+    WhenToUse: str = "Use it to show a matrix or an image as colours, cell by cell."
     Category: str = "Gridded data"
     Description: str = (
         "A table of numbers as an image - each row a row, each numeric column a column, coloured by "

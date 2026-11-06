@@ -66,6 +66,7 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
 
     Description = "Time series"
     Name = "Time Series"
+    WhenToUse: str = "Use it to follow a value over time and see trends and seasonality."
     Category: str = "Pairwise data"
     Keywords: str = "serie temporale time series tempo trend andamento date"
     Goals: ClassVar[list[str]] = ["signal", "process"]

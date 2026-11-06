@@ -31,6 +31,7 @@ class TernaryAxisRenderer(BaseAxisRenderer):
     """Points in a triangle whose corners are three pure components."""
 
     Name: str = "Ternary Plot"
+    WhenToUse: str = "Use it for mixtures of three components that add up to a constant."
     Category: str = "Specialized charts"
     Description: str = (
         "Three parts of a whole - a mixture's components - as points in a triangle, each corner one pure "

@@ -49,6 +49,7 @@ class BarAxisRenderer(BaseAxisRenderer):
     FILLS_FROM_STYLE = True
 
     Name: str = "Bar Chart"
+    WhenToUse: str = "Use it to compare a value between categories."
     Category: str = "Pairwise data"
     Description: str = "Vertical bar chart"
     Orientation: Orientation = "vertical"
@@ -431,6 +432,7 @@ class HorizontalBarAxisRenderer(BarAxisRenderer, BaseAxisRenderer):
     """Renderer for horizontal bar charts."""
 
     Name: str = "Horizontal Bar Chart"
+    WhenToUse: str = "Use it to compare categories with long names, or ranked ones."
     Category: str = "Pairwise data"
     Description: str = "Horizontal bar chart"
     Orientation: Orientation = "horizontal"

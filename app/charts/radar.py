@@ -27,6 +27,7 @@ class RadarAxisRenderer(BaseAxisRenderer):
     """A profile polygon per group over one spoke per variable."""
 
     Name: str = "Radar Chart"
+    WhenToUse: str = "Use it to compare the profile of a few items over several measures on a similar scale."
     Category: str = "Diagnostic plots"
     Description: str = (
         "One spoke per column and a polygon per group: how profiles of several measurements "

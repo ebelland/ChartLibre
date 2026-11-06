@@ -34,6 +34,7 @@ class BrokenBarAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Broken Bar"
+    WhenToUse: str = "Use it for intervals along x, such as a schedule or periods of activity."
     Category: str = "Pairwise data"
     Description: str = "Interval bars grouped by category (Gantt-style)."
     Orientation: Orientation = "horizontal"
@@ -203,6 +204,7 @@ class BrokenBarVerticalAxisRenderer(BrokenBarAxisRenderer, BaseAxisRenderer):
     """
 
     Name: str = "Broken Bar (Vertical)"
+    WhenToUse: str = "Use it for intervals along y, drawn upright."
     Category: str = "Pairwise data"
     Description: str = "Interval bars grouped by category, stacked in columns."
     Orientation: Orientation = "vertical"

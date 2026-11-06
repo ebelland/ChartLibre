@@ -38,6 +38,7 @@ class Bar3DAxisRenderer(BaseAxisRenderer):
     FILLS_FROM_STYLE = True
 
     Name: str = "3D Bar Chart"
+    WhenToUse: str = "Use it to show a value over two categories when the 3D view helps the audience."
     Category: str = "3D and volumetric data"
     Description: str = (
         "Bars rising from the x/y plane to z - categorical data in three "

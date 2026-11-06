@@ -55,6 +55,7 @@ class HexbinAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Hexbin"
+    WhenToUse: str = "Use it for two variables with so many points that a scatter plot saturates."
     Category: str = "Statistical distributions"
     Description: str = (
         "2D density of x/y pairs binned into hexagons - where a scatter "

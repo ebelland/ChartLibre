@@ -82,6 +82,7 @@ class ContourAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Contour Plot"
+    WhenToUse: str = "Use it to read levels of z = f(x, y) on a regular grid on a flat map."
     Category: str = "Gridded data"
     Description: str = "Filled or line contours of z over a regular x/y grid."
     Keywords: str = "curve di livello contour isolinee surface superficie response surface"
@@ -536,6 +537,7 @@ class ContourScatteredAxisRenderer(ContourAxisRenderer, BaseAxisRenderer):
     """
 
     Name: str = "Contour Plot (Scattered)"
+    WhenToUse: str = "Use it to read levels of z when the points are not on a grid."
     Category: str = "Irregularly gridded data"
     Description: str = "Filled or line contours for scattered (non-gridded) x/y/z data."
     Link: str = "https://matplotlib.org/stable/plot_types/unstructured/tricontourf.html"
