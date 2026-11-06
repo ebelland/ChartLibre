@@ -14,6 +14,7 @@ statsmodels==0.15.0
 # Function's Expression and Code models, and the stored functions Fit curve offers (app.data_operations.sympy_store).
 sympy==1.14.0
 pytest==9.1.1
+pytest-xdist==3.8.0
 
 # macOS only: SF Symbols are drawn through AppKit.  Without it the
 # interface still works - every action also names an SVG - but the icons

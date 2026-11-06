@@ -12,13 +12,6 @@ from app.data.sqlite_repo import SqliteRepo
 from app.data_operations import sympy_store
 
 
-@pytest.fixture
-def repo(tmp_path: Path):
-    repo = SqliteRepo(db_path=tmp_path / "s.dhub")
-    yield repo
-    repo.close()
-
-
 def _expression(name: str, code: str, symbols: str) -> dict[str, str]:
     return {"function_name": name, "source_type": "expression", "symbols": symbols, "code_string": code,
             "from": "0", "to": "5", "points": "50", "description": "a test"}

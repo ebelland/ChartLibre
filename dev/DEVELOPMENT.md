@@ -932,7 +932,7 @@ the machine.
 - `tmp_db_path` / `test_results_dir` / `plots_dir` fixtures give each test an
   isolated `.dhub` path and a directory for saved plots
   (`CHARTLIBRE_TEST_ARTIFACTS` env var to redirect).
-- Run the suite: `python -m pytest dev/tests -q` (add
+- Run the suite: `python -m pytest dev/tests -q -n 6` (about 2 minutes; add
   `QT_QPA_PLATFORM=offscreen` in a headless environment). The suite is
   deliberately small: one or two tests per feature, on results, saved data
   and crashes - not on layout details.
