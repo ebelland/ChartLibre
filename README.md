@@ -44,7 +44,7 @@ ChartLibre aims at the first of those without the price tag:
 - **Your file stays yours** — a project is one `.dhub` file (a SQLite database) holding *both* the data and every chart definition built on it. Copy it, email it, commit it to git. No proprietary container, no cloud, no lock-in: any SQLite tool can read the data back out.
 - **Publication output** — export to PNG, JPEG, **SVG** and **PDF** at a DPI you choose.
 
-> **Status: early, and not thoroughly tested.** ChartLibre is at version 0.1.0 and under active development. The feature list below is what is implemented and covered by the automated test suite, not a roadmap — but it has had little testing by real users on real data yet. Expect rough edges, and check results that matter.
+> **Status: early, and not thoroughly tested.** ChartLibre is at version 0.1.3 and under active development. The feature list below is what is implemented and covered by the automated test suite, not a roadmap — but it has had little testing by real users on real data yet. Expect rough edges, and check results that matter.
 >
 > **Collaborators wanted.** Testers, bug reports, fixes, translations, a Linux check, packaging: see [Contributing](#contributing).
 
@@ -54,16 +54,20 @@ ChartLibre aims at the first of those without the price tag:
 
 ## What it does
 
-### Charts — 35 types
+### Charts — 65 types
 
 | Family | Types |
 |---|---|
-| **Pairwise (x, y)** | Bar, Horizontal Bar, Broken Bar (+ vertical), Scatter, Fill Between, Stack Plot, Stem, Table, Text, Time Series, Timeline |
-| **Statistical distributions** | Histogram, Box, Violin, ECDF, Stairs, Pareto, Pie, Hexbin, Event Plot |
-| **Gridded data** | Contour, Heatmap, Quiver, Stream Plot, Wind Barbs |
+| **Pairwise (x, y)** | Scatter, Bar, Horizontal Bar, Broken Bar (+ vertical), Time Series, Fill Between, Stack Plot, Stairs, Stem, Lollipop, Dumbbell, Slope, Waterfall |
+| **Statistical distributions** | Histogram, 2D Histogram, Box, Violin, Strip, Ridgeline, Joint, ECDF, Hexbin, Event Plot, Pie |
+| **Gridded data** | Contour, Heatmap, Calendar Heatmap, Cell Plot, Image, Spectrogram, Quiver, Stream Plot, Wind Barbs |
 | **Irregularly gridded** | Contour (scattered), Triangular Mesh, Triangular Colour Mesh |
-| **3D and volumetric** | Surface, Surface (scattered), 3D Scatter, 3D Line, 3D Bar |
-| **Diagrams** | Fishbone (Ishikawa) |
+| **3D and volumetric** | Surface, Surface (scattered), 3D Scatter, 3D Line, 3D Bar, 3D Quiver |
+| **Diagnostic** | Q-Q, P-P, Kaplan-Meier, Forest, Interaction, Pareto, Pair Plot, Parallel, Radar, Mosaic, Dendrogram, Fishbone (Ishikawa) |
+| **Quality and process** | Wafer Map, Multi-Vari |
+| **Specialized** | Sankey, Treemap, Ternary, Wind Rose, Timeline, Bullet, Table, Text |
+
+The first five families follow [Matplotlib's own plot types](https://matplotlib.org/stable/plot_types/). New chart opens on your recent charts and the families, each with a small picture of what it holds.
 
 Multiple axes per figure, multi-axis layout presets (shared scale, main + secondary, overlapping), annotations and reference lines, and an interactive canvas for measuring, annotating and selecting points.
 
@@ -78,6 +82,16 @@ Not sure which function you need? **Guided analysis** starts from what you want 
 The three **quick answers** — *Are there differences?*, *What has the most impact?*, *Has it changed over time?* — each give the answer in a sentence, then what it rests on and what it does not mean.
 
 ![Guided analysis on the Palmer penguins table](docs/manual/screenshots/screenshot_guided_analysis.png)
+
+### Ask the assistant — optional, your choice of model
+
+An optional panel answers questions about your project and, if you allow it, runs analyses and draws charts. It reads your tables and runs the same analyses as the dialogs.
+
+- **Your choice of model** — [Claude](https://www.anthropic.com/claude) or GitHub Models with your own key or token, or [Ollama](https://ollama.com) on your own computer.
+- **You set how far it goes** — read only, analyses and charts, or changes to the data. Each change is confirmed first and can be undone.
+- **Nothing is sent before you agree** — and with a local Ollama nothing leaves the computer. The API key is kept in the system's keychain, not in your project or settings.
+
+Everything else in ChartLibre works without it.
 
 ### Analysis of tables — JMP-style models
 
@@ -112,7 +126,7 @@ Highlights:
 
 - **Import** — CSV/TSV/TXT, Excel (`.xlsx`, `.xlsm`, `.xls`), JSON, XML, clipboard paste, web URLs, and databases: SQLite, another `.dhub`, **PostgreSQL** and **MySQL** (a table or your own `SELECT`).
 - **Re-read** — any imported table keeps its link and can be refreshed from the original source in one click. Passwords are never stored in the project file.
-- **Export** — tables to CSV or Excel; charts to PNG, JPEG, SVG or PDF.
+- **Export** — tables to CSV or Excel; charts to PNG, JPEG, SVG or PDF; a whole project as a report.
 - **SQL Query Builder** — write, test and save queries that behave like tables anywhere a table is accepted.
 
 ### Make it yours
@@ -120,7 +134,7 @@ Highlights:
 - **Matplotlib style editor** — edit rcParams and save `.mplstyle` files; styles that look like JMP, Minitab and SPSS ship ready to use.
 - **Click to edit** — a click on a figure, an axis or a series opens its properties.
 - **Extensible without forking** — drop a Python file into `user/charts/`, `user/data_operations/` or `user/functions/` and it appears in the application. GUI scaffolding tools generate a working skeleton for each.
-- **Localisation** — English and Italian complete, German nearly so, French in progress — with a built-in catalogue editor and machine translation for adding more.
+- **Localisation** — English and Italian complete; French, German and Portuguese mostly done — with a built-in catalogue editor and machine translation for adding more.
 
 ---
 
@@ -168,7 +182,7 @@ To remove it: *Settings → Apps → Installed apps → ChartLibre → Uninstall
 
 ### Your first steps
 
-When ChartLibre opens it asks whether to create a new project, open one, or **load a demo**. Start with one of the twenty-eight demos: each opens a project with data and charts already made, which is the quickest way to see what ChartLibre does — *Quick answers* asks three questions of real data and answers them in words. The [user manual](docs/manual/user_manual.pdf) explains every window.
+When ChartLibre opens it asks whether to create a new project, open one, or **load a demo**. Start with one of the forty-five demos: each opens a project with data and charts already made, which is the quickest way to see what ChartLibre does — *Quick answers* asks three questions of real data and answers them in words. The [user manual](docs/manual/user_manual.pdf) explains every window.
 
 <details>
 <summary>Mac with an Intel processor, Linux, or the source code</summary>
@@ -237,12 +251,12 @@ ChartLibre is looking for collaborators. The most useful help right now:
 - **Check results** against another tool you trust — a fit, a test, a filter.
 - **Try it on Linux**, where it has never been launched.
 - **Translate** it: the catalogue editor is built in (*Developer → Edit Localization*).
-- **Package it** as a real installer for macOS and Windows.
+- **Sign the installers** for macOS and Windows, so they open without a warning.
 
 Pull requests are welcome too. The test suite runs with:
 
 ```bash
-python -m pytest dev/tests -q          # add QT_QPA_PLATFORM=offscreen when headless
+python -m pytest dev/tests -q -n 6     # about 2 minutes; add QT_QPA_PLATFORM=offscreen when headless
 ```
 
 Please read [`dev/DEVELOPMENT.md`](dev/DEVELOPMENT.md) first — it explains the conventions the codebase actually follows.
