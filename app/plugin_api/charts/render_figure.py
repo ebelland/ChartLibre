@@ -1097,6 +1097,7 @@ def _apply_axis_runtime_options(ax: Any, axis_desc: AxisDescriptor) -> None:
     secondary_axis.apply_secondary_axes(ax, options)
 
     _apply_ticks(ax, options)
+    _apply_intervals(ax, options)
     _apply_grid(ax, options)
     _apply_spines(ax, options)
     _apply_pickradius(ax, options)
@@ -1236,6 +1237,43 @@ def _apply_minor_ticks(ax: Any, options: dict[str, Any]) -> None:
             axis_object.set_minor_locator(NullLocator())
         except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
             applogger.exception("Failed to remove minor ticks from %s", axis)
+
+
+#: More major ticks than this from one interval is a step that does not fit the range: left automatic.
+MAX_INTERVAL_TICKS: int = 1000
+
+
+def _apply_intervals(ax: Any, options: dict[str, Any]) -> None:
+    """A major tick every *interval* on each axis that has one (Scale: Interval); the others keep
+    Matplotlib's ticks.
+
+    Not on a log scale, where an even step means nothing, nor on an axis of categories, whose ticks are
+    its categories; nor when the step would draw more than MAX_INTERVAL_TICKS ticks over the range.
+    """
+    from matplotlib.category import UnitData
+    from matplotlib.ticker import MultipleLocator
+
+    for axis in axis_options.LIMIT_AXES:
+        step = axis_options.manual_interval(options, axis)
+        coordinate = getattr(ax, f"{axis}axis", None)
+        if step is None or coordinate is None:
+            continue
+        scale = getattr(ax, f"get_{axis}scale", lambda: "linear")()
+        if scale != "linear":
+            applogger.warning("The %s interval is for a linear scale; the %s scale keeps its own ticks.", axis, scale)
+            continue
+        if isinstance(getattr(coordinate, "units", None), UnitData):
+            applogger.warning("The %s axis shows categories: its ticks are the categories, not an interval.", axis)
+            continue
+        low, high = getattr(ax, f"get_{axis}lim")()
+        if abs(high - low) / step > MAX_INTERVAL_TICKS:
+            applogger.warning("A %s interval of %g makes more than %d ticks over %g to %g: left automatic.",
+                              axis, step, MAX_INTERVAL_TICKS, low, high)
+            continue
+        try:
+            coordinate.set_major_locator(MultipleLocator(step))
+        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+            applogger.exception("Failed to set the %s tick interval", axis)
 
 
 def _apply_ticks(ax: Any, options: dict[str, Any]) -> None:
