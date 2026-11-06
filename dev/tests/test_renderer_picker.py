@@ -59,3 +59,17 @@ def test_matplotlibs_families_hold_matplotlibs_charts() -> None:
     assert category["Pie Chart"] == "Statistical distributions" and category["Stairs"] == "Pairwise data"
     assert category["Image Plot"] == "Gridded data" and category["Quiver 3D"] == "3D and volumetric data"
     assert category["Sankey Diagram"] == "Specialized charts"
+
+
+def test_a_selected_rows_picture_does_not_vanish_into_the_highlight(qapp) -> None:
+    from PySide6.QtCore import QSize
+    from PySide6.QtGui import QColor, QIcon
+
+    from app.widgets.renderer_picker import category_icon
+
+    icon = category_icon("Statistical distributions", QColor("blue"), QColor("white"))
+    image = icon.pixmap(QSize(44, 30), QIcon.Mode.Selected).toImage()
+    colours = {image.pixelColor(x, y).name() for x in range(image.width()) for y in range(image.height())
+               if image.pixelColor(x, y).alpha() == 255}
+    assert colours == {"#ffffff"}
+

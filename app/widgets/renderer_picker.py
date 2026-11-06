@@ -113,8 +113,7 @@ def _draw(painter: QPainter, category: str, ink: QColor) -> None:
         painter.drawRect(QRectF(32, 18, 7, 8))
 
 
-def category_icon(category: str, ink: QColor) -> QIcon:
-    """A small picture of what the family's charts look like, sharp on a Retina screen."""
+def _category_pixmap(category: str, ink: QColor) -> QPixmap:
     ratio = 2
     pixmap = QPixmap(_ICON * ratio)
     pixmap.setDevicePixelRatio(ratio)
@@ -123,7 +122,14 @@ def category_icon(category: str, ink: QColor) -> QIcon:
     painter.setRenderHint(QPainter.RenderHint.Antialiasing)
     _draw(painter, category, ink)
     painter.end()
-    return QIcon(pixmap)
+    return pixmap
+
+
+def category_icon(category: str, ink: QColor, selected_ink: QColor) -> QIcon:
+    """A small picture of what the family's charts look like; on a selected row, in that row's text colour."""
+    icon = QIcon(_category_pixmap(category, ink))
+    icon.addPixmap(_category_pixmap(category, selected_ink), QIcon.Mode.Selected)
+    return icon
 
 
 class RendererPicker(QWidget):
@@ -226,6 +232,7 @@ class RendererPicker(QWidget):
     # ------------------------------------------------------------------
     def _fill_home(self) -> None:
         ink = self.palette().color(QPalette.ColorRole.Highlight)
+        selected_ink = self.palette().color(QPalette.ColorRole.HighlightedText)
         known = [str(chart["value"]) for chart in self._charts]
         by_name = {str(chart["value"]): chart for chart in self._charts}
 
@@ -242,7 +249,7 @@ class RendererPicker(QWidget):
         if recent:
             heading(_("Recent"))
             for name in recent:
-                item = QListWidgetItem(category_icon(str(by_name[name].get("category") or ""), ink), tr(name))
+                item = QListWidgetItem(category_icon(str(by_name[name].get("category") or ""), ink, selected_ink), tr(name))
                 item.setData(_KIND, "chart")
                 item.setData(_VALUE, name)
                 item.setToolTip(tr(str(by_name[name].get("description") or "")))
@@ -250,7 +257,7 @@ class RendererPicker(QWidget):
             heading(_("Categories"))
         for category in self.categories():
             count = sum(str(chart.get("category") or "") == category for chart in self._charts)
-            item = QListWidgetItem(category_icon(category, ink), f"{tr(category)} ({count})")
+            item = QListWidgetItem(category_icon(category, ink, selected_ink), f"{tr(category)} ({count})")
             item.setData(_KIND, "category")
             item.setData(_VALUE, category)
             self.home.addItem(item)
