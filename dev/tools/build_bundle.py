@@ -32,6 +32,7 @@ import importlib.util
 import os
 import platform
 import shutil
+import ssl
 import subprocess
 import sys
 import tarfile
@@ -39,6 +40,11 @@ import time
 import urllib.request
 import zipfile
 from pathlib import Path
+
+# python.org's Python on a Mac has no certificates until its "Install Certificates" command is run, and
+# then no download works; the system's own are always there.
+if sys.platform == "darwin" and "SSL_CERT_FILE" not in os.environ and not os.path.exists(ssl.get_default_verify_paths().cafile or ""):
+    os.environ["SSL_CERT_FILE"] = "/etc/ssl/cert.pem"
 
 ROOT = Path(__file__).resolve().parents[2]
 DIST = ROOT / "dist"
