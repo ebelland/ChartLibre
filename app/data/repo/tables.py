@@ -21,6 +21,7 @@ from app.data.repo._common import (
     READ_FAILURES,
     ROW_ID,
     SavedQuery,
+    StoredFunction,
     _dumps_json,
     _is_ident,
     _loads_json,
@@ -82,10 +83,10 @@ if TYPE_CHECKING:
         def list_queries(self) -> list[SavedQuery]:
             ...
         @ensure_connection_wrapper
-        def list_sympy_functions(self) -> list[dict[str, str]]:
+        def list_sympy_functions(self) -> list[StoredFunction]:
             ...
         @ensure_connection_wrapper
-        def get_sympy_function(self, name: str) -> dict[str, str] | None:
+        def get_sympy_function(self, name: str) -> StoredFunction | None:
             ...
 else:
     _Host = object
