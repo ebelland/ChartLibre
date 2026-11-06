@@ -108,8 +108,9 @@ class Palette:
         return palette
 
 
-#: The light palette, matching what the sheets were written against: Windows'
-#: Fluent accent over near-white surfaces.  Named "light" rather than "fluent"
+#: The light palette, matching what the sheets were written against: an accent
+#: over near-white surfaces - the logo's blue since the sheets were written
+#: against Fluent's #0078d4, which it is close enough to that nothing else changes.  Named "light" rather than "fluent"
 #: because the same palette serves the macOS sheet, which differs in metrics
 #: and radii rather than in colour.
 LIGHT = Palette(
@@ -123,21 +124,22 @@ LIGHT = Palette(
     bright_text="#ffffff",
     button="#fdfdfd",
     button_text="#1a1a1a",
-    highlight="#0078d4",
+    # The logo's blue: the app's own accent, not the platform's.
+    highlight="#2f6fe4",
     highlight_text="#ffffff",
     disabled_text="#9a9a9a",
     tooltip_base="#ffffff",
     tooltip_text="#1a1a1a",
-    accent_rgb="0, 120, 212",
+    accent_rgb="47, 111, 228",
     shadow_rgb="0, 0, 0",
     glow_rgb="255, 255, 255",
 )
 
 #: The dark palette.  Surfaces are near-black but never black: pure #000000
 #: against a bright chart panel is harsh, and it leaves no room for a *darker*
-#: surface to sit behind a card.  The accent is lifted from Fluent's #0078d4 to
-#: #4cc2ff because the original does not carry enough contrast against a dark
-#: window to read as a selection.
+#: surface to sit behind a card.  The accent is the logo's blue lifted to
+#: #4c8df6, because the logo's own does not carry enough contrast against a
+#: dark window to read as a selection.
 DARK = Palette(
     key="dark",
     label="Dark",
@@ -149,12 +151,12 @@ DARK = Palette(
     bright_text="#ffffff",
     button="#2b2b2b",
     button_text="#eaeaea",
-    highlight="#0a84ff",
+    highlight="#4c8df6",
     highlight_text="#ffffff",
     disabled_text="#6f6f6f",
     tooltip_base="#2b2b2b",
     tooltip_text="#eaeaea",
-    accent_rgb="76, 194, 255",
+    accent_rgb="76, 141, 246",
     # Inverted: an overlay that darkens a light surface has to lighten a dark
     # one, or every border and shadow in the sheet disappears.
     shadow_rgb="255, 255, 255",

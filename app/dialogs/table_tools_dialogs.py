@@ -40,6 +40,7 @@ from app.styles.style import (
     stdSizeAndlayout,
 )
 from app.utils.i18n import _
+from app.utils.import_cleaning import DEFAULT_MISSING, parse_missing
 from app.widgets.table_preview import DataFrameTableModel
 
 
@@ -417,11 +418,12 @@ FILL_CHOICES: tuple[tuple[str, str], ...] = (
     ("The column median", "median"),
     ("The previous value", "previous"),
     ("Linear interpolation", "linear"),
+    ("Nothing: leave them empty (NULL)", "null"),
 )
 
 
 class FillMissingDialog(PanelDialog):
-    """How to fill one column's empty cells."""
+    """How to fill one column's empty cells: NULL, blank text, and the codes that stand for no value."""
 
     def __init__(self, column: str, parent: QWidget | None = None) -> None:
         super().__init__(parent, title=_("Fill empty cells in '{column}'").format(column=column), size=None)
@@ -434,11 +436,25 @@ class FillMissingDialog(PanelDialog):
         form.addRow(_("Fill with:"), self.method)
         self.value = QLineEdit(self)
         form.addRow(_("Value:"), self.value)
-        self.method.currentIndexChanged.connect(
-            lambda _i: self.value.setEnabled(self.method.currentData() == "constant")
-        )
+        # The import's codes, so that a code means the same here as when the file was read.
+        self.codes = QLineEdit(", ".join(DEFAULT_MISSING), self)
+        self.codes.setPlaceholderText(_("-999, NA, n/a"))
+        self.codes.setToolTip(_("Values that stand for \"no value\", separated by commas: filled like the empty "
+                                "cells. Text is matched whatever its case (na is NA); a number by its value "
+                                "(-999 is -999.0). Empty cells - NULL and blank text - are always filled."))
+        form.addRow(_("Also missing:"), self.codes)
+        self.method.currentIndexChanged.connect(self._follow_method)
+        self._follow_method()
         self.add_action("apply", self.accept, default=True)
         self.add_action("close", self.reject)
+
+    def _follow_method(self, *_args: object) -> None:
+        """A value is typed only to fill with one."""
+        self.value.setEnabled(self.method.currentData() == "constant")
+
+    def missing_codes(self) -> list[str]:
+        """The codes typed in Also missing."""
+        return parse_missing(self.codes.text())
 
 
 class FindReplaceDialog(PanelDialog):

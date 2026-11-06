@@ -59,6 +59,28 @@ def test_fill_missing(repo, method, expected) -> None:
     assert column(repo, "x")[1] == pytest.approx(expected)
 
 
+def test_fill_missing_reads_the_codes_too(repo) -> None:
+    """-999 as a number, NA and n/a as text whatever their case: filled like the empty cells, and left out of
+    the mean."""
+    repo.import_dataframe(pd.DataFrame({"v": [1.0, -999.0, 3.0, None, 5.0]}), table_name="codes")
+    repo.import_dataframe(pd.DataFrame({"s": ["a", "na", "N/A", "", "b"]}), table_name="words")
+    assert repo.fill_missing("codes", "v", "mean", codes=["-999"]) == 2
+    assert column(repo, "v", table="codes") == [1.0, 3.0, 3.0, 3.0, 5.0]
+    assert repo.fill_missing("words", "s", "constant", "?", codes=["NA", "n/a"]) == 3
+    assert column(repo, "s", table="words") == ["a", "?", "?", "?", "b"]
+
+
+def test_fill_missing_with_nothing_makes_the_codes_empty_cells(repo) -> None:
+    repo.import_dataframe(pd.DataFrame({"v": [1.0, -999.0, None, 4.0], "s": ["x", "NA", " ", "y"]}),
+                          table_name="raw")
+    assert repo.fill_missing("raw", "v", "null", codes=["-999"]) == 1  # the NULL is one already
+    assert column(repo, "v", table="raw") == [1.0, None, None, 4.0]
+    assert repo.fill_missing("raw", "s", "null", codes=["na"]) == 2  # "NA" and the blank text
+    assert column(repo, "s", table="raw") == ["x", None, None, "y"]
+    repo.undo_last()
+    assert column(repo, "s", table="raw") == ["x", "NA", " ", "y"]
+
+
 def test_find_replace_inside_text_and_whole_cells(repo) -> None:
     assert repo.find_replace("t", "a", "A", columns=["name"]) == 1
     assert column(repo, "name") == ["b", "A", None, "c"]
@@ -75,3 +97,18 @@ def test_group_aggregate_writes_a_new_table(repo) -> None:
 def _con(repo: SqliteRepo):
     assert repo._con is not None
     return repo._con
+
+
+def test_the_fill_dialog_offers_the_imports_codes_and_nothing(qapp) -> None:
+    from app.dialogs.table_tools_dialogs import FillMissingDialog
+    from app.utils.import_cleaning import DEFAULT_MISSING
+
+    dialog = FillMissingDialog("x")
+    try:
+        assert dialog.missing_codes() == list(DEFAULT_MISSING)  # the import's, so a code means the same
+        dialog.codes.setText("-999, n/a ,, NA")
+        assert dialog.missing_codes() == ["-999", "n/a", "NA"]
+        dialog.method.setCurrentIndex(dialog.method.findData("null"))
+        assert not dialog.value.isEnabled()
+    finally:
+        dialog.close()

@@ -13,11 +13,11 @@ def _survey() -> pd.DataFrame:
                          "grade": ["3", "4", "5", "3", "4", "5"]})
 
 
-def test_missing_codes_and_value_labels_in_the_frame() -> None:
+def test_value_labels_in_the_frame() -> None:
     frame = _survey()
-    infos = {"score": cm.ColumnInfo(missing=["-999"]), "sex": cm.ColumnInfo(value_labels={"1": "male", "2": "female"})}
+    infos = {"sex": cm.ColumnInfo(value_labels={"1": "male", "2": "female"})}
     read = cm.apply_to_frame(frame, infos)
-    assert read["score"].isna().sum() == 2 and read["score"].dropna().tolist() == [10.0, 12.0, 14.0, 9.0]
+    assert read["score"].isna().sum() == 0  # a code such as -999 is the data's: Fill missing values empties it
     assert read["sex"].tolist() == ["male", "female"] * 3
     assert frame["score"].isna().sum() == 0  # the table's own values are untouched
     assert cm.forced_kinds({"grade": cm.ColumnInfo(kind="ordinal"), "sex": cm.ColumnInfo()}) == {"grade": "ordinal"}
@@ -25,7 +25,7 @@ def test_missing_codes_and_value_labels_in_the_frame() -> None:
 
 def test_kept_with_the_table_renamed_and_forgotten(repo: SqliteRepo) -> None:
     repo.import_dataframe(_survey(), table_name="survey", normalize_columns=False)
-    cm.set_column_info(repo, "survey", "score", cm.ColumnInfo(unit="pt", missing=["-999"]))
+    cm.set_column_info(repo, "survey", "score", cm.ColumnInfo(unit="pt"))
     assert cm.column_info(repo, "survey")["score"].unit == "pt"
     cm.rename_column_info(repo, "survey", "score", "points")
     assert set(cm.column_info(repo, "survey")) == {"points"}
@@ -55,11 +55,11 @@ def test_the_dialog_renames_casts_and_describes_in_one_undo_step(qapp, repo: Sql
     assert "grade" in repo.table_frame("survey").columns and cm.column_info(repo, "survey") == {}
 
 
-def test_an_analysis_takes_the_forced_type_and_the_missing_codes(qapp, repo: SqliteRepo) -> None:
+def test_an_analysis_takes_the_forced_type_and_the_emptied_codes(qapp, repo: SqliteRepo) -> None:
     from app.data_operations.time_series_dialog import TimeSeriesDialog
 
     repo.import_dataframe(_survey(), table_name="survey", normalize_columns=False)
-    cm.set_column_info(repo, "survey", "score", cm.ColumnInfo(missing=["-999"]))
+    repo.fill_missing("survey", "score", "null", codes=["-999"])  # the table editor's Fill missing values
     cm.set_column_info(repo, "survey", "sex", cm.ColumnInfo(kind="nominal", value_labels={"1": "m", "2": "f"}))
     dialog = TimeSeriesDialog(repo=repo, table="survey")
     try:
@@ -262,3 +262,20 @@ def test_the_preview_of_a_query_offers_column_info(qapp, repo: SqliteRepo) -> No
     menu = panel._build_context_menu(panel.view.visualRect(panel.view.model().index(0, 1)).center())
     texts = [action.text() for action in menu.actions()]
     assert "Column Info..." in texts and not any(text.startswith("Statistics of") for text in texts)
+
+
+def test_a_cell_with_no_value_is_missing_without_a_code(repo: SqliteRepo) -> None:
+    """NULL, and empty or blank text, as JMP reads an empty character cell: not a level of its own."""
+    frame = pd.DataFrame({"grade": ["A", "", "B", None, "   ", " C "], "score": [1.0, 2.0, np.nan, 4.0, 5.0, 6.0]})
+    repo.import_dataframe(frame, table_name="marks", normalize_columns=False)
+    stored = repo.query_df('SELECT "grade", "score" FROM "marks"')
+    read = cm.apply_to_frame(stored, {})
+    assert read["grade"].isna().tolist() == [False, True, False, True, True, False]
+    assert read["grade"].dropna().tolist() == ["A", "B", " C "]  # text with a value is kept as it is
+    assert read["score"].isna().sum() == 1  # numbers: only the NULL
+
+
+def test_blank_as_missing_leaves_numbers_and_mixed_values_alone() -> None:
+    assert cm.blank_as_missing(pd.Series([1.0, np.nan])).isna().tolist() == [False, True]
+    mixed = cm.blank_as_missing(pd.Series(["", 3, " x ", None], dtype=object))
+    assert mixed.isna().tolist() == [True, False, False, True] and mixed[1] == 3

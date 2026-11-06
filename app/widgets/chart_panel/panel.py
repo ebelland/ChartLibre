@@ -21,6 +21,7 @@ from matplotlib.lines import Line2D
 from matplotlib.markers import MarkerStyle
 from matplotlib.patches import Patch, Rectangle, StepPatch, Wedge
 from PySide6.QtCore import QPoint, QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QColor, QIcon, QPainter
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
     QFrame,
@@ -42,11 +43,13 @@ from app.logs.logger import applogger
 from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 from app.styles.style import SPLITTER_HANDLE_WIDTH, MenuItem, create_menu, create_menu_item, create_toolbar_button
 from app.styles.style import action as catalogue_action
+from app.styles.style import action_presentation, theme_is_dark
 from app.utils.config import get_section, update_section
 from app.utils.i18n import _
 from app.widgets.chart_panel.canvas import ChartCanvas
 from app.widgets.chart_panel.constants import (
     CHART_AREA_MIN_HEIGHT,
+    BACKGROUND_AUTO,
     CONFIG_BACKGROUND_COLOR,
     CONFIG_INITIAL_ZOOM,
     CONFIG_MAX_ZOOM,
@@ -62,11 +65,65 @@ from app.widgets.chart_panel.constants import (
     PICK_TOLERANCE_POINTS,
     RESIZE_MODES,
     TOOLBAR_ACTIONS_TO_REMOVE,
-    TOOLBAR_ICON_SIZE,
     axis_text,
 )
 from app.widgets.chart_panel.tools import ChartToolsMixin
 from app.widgets.html_results import HtmlResultsView
+
+#: The Matplotlib navigation actions the chart's own buttons stand for, with the catalogue entry of each.
+#: None is a separator.
+NAVIGATION_BUTTONS: Final[tuple[tuple[str, str] | None, ...]] = (
+    ("home", "chart_home"), ("back", "chart_back"), ("forward", "chart_forward"), None,
+    ("pan", "chart_pan"), ("zoom", "chart_zoom"),
+)
+
+
+def _symbol_ink() -> str:
+    """The grey the chart's fallback icons are drawn in: dark on a light theme, light on a dark one."""
+    return "#c9ced6" if theme_is_dark() else "#4a5263"
+
+
+def _inked(icon: QIcon, colour: str) -> QIcon:
+    """*icon* with its ink in *colour*, at the size and padding it has.
+
+    Not ``colored_icon``: that one scales the glyph's ink to fill the square,
+    which for Matplotlib's icons - drawn with a wide margin - made them
+    smaller than the platform glyphs beside them on a Retina screen.
+    """
+    inked = QIcon()
+    for ratio in (1.0, 2.0):
+        pixmap = icon.pixmap(QSize(18, 18), ratio)
+        if pixmap.isNull():
+            continue
+        pixmap = pixmap.copy()
+        painter = QPainter(pixmap)
+        try:
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
+            painter.fillRect(pixmap.rect(), QColor(colour))
+        finally:
+            painter.end()
+        inked.addPixmap(pixmap)
+    return inked if not inked.isNull() else icon
+
+
+class ChartNavigation(NavigationToolbar2QT):
+    """Matplotlib's navigation - its view history, pan and zoom - without its bar.
+
+    The bar itself stays hidden: its bold black icons and native buttons were
+    the one part of the window that looked like no platform. Its actions are
+    shown instead by the chart's own buttons (``QToolButton.setDefaultAction``
+    shares the action, so the checked Pan or Zoom and a greyed Back follow
+    Matplotlib's state with no code of ours), and the cursor's coordinates it
+    would write in its own label go to *on_message*. Pan, zoom and their
+    history are Matplotlib's, unchanged: nothing here reimplements them.
+    """
+
+    _on_message: Any = None
+
+    def set_message(self, s: str) -> None:
+        if self._on_message is not None:
+            self._on_message(s)
+
 
 #: How long a selection made in Chart properties stays highlighted on the chart.
 FLASH_MS = 900
@@ -249,7 +306,14 @@ class ChartPanel(ChartToolsMixin, QFrame):
             # Fixed by default: the figure at its own size, zoom and scroll bars.
             chart_config.get(CONFIG_RESIZE_MODE, "FIXED")
         )
-        self._background_color: str = chart_config.get(CONFIG_BACKGROUND_COLOR, "#ffffff")
+        # "auto": a desk colour from the theme, so the figure reads as a sheet
+        # of paper on it. White was the default written back by every panel,
+        # never a choice anyone made - nothing in the interface sets it - so
+        # a saved white is read as the default too.
+        saved_background = str(chart_config.get(CONFIG_BACKGROUND_COLOR, BACKGROUND_AUTO) or BACKGROUND_AUTO)
+        self._background_color: str = (
+            BACKGROUND_AUTO if saved_background.lower() in ("#ffffff", "white") else saved_background
+        )
 
         # The config value is only the default for newly-created figures.
         # If this figure has its own view state, it wins.
@@ -278,11 +342,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
         self._init_annotation_drag()
         self._init_box_selection()
         self._init_live_updates()
-        self._toolbar = NavigationToolbar2QT(
-            self._canvas,
-            parent=self,
-            coordinates=True,
-        )
+        self._toolbar = ChartNavigation(self._canvas, parent=self, coordinates=False)
 
         self._init_ui()
         self.set_resize_mode(self._resize_mode, persist=False, redraw=False)
@@ -364,6 +424,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
         # splitter child so the HTML results pane can be resized and collapsed
         # independently from the chart display.
         self._chart_area = QWidget(self)
+        self._chart_area.setObjectName("chartArea")
         self._chart_area.setMinimumHeight(CHART_AREA_MIN_HEIGHT)
         self._chart_area.setSizePolicy(
             QSizePolicy.Policy.Expanding,
@@ -508,22 +569,70 @@ class ChartPanel(ChartToolsMixin, QFrame):
         self._canvas.customContextMenuRequested.connect(self._show_context_menu)
 
     def _configure_toolbar(self) -> None:
-        """Make the Matplotlib toolbar compact and QSS-addressable."""
-        self._toolbar.setObjectName("chartToolbar")
-        self._toolbar.setMovable(False)
-        self._toolbar.setFloatable(False)
-        self._toolbar.setIconSize(TOOLBAR_ICON_SIZE)
-        self._toolbar.setSizePolicy(
-            QSizePolicy.Policy.Preferred,
-            QSizePolicy.Policy.Fixed,
-        )
-        self._toolbar.setMinimumWidth(0)
-        self._toolbar.setFixedHeight(self._toolbar.sizeHint().height())
-        self._remove_toolbar_actions(TOOLBAR_ACTIONS_TO_REMOVE)
+        """Keep Matplotlib's navigation, hide its bar, and give its actions the app's icons.
 
-        for button in self._toolbar.findChildren(QToolButton):
-            button.setAutoRaise(True)
+        An action whose catalogue icon is missing on this machine (a Linux
+        desktop without an icon theme) keeps Matplotlib's own, so no button is
+        ever blank.
+        """
+        self._toolbar.setObjectName("chartToolbar")
+        self._remove_toolbar_actions(TOOLBAR_ACTIONS_TO_REMOVE)
+        self._toolbar.hide()
+        actions = getattr(self._toolbar, "_actions", {})
+        for entry in NAVIGATION_BUTTONS:
+            if entry is None or entry[0] not in actions:
+                continue
+            name, action_id = entry
+            icon, text, tooltip = action_presentation(action_id)
+            action = actions[name]
+            # The platform's glyph; failing that Matplotlib's own, lightened
+            # from its bold black to the ink every other icon is drawn in.
+            action.setIcon(icon if not icon.isNull() else _inked(action.icon(), _symbol_ink()))
+            if text:
+                action.setText(text)
+            if tooltip:
+                action.setToolTip(tooltip)
+        self._toolbar._on_message = self._show_navigation_message
+
+    def _show_navigation_message(self, text: str) -> None:
+        """Show what Matplotlib's navigation says - the cursor's x and y, the active tool - beside the buttons."""
+        label = getattr(self, "_coordinates_label", None)
+        if label is not None:
+            label.setText(" ".join(str(text or "").split()))
+
+    def _build_navigation_pill(self, parent: QWidget) -> QFrame:
+        """The chart's navigation buttons in one rounded group: reset, back, forward | pan, zoom."""
+        pill = QFrame(parent)
+        pill.setObjectName("chartNavPill")
+        pill.setSizePolicy(QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Fixed)
+        layout = QHBoxLayout(pill)
+        layout.setContentsMargins(3, 2, 3, 2)
+        layout.setSpacing(1)
+        actions = getattr(self._toolbar, "_actions", {})
+        for entry in NAVIGATION_BUTTONS:
+            if entry is None:
+                separator = QFrame(pill)
+                separator.setObjectName("chartNavSeparator")
+                separator.setFixedSize(1, 16)
+                layout.addSpacing(3)
+                layout.addWidget(separator, 0, Qt.AlignmentFlag.AlignVCenter)
+                layout.addSpacing(3)
+                continue
+            action = actions.get(entry[0])
+            if action is None:
+                continue
+            button = QToolButton(pill)
             button.setObjectName("chartToolButton")
+            button.setDefaultAction(action)
+            button.setAutoRaise(True)
+            button.setIconSize(QSize(18, 18))
+            # Fixed, not left to the sheet: a style without the pill's rule
+            # (or the generic QToolButton padding) would stretch or squeeze it.
+            button.setFixedSize(QSize(28, 28))
+            button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
+            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            layout.addWidget(button)
+        return pill
 
     def _build_top_row(self) -> QWidget:
         """Create a fixed-height top control row."""
@@ -534,10 +643,18 @@ class ChartPanel(ChartToolsMixin, QFrame):
         )
 
         layout = QHBoxLayout(top_row)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.setSpacing(4)
-        layout.addWidget(self._toolbar, 0)
-        layout.addStretch(1)
+        layout.setContentsMargins(6, 4, 6, 4)
+        layout.setSpacing(6)
+        layout.addWidget(self._build_navigation_pill(top_row), 0)
+        # Where the cursor is, in the data's units - what Matplotlib's bar
+        # wrote at its right end. Ignored width: a long reading is cut, it
+        # never pushes the zoom controls out of the row.
+        self._coordinates_label = QLabel("", top_row)
+        self._coordinates_label.setObjectName("chartCoordLabel")
+        self._coordinates_label.setProperty("muted", True)
+        self._coordinates_label.setSizePolicy(QSizePolicy.Policy.Ignored, QSizePolicy.Policy.Preferred)
+        self._coordinates_label.setMinimumWidth(0)
+        layout.addWidget(self._coordinates_label, 1)
 
         self._zoom_label = QLabel(f"{self._zoom_percent}%", top_row)
         self._zoom_label.setObjectName("chartZoomLabel")

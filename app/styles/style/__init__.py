@@ -75,6 +75,7 @@ from app.styles.style.icons import (  # noqa: F401
     substitute_ui_font,
     svg_icon_document,
     symbol_icon,
+    theme_is_dark,
     ui_font_family,
 )
 from app.styles.style.metrics import (  # noqa: F401

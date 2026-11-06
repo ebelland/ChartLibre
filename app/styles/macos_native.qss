@@ -1117,3 +1117,49 @@ QAbstractItemView::indicator:indeterminate {
   border: 1px solid palette(highlight);
   border-radius: 4px;
 }
+
+/* -------------------------------
+   Chart navigation: Matplotlib's bar is hidden (ChartNavigation in
+   chart_panel/panel.py) and its actions shown as one rounded group of
+   the platform's icons - reset, back, forward | pan, zoom - with the
+   active tool in the accent, and the cursor's coordinates beside it.
+-------------------------------- */
+
+QFrame#chartNavPill {
+  background: palette(base);
+  border: 1px solid rgba(@SHADOW_RGB@, 0.10);
+  border-radius: 17px;
+}
+
+QFrame#chartNavSeparator {
+  background: rgba(@SHADOW_RGB@, 0.12);
+  border: none;
+}
+
+QFrame#chartNavPill QToolButton#chartToolButton {
+  background: transparent;
+  border: none;
+  border-radius: 14px;
+  padding: 0;
+  min-width: 28px;
+  max-width: 28px;
+  min-height: 28px;
+  max-height: 28px;
+}
+
+QFrame#chartNavPill QToolButton#chartToolButton:hover {
+  background: rgba(@SHADOW_RGB@, 0.06);
+}
+
+QFrame#chartNavPill QToolButton#chartToolButton:checked {
+  background: rgba(@ACCENT_RGB@, 0.18);
+}
+
+QFrame#chartNavPill QToolButton#chartToolButton:disabled {
+  background: transparent;
+}
+
+QLabel#chartCoordLabel {
+  color: rgba(@NEUTRAL_RGB@, 1.0);
+  padding: 0 4px;
+}

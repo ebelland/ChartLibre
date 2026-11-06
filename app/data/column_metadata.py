@@ -1,4 +1,4 @@
-"""What a table's columns are, beyond their values: label, unit, notes, modelling type, missing codes, value labels (R-08).
+"""What a table's columns are, beyond their values: label, unit, notes, modelling type, value labels (R-08).
 
 As JMP's Column Info. Kept with the table's information (``__table_descriptors__``,
 key "columns": one entry per column name), so it travels with the project and
@@ -6,8 +6,9 @@ undoes with it. What it changes:
 
 * kind - the modelling type forced (continuous, ordinal, nominal): the
   analyses cast the column so, whatever its values suggest;
-* missing - codes that mean "no value" (-999, "NA", "n/d"): the analyses
-  read them as empty;
+* a cell with no value is missing: SQL NULL, and in a text column an empty
+  or blank string, as in JMP. Codes standing for one (-999, "NA") are made
+  empty cells in the data itself, by the table editor's Fill missing values;
 * value_labels - {stored value: label} (1 -> "male"): the analyses see the
   labels, as levels;
 * format - how its values are shown (Best, Fixed, Percent, Scientific,
@@ -26,7 +27,6 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
-from app.utils.coercion import to_numbers
 
 INFO_KEY = "columns"
 KINDS: tuple[str, ...] = ("continuous", "ordinal", "nominal")
@@ -45,7 +45,6 @@ class ColumnInfo:
     notes: str = ""
     #: The modelling type forced; "" lets the values decide.
     kind: str = ""
-    missing: list[str] = field(default_factory=list)
     value_labels: dict[str, str] = field(default_factory=dict)
     #: How the values are shown (FORMATS); "" shows them as stored.
     format: str = ""
@@ -54,7 +53,7 @@ class ColumnInfo:
     pattern: str = DEFAULT_DATE_PATTERN
 
     def is_empty(self) -> bool:
-        return not (self.label or self.unit or self.notes or self.kind or self.missing or self.value_labels
+        return not (self.label or self.unit or self.notes or self.kind or self.value_labels
                     or self.format)
 
     @classmethod
@@ -67,7 +66,6 @@ class ColumnInfo:
             decimals = 2
         return cls(label=str(values.get("label") or ""), unit=str(values.get("unit") or ""),
                    notes=str(values.get("notes") or ""), kind=kind if kind in KINDS else "",
-                   missing=[str(code) for code in values.get("missing") or []],
                    value_labels={str(k): str(v) for k, v in dict(values.get("value_labels") or {}).items()},
                    format=shown if shown in dict(FORMATS) else "", decimals=decimals,
                    pattern=str(values.get("pattern") or DEFAULT_DATE_PATTERN))
@@ -98,25 +96,28 @@ def rename_column_info(repo: Any, table: str, old: str, new: str) -> None:
         repo.set_table_info(table, INFO_KEY, stored)
 
 
-def _matches(values: pd.Series, codes: list[str]) -> pd.Series:
-    """Where *values* equal one of *codes*: as text, or as numbers (-999 matches -999.0)."""
-    text = values.astype(str).str.strip()
-    hits = text.isin([code.strip() for code in codes])
-    numbers = to_numbers(pd.Series(codes)).dropna()
-    if not numbers.empty:
-        hits |= to_numbers(values).isin(numbers.to_numpy())
-    return hits & values.notna()
+def blank_as_missing(column: pd.Series) -> pd.Series:
+    """*column* with its empty and blank strings missing: a text cell with no value entered.
+
+    NULL is missing already (NaN, read from SQLite); "" or "   " in a text column is no value either, as
+    JMP reads an empty character cell - else an analysis takes it for a level of its own. A number column
+    is returned as it is.
+    """
+    if not (pd.api.types.is_object_dtype(column) or pd.api.types.is_string_dtype(column)):
+        return column
+    blank = column.str.strip().eq("").fillna(False).astype(bool)  # non-text values give NaN here: not blank
+    return column.mask(blank, np.nan) if blank.any() else column
 
 
 def apply_to_frame(frame: pd.DataFrame, infos: Mapping[str, ColumnInfo]) -> pd.DataFrame:
-    """*frame* as the analyses should read it: missing codes empty, value labels in place of the codes."""
+    """*frame* as the analyses should read it: cells with no value empty, value labels in place of the codes."""
     result = frame.copy()
+    for name in result.columns:
+        result[name] = blank_as_missing(result[name])
     for name, info in infos.items():
         if name not in result.columns:
             continue
         column = result[name]
-        if info.missing:
-            column = column.mask(_matches(column, info.missing), np.nan)
         if info.value_labels:
             keys = {code.strip(): label for code, label in info.value_labels.items()}
 

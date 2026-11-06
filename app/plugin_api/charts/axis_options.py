@@ -149,6 +149,26 @@ def limit_key(axis: str, edge: str) -> str:
     return f"{axis}_{edge}"
 
 
+def interval_key(axis: str) -> str:
+    """Return the option key for one axis' major tick interval, e.g. ``x_interval``."""
+    return f"{axis}_interval"
+
+
+def manual_interval(options: dict[str, Any], axis: str) -> float | None:
+    """The step between major ticks on *axis*, in its units; None: automatic (Matplotlib's ticks).
+
+    A step must be a positive, finite number: zero, a negative or a word is no step, so automatic.
+    """
+    value = options.get(interval_key(axis))
+    if value is None or value == "":
+        return None
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return None
+    return number if 0 < number < float("inf") else None
+
+
 def grid_setting(options: dict[str, Any], axis: str, which: str) -> str:
     """Return one grid setting, translating a pre-per-axis figure if needed."""
     value = options.get(grid_key(axis, which))
@@ -249,5 +269,6 @@ def defaults() -> dict[str, Any]:
     for axis in LIMIT_AXES:
         for edge in ("min", "max"):
             payload[limit_key(axis, edge)] = None
+        payload[interval_key(axis)] = None
     payload["limits_mode"] = LIMITS_AUTO
     return payload

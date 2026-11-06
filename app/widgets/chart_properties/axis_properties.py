@@ -285,10 +285,13 @@ class AxisPropertiesWidget(BaseProperties):
     # Coordinates: one set of controls, applied to the X, Y, Z ticked
     # ------------------------------------------------------------------
     #: A coordinate's settings as the card shows them; min/max None is Auto.
+    #: The Scale card's typed values with an Auto each: the range's ends, and the major ticks' interval.
+    _RANGE_FIELDS: ClassVar[tuple[str, ...]] = ("min", "max", "interval")
+
     _COORDINATE_DEFAULTS: ClassVar[dict[str, Any]] = {
         "label": "", "scale": "linear", "base": 10.0, "invert": False, "secondary": "", "break": "",
         "tick_length": 0.0, "tick_rotation": 0.0, "tick_length_minor": 0.0, "tick_rotation_minor": 0.0,
-        "min": None, "max": None,
+        "min": None, "max": None, "interval": None,
         **{f"{kind}_{which}": axis_options.AUTO for kind in ("grid", "ticks") for which in axis_options.WHICH},
     }
 
@@ -338,14 +341,19 @@ class AxisPropertiesWidget(BaseProperties):
             for value, text in axis_options.TICK_CHOICES: tick.addItem(_(text), value)
             self._grid_combos[which] = grid
             self._tick_combos[which] = tick
-        for edge in ("min", "max"):
+        for edge in self._RANGE_FIELDS:
             # A plain field: a limit is typed (1e-3, 2.5, 1,5), not stepped -
             # a spin box's arrows step by an amount that fits no axis.
             edit = QLineEdit(self)
             edit.setPlaceholderText(_("Auto"))
-            edit.setToolTip(_("The axis' end, as a number: 0.5, 1e-3; a comma works as the decimal point too."))
             auto = QCheckBox(_("Auto"), self); auto.setChecked(True)
-            auto.setToolTip(_("Automatic range"))
+            if edge == "interval":
+                edit.setToolTip(_("The step between major ticks, in the axis' units (days on a date axis): 0.5, "
+                                  "10. A linear scale only; a comma works as the decimal point too."))
+                auto.setToolTip(_("Automatic ticks"))
+            else:
+                edit.setToolTip(_("The axis' end, as a number: 0.5, 1e-3; a comma works as the decimal point too."))
+                auto.setToolTip(_("Automatic range"))
             auto.toggled.connect(lambda checked, target=edit: self._limit_auto_toggled(target, checked))
             self._limit_edits[edge] = edit
             self._limit_auto_checks[edge] = auto
@@ -383,7 +391,7 @@ class AxisPropertiesWidget(BaseProperties):
             "tick_length_minor": (self._minor_tick_length_spin.valueChanged,),
             "tick_rotation_minor": (self._minor_tick_rotation_spin.valueChanged,),
         }
-        for edge in ("min", "max"):
+        for edge in self._RANGE_FIELDS:
             signals[edge] = (self._limit_edits[edge].editingFinished, self._limit_auto_checks[edge].toggled)
         for which in axis_options.WHICH:
             signals[f"grid_{which}"] = (self._grid_combos[which].currentIndexChanged,)
@@ -402,8 +410,12 @@ class AxisPropertiesWidget(BaseProperties):
             return self._break_edit.text().strip()
         if field == "scale":
             return str(self._scale_combo.currentData() or "linear")
-        if field in ("min", "max"):
-            return None if self._limit_auto_checks[field].isChecked() else parse_limit(self._limit_edits[field].text())
+        if field in self._RANGE_FIELDS:
+            if self._limit_auto_checks[field].isChecked():
+                return None
+            value = parse_limit(self._limit_edits[field].text())
+            # A step is a positive number: zero or less is no step.
+            return None if field == "interval" and value is not None and value <= 0 else value
         if field.startswith(("grid_", "ticks_")):
             kind, which = field.split("_", 1)
             combo = (self._grid_combos if kind == "grid" else self._tick_combos)[which]
@@ -422,7 +434,7 @@ class AxisPropertiesWidget(BaseProperties):
             self._break_edit.setText(str(value or ""))
         elif field == "scale":
             self._select_combo_value(self._scale_combo, value, "linear")
-        elif field in ("min", "max"):
+        elif field in self._RANGE_FIELDS:
             edit, auto = self._limit_edits[field], self._limit_auto_checks[field]
             auto.setChecked(value is None)
             edit.setText("" if value is None else f"{float(value):.12g}")
@@ -446,7 +458,7 @@ class AxisPropertiesWidget(BaseProperties):
 
     def _store_field(self, field: str) -> None:
         value = self._read_field(field)
-        if field in ("min", "max") and value is None and not self._limit_auto_checks[field].isChecked():
+        if field in self._RANGE_FIELDS and value is None and not self._limit_auto_checks[field].isChecked():
             # Not a number, or nothing: the limit it had stays, shown again.
             kept = self._coordinates[self._coordinate_axis].get(field)
             self._limit_edits[field].setText("" if kept is None else f"{float(kept):.12g}")
@@ -491,7 +503,7 @@ class AxisPropertiesWidget(BaseProperties):
         for widget in (self._scale_combo, *self._grid_combos.values(), *self._tick_combos.values()):
             widget.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
             widget.setMinimumContentsLength(5)
-        for edge in ("min", "max"):
+        for edge in self._RANGE_FIELDS:
             self._limit_edits[edge].setMinimumWidth(60)
         # Their ranges are huge; their values are short.
         for spin in (self._linthresh_spin, self._scale_base_spin, *self._value_spins().values()):
@@ -535,15 +547,16 @@ class AxisPropertiesWidget(BaseProperties):
         self._scale_parameter.addWidget(self._linthresh_spin)
         grid.addWidget(self._scale_parameter_caption, 1, 2)
         grid.addWidget(self._scale_parameter, 1, 3)
-        grid.addWidget(QLabel(_("Min"), box), 2, 0)
-        grid.addWidget(row(box, [self._limit_edits["min"], self._limit_auto_checks["min"]], fill=True), 2, 1)
-        grid.addWidget(QLabel(_("Max"), box), 2, 2)
-        grid.addWidget(row(box, [self._limit_edits["max"], self._limit_auto_checks["max"]], fill=True), 2, 3)
-        grid.addWidget(self._invert_check, 3, 1, 1, 3)
-        grid.addWidget(QLabel(_("Also in"), box), 4, 0)
-        grid.addWidget(self._secondary_combo, 4, 1, 1, 3)
-        grid.addWidget(QLabel(_("Break"), box), 5, 0)
-        grid.addWidget(self._break_edit, 5, 1, 1, 3)
+        # Min, Max and the tick Interval: a row each, the field and its Auto.
+        for offset, (edge, text) in enumerate((("min", _("Min")), ("max", _("Max")), ("interval", _("Interval")))):
+            grid.addWidget(QLabel(text, box), 2 + offset, 0)
+            grid.addWidget(row(box, [self._limit_edits[edge], self._limit_auto_checks[edge]], fill=True),
+                           2 + offset, 1, 1, 3)
+        grid.addWidget(self._invert_check, 5, 1, 1, 3)
+        grid.addWidget(QLabel(_("Also in"), box), 6, 0)
+        grid.addWidget(self._secondary_combo, 6, 1, 1, 3)
+        grid.addWidget(QLabel(_("Break"), box), 7, 0)
+        grid.addWidget(self._break_edit, 7, 1, 1, 3)
 
         # Ticks and grid: major and minor as columns.
         _section, grid, box = card(_("Ticks and grid"), "axisTicksCard")
@@ -675,6 +688,10 @@ class AxisPropertiesWidget(BaseProperties):
                 _("The linear region around zero of a symlog scale.") if symlog else _("The base of a log scale."))
         self._scale_base_spin.setEnabled(shown == "log")
         self._linthresh_spin.setEnabled(symlog)
+        # An even step between ticks is a linear scale's: log and symlog keep their own ticks.
+        linear = shown == "linear"
+        self._limit_auto_checks["interval"].setEnabled(linear)
+        self._limit_edits["interval"].setEnabled(linear and not self._limit_auto_checks["interval"].isChecked())
 
     def _selected_scales(self) -> tuple[str, str, str]:
         """The x, y and z scales, defaulting to linear."""
@@ -757,6 +774,7 @@ class AxisPropertiesWidget(BaseProperties):
                 values[f"ticks_{which}"] = axis_options.tick_setting(options, axis, which)
             for edge in ("min", "max"):
                 values[edge] = axis_options.manual_limit(options, axis, edge)
+            values["interval"] = axis_options.manual_interval(options, axis)
         for name, check in self._spine_checks().items():
             check.setChecked(bool(options.get(f"hide_spine_{name}", False)))
         self._show_coordinates()
@@ -811,6 +829,7 @@ class AxisPropertiesWidget(BaseProperties):
                 payload[axis_options.tick_key(axis, which)] = values[f"ticks_{which}"]
             for edge in ("min", "max"):
                 payload[axis_options.limit_key(axis, edge)] = values[edge]
+            payload[axis_options.interval_key(axis)] = values["interval"]
 
         # The legacy keys are written as the settings imply, so a figure
         # edited here still renders in a build that predates them - and so
@@ -1027,12 +1046,37 @@ class AxisPropertiesWidget(BaseProperties):
         self.set_kwargs_widget(editor)
 
     def clean_kwargs(self) -> dict[str, Any]:
-        """Commit and return non-empty kwargs values."""
+        """Commit and return the kwargs values, the empty ones left out - unless leaving one out would uncover a
+        value stored outside the panel.
+
+        A report figure (Distribution, Statistics) keeps some settings in the axis' own options rather than in
+        ``axis_kwargs`` - the histogram's ``distribution_fit``, say. Those are read after ``axis_kwargs``, so a
+        setting cleared here and dropped came back from there: emptying the fit drew the Normal curve again.
+        For those the cleared setting is written as its default, which wins.
+        """
         if self._kwargs_editor is None:
             return {}
         self._kwargs_editor.commit_pending_edits()
         values = cast(dict[str, Any], self._kwargs_editor.get_values())
-        return {key: value for key, value in values.items() if value != ""}
+        stored = self._options_below_kwargs()
+        schema = self._kwargs_editor.config
+        cleaned: dict[str, Any] = {}
+        for key, value in values.items():
+            if value != "":
+                cleaned[key] = value
+            elif key in stored:
+                # Cleared over a stored value: the setting's own default, said explicitly so it wins.
+                meta = schema.get(key)
+                cleaned[key] = meta.get("default") if isinstance(meta, dict) else None
+        return cleaned
+
+    def _options_below_kwargs(self) -> set[str]:
+        """The settings the axis keeps with a value in its own options, read after ``axis_kwargs``."""
+        if self._repo is None or self._kwargs_build_signature is None:
+            return set()
+        options = self._repo.get_axis_options(int(self._kwargs_build_signature[0])) or {}
+        return {str(key) for key, value in options.items()
+                if key not in ("axis_kwargs", "renderer_options") and value not in (None, "")}
 
     def _reset_kwargs_to_defaults(self) -> None:
         """Reset every row of the kwargs editor to "leave it to the style".
