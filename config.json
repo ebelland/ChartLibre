@@ -1470,6 +1470,7 @@
     "regression_curve_points": 200,
     "change_max_pairs": 4000,
     "background_busy_delay_ms": 300,
+    "num_recent_charts": 3,
     "font_scale_min_percent": 50,
     "font_scale_max_percent": 300,
     "font_scale_step_percent": 10

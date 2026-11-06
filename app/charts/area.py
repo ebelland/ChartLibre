@@ -147,7 +147,7 @@ class StairsAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Stairs"
-    Category: str = "Statistical distributions"
+    Category: str = "Pairwise data"
     Description: str = (
         "A step outline over bin edges, for values that hold constant between "
         "them rather than sloping."

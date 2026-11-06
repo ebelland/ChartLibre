@@ -52,7 +52,7 @@ class TextAxisRenderer(BaseAxisRenderer):
     """Places one text label per row, optionally spread apart by adjustText."""
 
     Name: str = "Text"
-    Category: str = "Pairwise data"
+    Category: str = "Specialized charts"
     Description: str = "Text labels at data points, spread apart to avoid overlap."
     Link: str = "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.text.html"
 

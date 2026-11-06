@@ -393,7 +393,7 @@ def test_group_by_makes_one_series_per_value_without_the_hidden_rows(qapp, tmp_p
     repo.mark_hide_rowids(table_name="penguins", rowids=[5], clear_existing=True)  # the only Chinstrap
 
     dialog = NewPlotTabDialog(repo, current_table="penguins", preferred_columns=["length", "depth"])
-    assert dialog._select_renderer_by_name("Scatter Plot")
+    assert dialog.select_chart_type("Scatter Plot")
     offered = [dialog._combo_group.itemData(i) for i in range(dialog._combo_group.count())]
     assert "species" in offered and "length" not in offered and "depth" not in offered  # not x or y
     dialog._combo_group.setCurrentIndex(dialog._combo_group.findData("species"))
@@ -414,7 +414,7 @@ def test_group_by_makes_one_series_per_value_without_the_hidden_rows(qapp, tmp_p
     monkeypatch.setattr(dialog_module, "show_message", lambda _parent, message_id, **_k: shown.append(message_id))
     monkeypatch.setattr(NewPlotTabDialog, "MAX_GROUPS", 1)
     again = NewPlotTabDialog(repo, current_table="penguins", preferred_columns=["length", "depth"])
-    again._select_renderer_by_name("Scatter Plot")
+    again.select_chart_type("Scatter Plot")
     again._combo_group.setCurrentIndex(again._combo_group.findData("species"))
     again._on_accept()
     assert again.chart_result is None and shown == ["chart.too_many_groups"]
@@ -495,7 +495,7 @@ def test_separate_axes_by_makes_one_axis_per_value(qapp, tmp_path: Path) -> None
         "island": ["Biscoe", "Dream", "Biscoe", "Dream"],
     }), table_name="penguins", normalize_columns=False)
     dialog = NewPlotTabDialog(repo, current_table="penguins", preferred_columns=["length", "depth"])
-    assert dialog._select_renderer_by_name("Scatter Plot")
+    assert dialog.select_chart_type("Scatter Plot")
     dialog._combo_axes_by.setCurrentIndex(dialog._combo_axes_by.findData("island"))
     assert not dialog._edit_axis_name.isEnabled()
     dialog._on_accept()

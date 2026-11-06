@@ -34,7 +34,7 @@ class TimelineAxisRenderer(ScatterAxisRenderer, BaseAxisRenderer):
     """
 
     Name: str = "Timeline"
-    Category: str = "Pairwise data"
+    Category: str = "Specialized charts"
     Description: str = (
         "Dated events on a baseline, each on a stem with its label, for "
         "release histories and anything else that is a list of moments."

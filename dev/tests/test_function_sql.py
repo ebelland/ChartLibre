@@ -121,7 +121,7 @@ def test_new_chart_draws_a_function_with_each_charts_parameters_and_range(qapp, 
             assert dialog._combo_table.currentText() == "Line  (function)"
             offered = [dialog._combo_table.itemData(i) for i in range(dialog._combo_table.count())]
             assert "measures" in offered and "_Fit_Result" not in offered  # an operation's table: not offered
-            assert dialog._select_renderer_by_name("Scatter Plot")
+            assert dialog.select_chart_type("Scatter Plot")
             panel = dialog._function_panel
             assert dialog._editor_form_layout.isRowVisible(panel) and not panel._form.isRowVisible(panel.y_row)
             assert not panel._form.isRowVisible(panel.text)  # the formula is the project's: not edited here
@@ -155,7 +155,7 @@ def test_new_chart_draws_a_function_with_each_charts_parameters_and_range(qapp, 
         panel = dialog._function_panel
         assert panel._form.isRowVisible(panel.y_row) and panel.y_row.grid() == GridRange(1.0, 2.0, 2)
         assert dialog._columns_from_table() == ["x", "y", "z"]
-        assert dialog._select_renderer_by_name("Surface Plot")
+        assert dialog.select_chart_type("Surface Plot")
         assert dialog._current_role_mapping().get("z") == "z"
         assert not dialog._editor_form_layout.isRowVisible(dialog._roles_scroll)
         dialog._combo_table.setCurrentIndex(dialog._combo_table.findData("Line"))  # f(x): no z for a surface

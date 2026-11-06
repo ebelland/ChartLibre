@@ -30,7 +30,6 @@ from PySide6.QtWidgets import (
     QRadioButton,
     QScrollArea,
     QSizePolicy,
-    QToolBox,
     QWidget,
 )
 
@@ -48,7 +47,6 @@ from app.scanners.axis_renderer_scanner import (
 from app.styles.style import (
     CardFrame,
     TitledCard,
-    apply_toolbox_header_metrics,
     create_action_button,
     create_doc_link,
     load_icon,
@@ -58,9 +56,10 @@ from app.styles.style import (
     stdSizeAndlayout,
 )
 from app.utils.config import get_constant
-from app.utils.i18n import _, tr
+from app.utils.i18n import _
 from app.utils.messages import show_message
 from app.widgets.function_editor import FunctionEditor
+from app.widgets.renderer_picker import RendererPicker, remember_chart
 
 
 @dataclass(slots=True)
@@ -147,8 +146,7 @@ class NewPlotTabDialog(ColumnsDialog):
             QSizePolicy.Policy.Expanding,
         )
         renderer_layout = renderer_panel.card.layout()
-        renderer_layout.addWidget(self._search_types, 0)
-        renderer_layout.addWidget(self._types_toolbox, 1)
+        renderer_layout.addWidget(self._picker, 1)
         renderer_layout.addWidget(self._renderer_details, 0)
 
         editor_group.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding)
@@ -177,26 +175,11 @@ class NewPlotTabDialog(ColumnsDialog):
 
     def _build_renderer_list(self) -> None:
         """Left column: the chart types by category, searchable, and the details of the one selected."""
-        self._search_types = QLineEdit()
-        self._search_types.setPlaceholderText(_("Search chart types..."))
-        self._search_types.setToolTip(
-            _("Filter by name or category. Sections with no match are hidden.")
-        )
-        # The clear button is the standard search affordance on both platforms,
-        # and it is one fewer widget than a button beside the field.
-        self._search_types.setClearButtonEnabled(True)
-
-        # One accordion section per Matplotlib category, each holding the
-        # renderers of that family.  Same widget as the properties panels, so
-        # the two sides of the window behave the same way.
-        self._types_toolbox = QToolBox()
-        self._lists_by_category: dict[str, QListWidget] = {}
-        self._fill_renderer_toolbox()
-
-        self._select_first_renderer()
-        selected = self._current_item()
-        if selected is not None:
-            self.renderer = get_renderer(str(selected.data(Qt.ItemDataRole.UserRole)))
+        self._picker = RendererPicker(renderers, self)
+        self._picker.select(self.DEFAULT_RENDERER, show=False) or (
+            renderers and self._picker.select(str(renderers[0]["value"]), show=False))
+        if self._picker.current:
+            self.renderer = get_renderer(self._picker.current)
             self._renderer_class = self._load_renderer_class()
 
         # The selected chart type: name, description, link.
@@ -408,9 +391,7 @@ class NewPlotTabDialog(ColumnsDialog):
         self._rb_current_figure.toggled.connect(self._sync_controls)
         self._rb_new_axis.toggled.connect(self._sync_controls)
         self._rb_existing_axis.toggled.connect(self._sync_controls)
-        self._search_types.textChanged.connect(self._filter_renderer_toolbox)
-        for renderer_list in self._lists_by_category.values():
-            renderer_list.currentItemChanged.connect(self._on_chart_type_changed)
+        self._picker.changed.connect(self._on_chart_type_changed)
         self._combo_table.currentIndexChanged.connect(self._on_table_changed)
         self._function_panel.changed.connect(self._update_sql)
         self._series_list.currentItemChanged.connect(self._on_series_selected)
@@ -425,214 +406,12 @@ class NewPlotTabDialog(ColumnsDialog):
         """Return the dialog result after accept."""
         return self._result
 
-    # Matplotlib's own order, from https://matplotlib.org/stable/plot_types/.
-    # Kept rather than sorted alphabetically so the list reads the same way as
-    # the documentation the renderers wrap, and so "Pairwise data" - the plots
-    # people reach for most - stays at the top.
-    CATEGORY_ORDER: tuple[str, ...] = (
-        "Pairwise data",
-        "Statistical distributions",
-        "Diagnostic plots",
-        "Gridded data",
-        "Irregularly gridded data",
-        "3D and volumetric data",
-    )
-
-    def _fill_renderer_toolbox(self) -> None:
-        """Build one accordion section per category, each a list of renderers.
-
-        A list per section rather than one list with heading rows: the sections
-        collapse, which is the point of an accordion on a panel this narrow, and
-        it means the search can hide a whole family in one move.
-        """
-        for category in self._categories_in_order():
-            renderer_list = QListWidget()
-            renderer_list.setSelectionMode(QListWidget.SelectionMode.SingleSelection)
-            renderer_list.setUniformItemSizes(True)
-            mark_editor_panel(renderer_list)
-
-            for renderer in self._renderers_in(category):
-                # Shown translated, stored raw: the name in UserRole is the
-                # chart_type written to the database and matched against
-                # elsewhere, so only the label a user reads goes through tr().
-                item = QListWidgetItem(tr(str(renderer["value"])))
-                item.setData(Qt.ItemDataRole.UserRole, renderer["value"])
-                item.setToolTip(tr(str(renderer.get("description") or "")))
-                renderer_list.addItem(item)
-
-            # The list scrolls, filling its accordion page; asking for next to
-            # no height, it never makes the page scroll too - one scroll bar,
-            # not two side by side (B-12).
-            renderer_list.setHorizontalScrollBarPolicy(Qt.ScrollBarPolicy.ScrollBarAlwaysOff)
-            renderer_list.setMinimumHeight(40)
-            renderer_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Ignored)
-            self._lists_by_category[category] = renderer_list
-            self._types_toolbox.addItem(renderer_list, tr(category))
-
-        apply_toolbox_header_metrics(self._types_toolbox)
-
-    def _categories_in_order(self) -> list[str]:
-        """Known categories first, in Matplotlib's order, then any others.
-
-        A renderer with a category nobody has heard of still appears - in its
-        own section, at the end - rather than vanishing from the dialog.
-        """
-        present = {str(renderer.get("category") or "") for renderer in renderers}
-        known = [name for name in self.CATEGORY_ORDER if name in present]
-        return known + sorted(present - set(known))
-
-    def _renderers_in(self, category: str) -> list[dict]:
-        return [r for r in renderers if str(r.get("category") or "") == category]
-
-    # ------------------------------------------------------------------
-    # Selection across several lists
-    # ------------------------------------------------------------------
-    def _current_item(self) -> QListWidgetItem | None:
-        """Return the selected renderer item, from the active toolbox page.
-
-        Only one category is ever visible at a time - the toolbox shows one
-        page - so the current item is unambiguously that page's own list's
-        ``currentItem()``. This used to scan every list for the first whose
-        ``currentItem()`` also had ``isSelected()`` true, which broke two
-        ways: on a real mouse click - as opposed to a programmatic
-        ``setCurrentRow()`` - Qt does not guarantee ``isSelected()`` is
-        already true at the exact moment ``currentItemChanged`` fires, so a
-        freshly clicked item briefly read back as unselected and the details
-        panel fell back to a hardcoded "Axis"; and a list that is not even
-        visible can still be carrying a *stale* current item from before the
-        user switched categories, which - iterated first, dict order being
-        what it is - won the read over the section actually on screen.
-        """
-        current_widget = self._types_toolbox.currentWidget()
-        if isinstance(current_widget, QListWidget):
-            return current_widget.currentItem()
-        return None
-
-    def _clear_other_selections(self, keep: QListWidget) -> None:
-        """Keep the selection exclusive across sections.
-
-        Qt makes each list exclusive on its own, so without this two sections
-        could each show a highlighted row and the dialog would look as if two
-        chart types were chosen.
-        """
-        for renderer_list in self._lists_by_category.values():
-            if renderer_list is not keep:
-                renderer_list.clearSelection()
-                # setCurrentRow(-1) rather than setCurrentItem(None): both
-                # clear the current item, but only this one is typed for it.
-                renderer_list.setCurrentRow(-1)
-
-    #: Selected on open when present, ahead of whatever sits first in
-    #: Matplotlib's own category order. Scatter is the chart almost every new
-    #: figure turns out to be, and the general "just plot the data" case
-    #: users reach for.
+    #: Selected on open: the chart almost every new figure turns out to be.
     DEFAULT_RENDERER: str = "Scatter Plot"
-
-    def _select_first_renderer(self) -> None:
-        """Select the default renderer, or the first one otherwise."""
-        if self._select_renderer_by_name(self.DEFAULT_RENDERER):
-            return
-
-        for index, renderer_list in enumerate(self._lists_by_category.values()):
-            if renderer_list.count() == 0 or renderer_list.isHidden():
-                continue
-            for row in range(renderer_list.count()):
-                if not renderer_list.item(row).isHidden():
-                    # Toolbox page first: _current_item() reads the active
-                    # page's own currentItem(), so setting the row before the
-                    # page is switched would have it looking at the wrong
-                    # list for as long as that order was reversed.
-                    self._types_toolbox.setCurrentIndex(index)
-                    renderer_list.setCurrentRow(row)
-                    self._clear_other_selections(renderer_list)
-                    return
 
     def select_chart_type(self, name: str) -> bool:
         """Choose the chart type *name* (the search opens New plot on one); whether it exists."""
-        return self._select_renderer_by_name(name)
-
-    def _select_renderer_by_name(self, name: str) -> bool:
-        """Select the renderer *name* if it exists in any section.
-
-        Returns whether it was found, so a caller can fall back when it is
-        not - a renderer this dialog no longer ships must not be a reason to
-        select nothing at all.
-        """
-        for index, renderer_list in enumerate(self._lists_by_category.values()):
-            if renderer_list.isHidden():
-                continue
-            for row in range(renderer_list.count()):
-                item = renderer_list.item(row)
-                # Not a match while an active search has hidden it: forcing
-                # it into view would silently override what the user typed,
-                # and calling this again after every keystroke - it runs
-                # whenever the current selection drops out of the filter -
-                # would make the default win the search outright.
-                if item.isHidden():
-                    continue
-                if str(item.data(Qt.ItemDataRole.UserRole)) == name:
-                    # Toolbox page first - see the matching comment in
-                    # _select_first_renderer.
-                    self._types_toolbox.setCurrentIndex(index)
-                    renderer_list.setCurrentRow(row)
-                    self._clear_other_selections(renderer_list)
-                    return True
-        return False
-
-    # ------------------------------------------------------------------
-    # Search
-    # ------------------------------------------------------------------
-    def _filter_renderer_toolbox(self, text: str) -> None:
-        """Show only renderers matching *text*, and only sections that have any.
-
-        Matching on the category as well as the name, so typing "stat" brings
-        up the whole statistical family - the categories are half of why the
-        list is worth searching.
-
-        Both spellings of every name are matched - the English one stored in
-        UserRole and the translated one on screen - so a search works whether
-        the word that came to mind was the one being read or the one in the
-        Matplotlib documentation it came from.
-        """
-        needle = str(text or "").strip().lower()
-
-        # Indexed by position, not by header text: the header gains a match
-        # count while a search is active, so it is not a stable key.
-        for index, category in enumerate(self._lists_by_category):
-            renderer_list = self._lists_by_category[category]
-            translated_category = tr(category)
-            category_matches = (
-                needle in category.lower() or needle in translated_category.lower()
-            )
-
-            visible = 0
-            for row in range(renderer_list.count()):
-                item = renderer_list.item(row)
-                matches = (
-                    not needle
-                    or category_matches
-                    or needle in str(item.data(Qt.ItemDataRole.UserRole)).lower()
-                    or needle in item.text().lower()
-                )
-                item.setHidden(not matches)
-                visible += int(matches)
-
-            # An empty section is disabled rather than removed: removing pages
-            # renumbers every index after it, and the numbering is what maps a
-            # section back to its list.
-            self._types_toolbox.setItemEnabled(index, visible > 0)
-            self._types_toolbox.setItemText(
-                index,
-                translated_category
-                if not needle
-                else f"{translated_category}  ({visible})",
-            )
-
-        # Bound once: two calls could disagree, and the second one is what the
-        # type checker cannot see is non-None.
-        current = self._current_item()
-        if current is None or current.isHidden():
-            self._select_first_renderer()
+        return self._picker.select(name)
 
     def _load_renderer_class(self) -> type[BaseAxisRenderer] | None:
         """Import and return the selected renderer class."""
@@ -691,11 +470,7 @@ class NewPlotTabDialog(ColumnsDialog):
         renderer sits under its category heading, and stripping the indent back
         off would be one more place that has to agree about the layout.
         """
-        item = self._current_item()
-        if item is None:
-            return "Axis"
-
-        return str(item.data(Qt.ItemDataRole.UserRole) or "Axis")
+        return self._picker.current or "Axis"
 
     def _default_figure_name(self) -> str:
         """Default figure name is the selected data source."""
@@ -1349,20 +1124,11 @@ class NewPlotTabDialog(ColumnsDialog):
                 self._role_combos[y_role].setCurrentIndex(2)
         self._show_roles()
 
-    def _on_chart_type_changed(
-        self,
-        current: QListWidgetItem | None,
-        _previous: QListWidgetItem | None,
-    ) -> None:
+    def _on_chart_type_changed(self, chart_type: str) -> None:
         """Refresh role rows after the renderer selection changes."""
         self._persist_editor_to_draft()
-        item = current or self._current_item()
-        # A category heading carries no data; it is unselectable, but the
-        # signal can still arrive with one during a rebuild.
-        if item is not None and item.data(Qt.ItemDataRole.UserRole):
-            chart_type = str(item.data(Qt.ItemDataRole.UserRole))
-            self.renderer = get_renderer(chart_type)
-            self._renderer_class = self._load_renderer_class()
+        self.renderer = get_renderer(chart_type)
+        self._renderer_class = self._load_renderer_class()
 
         self._update_renderer_details()
         self._set_default_axis_name()
@@ -1414,11 +1180,10 @@ class NewPlotTabDialog(ColumnsDialog):
     # ------------------------------------------------------------------
     def _selected_chart_type(self) -> str:
         """Return selected renderer/chart type and cache the renderer object."""
-        item = self._current_item()
-        if item is None:
+        key = self._picker.current
+        if not key:
             return "Scatter Plot"
 
-        key = str(item.data(Qt.ItemDataRole.UserRole))
         renderer = get_renderer(key)
         if renderer != self.renderer:
             self.renderer = renderer
@@ -1594,6 +1359,7 @@ class NewPlotTabDialog(ColumnsDialog):
             axis_id=int(axis_ids[0]),
             series_count=int(created),
         )
+        remember_chart(self._picker.current)
         self.accept()
 
     #: Most series one "Group by" may make: past this the column is an

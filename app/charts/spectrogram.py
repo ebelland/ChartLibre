@@ -33,7 +33,7 @@ class SpectrogramAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Spectrogram"
-    Category: str = "Pairwise data"
+    Category: str = "Gridded data"
     Description: str = (
         "Frequency content of a signal over time, as colour - when a "
         "frequency appears, not only whether it does."

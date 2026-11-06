@@ -31,7 +31,7 @@ class TernaryAxisRenderer(BaseAxisRenderer):
     """Points in a triangle whose corners are three pure components."""
 
     Name: str = "Ternary Plot"
-    Category: str = "Pairwise data"
+    Category: str = "Specialized charts"
     Description: str = (
         "Three parts of a whole - a mixture's components - as points in a triangle, each corner one pure "
         "component, grid lines every 10%."

@@ -53,7 +53,7 @@ class TableAxisRenderer(BaseAxisRenderer):
     """
 
     Name: str = "Table"
-    Category: str = "Pairwise data"
+    Category: str = "Specialized charts"
     Description: str = "A data table, rows and columns of text rather than a plot."
     Link: str = "https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.table.html"
 

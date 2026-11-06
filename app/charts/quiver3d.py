@@ -24,7 +24,7 @@ class Quiver3DAxisRenderer(BaseAxisRenderer):
     """An arrow at each point of a 3D vector field."""
 
     Name: str = "Quiver 3D"
-    Category: str = "3D"
+    Category: str = "3D and volumetric data"
     Description: str = "An arrow at each point in space showing a 3D vector field's direction and size (u, v, w)."
     Keywords: str = "quiver 3d vector field campo vettoriale frecce arrows flusso flow"
     Goals: ClassVar[list[str]] = ["relate"]

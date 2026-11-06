@@ -43,6 +43,8 @@ EXISTING_CATEGORIES: tuple[str, ...] = (
     "Gridded data",
     "Irregularly gridded data",
     "3D and volumetric data",
+    "Quality and process",
+    "Specialized charts",
 )
 
 
