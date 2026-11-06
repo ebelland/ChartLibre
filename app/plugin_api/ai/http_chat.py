@@ -7,6 +7,7 @@ No package to install: urllib, as the data sources already use.
 """
 from __future__ import annotations
 
+import http.client
 import json
 import threading
 import urllib.error
@@ -73,15 +74,18 @@ def stream_lines(url: str, payload: Mapping[str, Any], *, cancel: threading.Even
     """POST *payload* and yield the answer's lines as they arrive; stops early once *cancel* is set."""
     try:
         response = urllib.request.urlopen(_request(url, payload, headers), timeout=timeout)
-    except (urllib.error.URLError, OSError) as error:
+    except (urllib.error.URLError, OSError, ValueError) as error:
         raise _error(url, error) from error
     with response:
-        for raw in response:
-            if cancel.is_set():
-                return
-            line = raw.decode("utf-8", "replace").strip()
-            if line:
-                yield line
+        try:
+            for raw in response:
+                if cancel.is_set():
+                    return
+                line = raw.decode("utf-8", "replace").strip()
+                if line:
+                    yield line
+        except (OSError, http.client.HTTPException) as error:  # the service went away in mid-answer
+            raise _error(url, error) from error
 
 
 def json_lines(lines: Iterator[str]) -> Iterator[dict[str, Any]]:

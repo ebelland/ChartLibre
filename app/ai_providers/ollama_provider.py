@@ -38,7 +38,10 @@ from app.plugin_api.ai.provider import (
 
 DEFAULT_ADDRESS = "http://localhost:11434"
 DEFAULT_MODEL = "llama3.1"
-_LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1", ""}
+_LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
+#: Tokens a conversation may hold. Ollama's own default (4096) drops the oldest messages without a word, and the
+#: tools with one analysis catalogue already fill it.
+CONTEXT_TOKENS = 16384
 
 _ROUTER = (
     "You route requests for a data-analysis application. Reply with one word. SIMPLE: a direct question "
@@ -79,7 +82,8 @@ class OllamaSession(ChatSession):
             self._messages.append({"role": "tool", "content": content, "tool_name": self._calls.get(result.id, "")})
         turn = Turn(model=model)
         calls: list[ToolCall] = []
-        payload = {"model": model, "messages": self._messages, "tools": self._tools, "stream": True}
+        payload = {"model": model, "messages": self._messages, "tools": self._tools, "stream": True,
+                   "options": {"num_ctx": CONTEXT_TOKENS}}
         try:
             for item in json_lines(stream_lines(self._url, payload, cancel=cancel)):
                 message = item.get("message") or {}
@@ -137,7 +141,9 @@ class OllamaProvider(AIProvider):
 
     @property
     def address(self) -> str:
-        return self.option("address").strip() or DEFAULT_ADDRESS
+        """Where Ollama answers; an address typed without its http:// gets it, so it can be read and reached."""
+        address = self.option("address").strip() or DEFAULT_ADDRESS
+        return address if "://" in address else f"http://{address}"
 
     @property
     def SENDS_DATA(self) -> bool:  # noqa: N802 - named as the constant it stands for

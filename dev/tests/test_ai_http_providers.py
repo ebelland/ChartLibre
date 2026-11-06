@@ -204,3 +204,11 @@ def test_settings_shows_the_chosen_providers_own_rows_and_tries_them(qapp) -> No
         assert ollama["address"][0].placeholderText() == "http://localhost:11434"
     finally:
         dialog.close()
+
+
+def test_an_address_without_its_scheme_is_still_another_machines() -> None:
+    provider = OllamaProvider()
+    provider.overrides = {"address": "192.168.1.20:11434"}
+    assert provider.address == "http://192.168.1.20:11434" and provider.SENDS_DATA
+    provider.overrides = {"address": "localhost:11434"}
+    assert provider.address == "http://localhost:11434" and not provider.SENDS_DATA
