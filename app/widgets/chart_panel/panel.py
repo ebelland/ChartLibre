@@ -21,6 +21,7 @@ from matplotlib.lines import Line2D
 from matplotlib.markers import MarkerStyle
 from matplotlib.patches import Patch, Rectangle, StepPatch, Wedge
 from PySide6.QtCore import QPoint, QSize, Qt, QTimer, Signal
+from PySide6.QtGui import QColor, QIcon, QPainter
 from PySide6.QtWidgets import (
     QAbstractScrollArea,
     QFrame,
@@ -42,7 +43,7 @@ from app.logs.logger import applogger
 from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 from app.styles.style import SPLITTER_HANDLE_WIDTH, MenuItem, create_menu, create_menu_item, create_toolbar_button
 from app.styles.style import action as catalogue_action
-from app.styles.style import action_presentation, colored_icon, theme_is_dark
+from app.styles.style import action_presentation, theme_is_dark
 from app.utils.config import get_section, update_section
 from app.utils.i18n import _
 from app.widgets.chart_panel.canvas import ChartCanvas
@@ -80,6 +81,29 @@ NAVIGATION_BUTTONS: Final[tuple[tuple[str, str] | None, ...]] = (
 def _symbol_ink() -> str:
     """The grey the chart's fallback icons are drawn in: dark on a light theme, light on a dark one."""
     return "#c9ced6" if theme_is_dark() else "#4a5263"
+
+
+def _inked(icon: QIcon, colour: str) -> QIcon:
+    """*icon* with its ink in *colour*, at the size and padding it has.
+
+    Not ``colored_icon``: that one scales the glyph's ink to fill the square,
+    which for Matplotlib's icons - drawn with a wide margin - made them
+    smaller than the platform glyphs beside them on a Retina screen.
+    """
+    inked = QIcon()
+    for ratio in (1.0, 2.0):
+        pixmap = icon.pixmap(QSize(18, 18), ratio)
+        if pixmap.isNull():
+            continue
+        pixmap = pixmap.copy()
+        painter = QPainter(pixmap)
+        try:
+            painter.setCompositionMode(QPainter.CompositionMode.CompositionMode_SourceIn)
+            painter.fillRect(pixmap.rect(), QColor(colour))
+        finally:
+            painter.end()
+        inked.addPixmap(pixmap)
+    return inked if not inked.isNull() else icon
 
 
 class ChartNavigation(NavigationToolbar2QT):
@@ -562,7 +586,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
             action = actions[name]
             # The platform's glyph; failing that Matplotlib's own, lightened
             # from its bold black to the ink every other icon is drawn in.
-            action.setIcon(icon if not icon.isNull() else colored_icon(action.icon(), _symbol_ink(), 18))
+            action.setIcon(icon if not icon.isNull() else _inked(action.icon(), _symbol_ink()))
             if text:
                 action.setText(text)
             if tooltip:
