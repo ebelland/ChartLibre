@@ -5,7 +5,7 @@ As JMP's Time Series platform: Y is the measure, the time column orders it
 partial autocorrelation with the Ljung-Box test, the ADF and KPSS tests of
 stationarity, the models tried when the order is chosen by AIC, the model's
 parameters and fit, and the forecast with its 95% prediction interval. OK writes the rows
-(fitted values, residuals, the seasonal decomposition), the correlations
+(predicted values, residuals, the seasonal decomposition), the correlations
 and the forecast as tables, and draws the series with its forecast, the
 ACF, the PACF and - with a season - the trend, seasonal part and remainder.
 The engine is app.analysis.time_series.
@@ -33,6 +33,7 @@ from app.plugin_api.data_operations.parameter_spec import (
 )
 from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.utils import report_html
+from app.utils.coercion import column_of
 from app.utils.i18n import _
 
 
@@ -244,6 +245,14 @@ class TimeSeriesDialog(RolesOperationDialogBase):
                     input=result.input, measure=result.measure),
                 shown=_("{input}'s past helps forecast {measure} (Granger)").format(
                     input=result.input, measure=result.measure)))
+        if "Predicted" in result.rows:
+            line = _("Predicted is each value forecast one step ahead from the ones before it, as JMP's "
+                     "Predicted; the Residual is the value minus it.")
+            if tsa.trails_by_one_step(column_of(result.rows, result.measure), column_of(result.rows, "Predicted")):
+                line += " " + _("Here it follows {measure} one step behind: the model predicts little beyond "
+                                "the last value. A model that fits better (ARIMA chosen by AIC, a season) "
+                                "brings it onto the data.").format(measure=result.measure)
+            lines.append(line)
         return lines
 
     def apply_results(self, result: tsa.TimeSeriesResult) -> list[dict[str, Any]]:
@@ -268,9 +277,9 @@ class TimeSeriesDialog(RolesOperationDialogBase):
 
         sql, roles = self.series_select(rows, {"x": "Time", "y": measure})
         series = [(measure, sql, roles, {"linestyle": "-", "marker": "o", "markersize": 3})]
-        if "Fitted" in result.rows:
-            sql, roles = self.series_select(rows, {"x": "Time", "y": "Fitted"})
-            series.append((_("Fitted"), sql, roles, {"linestyle": "--", "marker": "", "color": "#7c3aed"}))
+        if "Predicted" in result.rows:
+            sql, roles = self.series_select(rows, {"x": "Time", "y": "Predicted"})
+            series.append((_("Predicted"), sql, roles, {"linestyle": "--", "marker": "", "color": "#7c3aed"}))
         if "time_series_forecast" in tables:
             forecast = tables["time_series_forecast"]
             sql, roles = self.series_select(forecast, {"x": "Time", "y": "Forecast"})

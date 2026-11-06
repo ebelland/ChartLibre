@@ -30,6 +30,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+from numpy.typing import ArrayLike
 
 from app.analysis.randomness import all_diagnostics
 from app.logs.logger import applogger
@@ -64,7 +65,8 @@ class TimeSeriesResult:
     temporal: bool
     model: str
     season: int
-    #: Time, the measure, and - when computed - Fitted, Residual, Trend, Seasonal, Remainder.
+    #: Time, the measure, and - when computed - Predicted (each value one step ahead from the ones before it,
+    #: as JMP's), Residual, Trend, Seasonal, Remainder.
     rows: pd.DataFrame
     #: Lag, ACF, PACF, Ljung-Box Q, Prob>Q, and the band.
     correlations: pd.DataFrame
@@ -520,6 +522,19 @@ def _residual_diagnostics(residual_values: np.ndarray, summary: dict[str, Any], 
     return residual_diagnostics
 
 
+def trails_by_one_step(values: ArrayLike, predicted: ArrayLike) -> bool:
+    """Whether *predicted* is nearer the value before each one than to the value itself: a model that
+    predicts little beyond the last value, its one-step predictions drawn one step behind the data."""
+    values, predicted = np.asarray(values, dtype=float), np.asarray(predicted, dtype=float)
+    same = np.isfinite(values) & np.isfinite(predicted)
+    behind = np.isfinite(values[:-1]) & np.isfinite(predicted[1:])
+    if same.sum() < 3 or behind.sum() < 3:
+        return False
+    on_time = np.mean((predicted[same] - values[same]) ** 2)
+    one_late = np.mean((predicted[1:][behind] - values[:-1][behind]) ** 2)
+    return bool(one_late < on_time)
+
+
 def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: str = ARIMA,
             order: tuple[int, int, int] = (1, 0, 0), seasonal_order: tuple[int, int, int] = (0, 0, 0),
             season: int = -1, horizon: int = 12, lags: int = 25, input: str = "", input_in_model: bool = False,
@@ -611,7 +626,7 @@ def analyse(frame: pd.DataFrame, measure: str, time: str = ROW_ORDER, *, model: 
             else (skip + 2 + (season if season >= 2 else 0)) if model == STATE_SPACE else 0  # the state's start-up
         shown_fitted, shown_residuals = np.asarray(fitted_values, dtype=float).copy(), residuals.copy()
         shown_fitted[:start], shown_residuals[:start] = np.nan, np.nan
-        rows["Fitted"], rows["Residual"] = shown_fitted, shown_residuals
+        rows["Predicted"], rows["Residual"] = shown_fitted, shown_residuals
         future = _future(times, temporal, horizon)
         forecast = pd.DataFrame({
             "Time": future.dt.strftime("%Y-%m-%d %H:%M:%S").str.replace(" 00:00:00", "") if temporal else future,

@@ -31,7 +31,7 @@ def test_the_autocorrelations_are_statsmodels(qapp=None) -> None:
     assert result.correlations["ACF"].to_numpy() == pytest.approx(acf(y, nlags=10, fft=True)[1:])
     assert result.correlations["PACF"].to_numpy() == pytest.approx(pacf(y, nlags=10, method="ywm")[1:])
     assert result.correlations["Prob>Q"].iloc[0] < 1e-10  # an AR(1) is anything but white noise
-    assert result.forecast.empty and "Fitted" not in result.rows
+    assert result.forecast.empty and "Predicted" not in result.rows
 
 
 def test_arima_finds_the_ar_coefficient_and_forecasts_toward_the_mean() -> None:
@@ -84,7 +84,7 @@ def test_ok_writes_the_tables_and_draws_the_series_its_correlations_and_parts(qa
             qapp.processEvents()
             time.sleep(0.01)
         assert len(repo.table_frame("_shop_time_series_forecast")) == 12
-        assert {"Fitted", "Trend", "Seasonal"} <= set(repo.table_frame("_shop_time_series").columns)
+        assert {"Predicted", "Trend", "Seasonal"} <= set(repo.table_frame("_shop_time_series").columns)
         figure = repo.load_figure_descriptor(dialog.created_figure_ids[0])
         assert [axis.name for axis in figure.axes] == ["Time Series", "Stem Plot", "Stem Plot", "Time Series"]
         assert len(figure.axes[0].series) == 6  # the values, fitted, forecast, its two bounds, the trend
@@ -184,7 +184,7 @@ def test_a_transfer_function_and_an_intervention_are_estimated() -> None:
     assert terms["x (lag 3)"] == pytest.approx(2.0, abs=0.1)
     assert terms["Intervention (step)"] == pytest.approx(8.0, abs=0.8)
     assert len(result.forecast) == 10 and result.forecast["Forecast"].notna().all()
-    assert np.isnan(result.rows["Fitted"].iloc[:3]).all()  # the lead's first rows have no input yet
+    assert np.isnan(result.rows["Predicted"].iloc[:3]).all()  # the lead's first rows have no input yet
     with pytest.raises(ValueError, match="time span"):
         ts.analyse(frame, "y", "t", model=ts.ARIMA, intervention="999")
 
@@ -235,3 +235,24 @@ def test_rolling_origin_validation_compares_the_model_with_the_naive_forecast() 
     assert table.loc["Model", "Forecasts"] == ts.VALIDATION_ORIGINS
     assert table.loc["Model", "Relative to naive"] < 0.95
     assert result.summary["Rolling-origin RMSE relative to naive"] == table.loc["Model", "Relative to naive"]
+
+
+def test_predicted_is_one_step_ahead_and_placed_at_the_value_it_predicts() -> None:
+    """As JMP's Predicted: the value at t forecast from the values up to t - 1, drawn at t."""
+    rng = np.random.default_rng(5)
+    walk = np.cumsum(rng.normal(size=120)) + 50  # a random walk: nothing to predict beyond the last value
+    frame = pd.DataFrame({"t": np.arange(walk.size), "y": walk})
+    result = ts.analyse(frame, "y", "t", model=ts.ARIMA, order=(1, 0, 0), horizon=3)
+    terms = dict(zip(result.parameters["Term"], result.parameters["Estimate"]))
+    mean, phi = terms["const"], terms["ar.L1"]
+    predicted = result.rows["Predicted"].to_numpy(float)
+    by_hand = mean + phi * (walk[:-1] - mean)
+    assert np.isnan(predicted[0])  # the first row only starts the model: left empty
+    assert np.allclose(predicted[1:], by_hand)  # row t holds the forecast of row t, from row t - 1
+    assert ts.trails_by_one_step(walk, predicted)  # so it follows the data one step behind
+
+
+def test_a_model_that_fits_is_not_one_step_behind() -> None:
+    frame = _monthly()
+    result = ts.analyse(frame, "sales", "month", model=ts.AUTO, horizon=3)
+    assert not ts.trails_by_one_step(result.rows["sales"], result.rows["Predicted"])
