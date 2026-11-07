@@ -10,7 +10,8 @@ def _qt_plugins_outside_dot_folder(plugins_dir: str) -> None:
     """Point Qt at links to its plugins kept outside a hidden folder.
 
     iCloud's Desktop & Documents sync marks everything inside a folder whose
-    name starts with a dot as hidden - a .venv on the Desktop included. Qt
+    name starts with a dot as hidden - a .venv on the Desktop included - and,
+    as it turned out, inside a .nosync folder too (python.nosync). Qt
     skips hidden files when it lists a plugin folder, finds no "cocoa"
     platform plugin, and aborts before a window exists ("Could not find the
     Qt platform plugin"); the style and SVG icon plugins vanish the same way.
@@ -25,8 +26,8 @@ def _qt_plugins_outside_dot_folder(plugins_dir: str) -> None:
     if sys.platform != "darwin":
         return
     plugins = os.path.realpath(plugins_dir)
-    if not any(part.startswith(".") for part in plugins.split(os.sep) if part):
-        return  # not inside a dot-folder: nothing hides it
+    if not _plugins_hidden(plugins):
+        return  # Qt sees its plugins: nothing to do
 
     import hashlib
 
@@ -50,6 +51,18 @@ def _qt_plugins_outside_dot_folder(plugins_dir: str) -> None:
         return  # leave Qt to its own plugin folder, and to say why if it fails
     existing = os.environ.get("QT_PLUGIN_PATH")
     os.environ["QT_PLUGIN_PATH"] = mirror if not existing else os.pathsep.join([mirror, existing])
+
+
+def _plugins_hidden(plugins: str) -> bool:
+    """Whether Qt would skip its plugins: inside a dot-folder, or the macOS platform plugin flagged hidden."""
+    if any(part.startswith(".") for part in plugins.split(os.sep) if part):
+        return True
+    import stat
+
+    try:
+        return bool(os.stat(os.path.join(plugins, "platforms", "libqcocoa.dylib")).st_flags & stat.UF_HIDDEN)
+    except (OSError, AttributeError):
+        return False
 
 
 _qt_plugins_outside_dot_folder(os.path.join(os.path.dirname(PYSIDE6_FILE), "Qt", "plugins"))
