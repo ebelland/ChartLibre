@@ -426,3 +426,31 @@ def test_edit_localization_keeps_a_cell_being_typed_and_return_does_not_save(qap
         item.setText("Ciao")
     dialog._on_save()
     assert 'msgstr "Ciao"' in (tmp_path / "xx" / "LC_MESSAGES" / f"{i18n.DOMAIN}.po").read_text(encoding="utf-8")
+
+
+def test_mymemory_sends_the_e_mail_set_for_its_larger_quota() -> None:
+    from app.utils import config
+
+    config.set_value(mt.MYMEMORY_EMAIL_SETTING, " me@example.org ")
+    try:
+        assert mt._make_translator("mymemory", "de").email == "me@example.org"
+    finally:
+        config.set_value(mt.MYMEMORY_EMAIL_SETTING, "")
+    assert mt._make_translator("mymemory", "de").email is None
+
+
+def test_argos_asks_for_its_model_under_chartlibre_s_own_name(tmp_path, monkeypatch) -> None:
+    """argos-net.com refuses Python's default client name (403): the request names ChartLibre."""
+    seen: list[str] = []
+
+    class _Refused(Exception):
+        pass
+
+    def opened(request, timeout, context=None):
+        seen.append(request.get_header("User-agent"))
+        raise mt.urllib.error.URLError("stop here")
+
+    monkeypatch.setattr(mt.urllib.request, "urlopen", opened)
+    with pytest.raises(RuntimeError):
+        mt.argos_model("de", tmp_path)
+    assert seen and seen[0].startswith("ChartLibre/")

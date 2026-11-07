@@ -67,6 +67,8 @@ PROVIDERS: tuple[tuple[str, str], ...] = (
 #: The user.json key holding the DeepL API key. Settings writes it; nothing
 #: else stores it, and it never leaves this computer except to DeepL.
 DEEPL_KEY_SETTING: str = "deepl_api_key"
+#: user.json's MyMemory e-mail: with one, MyMemory's free quota is 50,000 characters a day instead of 5,000.
+MYMEMORY_EMAIL_SETTING: str = "mymemory_email"
 
 #: Google allows five requests a second; this stays under it.
 _MIN_INTERVAL_S: dict[str, float] = {"google": 0.25, "mymemory": 0.0, "deepl": 0.1, "argos": 0.0}
@@ -247,7 +249,17 @@ def argos_model(language: str, root: Path, *, opener: Callable[..., Any] | None 
     folder = root / f"en_{language.lower()}"
     if (folder / "sentencepiece.model").is_file() and (folder / "model" / "model.bin").is_file():
         return folder
-    fetch = opener or functools.partial(urllib.request.urlopen, context=_web_fetch_ssl_context())
+    if opener is None:
+        from app import APP_NAME, APP_VERSION
+
+        open_url = functools.partial(urllib.request.urlopen, context=_web_fetch_ssl_context())
+
+        def fetch(url: str, timeout: float) -> Any:
+            # argos-net.com answers 403 to Python's own "Python-urllib" name: the application says its own.
+            return open_url(urllib.request.Request(url, headers={"User-Agent": f"{APP_NAME}/{APP_VERSION}"}),
+                            timeout=timeout)
+    else:
+        fetch = opener
     try:
         with fetch(ARGOS_INDEX_URL, timeout=30) as response:
             index = json.loads(response.read().decode("utf-8"))
@@ -383,6 +395,11 @@ def _make_translator(provider: str, language: str, *, deepl_key: str = "") -> An
     target = provider_code(codes.values(), language)
     if target is None:
         raise ValueError(f"{dict(PROVIDERS).get(provider, provider)} does not translate into {language!r}")
+    if provider == "mymemory":
+        from app.utils.config import get_value
+
+        email = str(get_value(MYMEMORY_EMAIL_SETTING, "") or "").strip()
+        return kind(source=source, target=target, email=email or None)
     return kind(source=source, target=target)
 
 

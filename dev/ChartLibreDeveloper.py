@@ -44,7 +44,7 @@ from PySide6.QtWidgets import (  # noqa: E402
 
 from app.styles.style import apply_platform_style, ensure_icon_theme  # noqa: E402
 from app.utils.config import get_value, set_value  # noqa: E402
-from app.utils.machine_translation import DEEPL_KEY_SETTING  # noqa: E402
+from app.utils.machine_translation import DEEPL_KEY_SETTING, MYMEMORY_EMAIL_SETTING  # noqa: E402
 from app.widgets.nav_bar import NavButton, NavPanel  # noqa: E402
 
 #: The one environment: .python, a link to python.nosync (out of iCloud), as the launchers use it.
@@ -139,6 +139,12 @@ class DeveloperWindow(QMainWindow):
         key.setToolTip("Used by Edit Localization to translate with DeepL; empty: Google or MyMemory.")
         key.editingFinished.connect(lambda: set_value(DEEPL_KEY_SETTING, key.text().strip()))
         page.add_frame("DeepL API key", key)
+        # MyMemory: 5,000 characters a day without an address, 50,000 with one (sent only to MyMemory).
+        email = QLineEdit(str(get_value(MYMEMORY_EMAIL_SETTING, "") or ""), self)
+        email.setPlaceholderText("you@example.org - 50,000 characters a day instead of 5,000")
+        email.setToolTip("Sent to MyMemory with each request, and to nobody else; kept in user.json.")
+        email.editingFinished.connect(lambda: set_value(MYMEMORY_EMAIL_SETTING, email.text().strip()))
+        page.add_frame("MyMemory e-mail", email)
         return page
 
     def _qss_editor(self) -> None:
