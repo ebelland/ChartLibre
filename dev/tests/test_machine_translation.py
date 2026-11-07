@@ -278,7 +278,7 @@ def test_deepl_is_offered_only_with_a_key_and_needs_no_deep_translator(monkeypat
     assert [key for key, _name in mt.available_providers("")] == ["google", "mymemory"]
 
 
-_CASES_DEEPL_LANGUAGE_CODES = [("it", "IT"), ("pt", "PT-BR"), ("zh", "ZH-HANS"), ("en", "EN-GB")]
+_CASES_DEEPL_LANGUAGE_CODES = [("it", "IT"), ("pt", "PT-PT"), ("zh", "ZH-HANS"), ("en", "EN-GB")]
 
 
 def _deepl_language_codes(language: str, target: str) -> None:

@@ -241,13 +241,10 @@ class EditLocalizationDialog(SettingsTableDialog):
         return str(self._language_combo.currentData() or "it")
 
     def _on_new_language(self) -> None:
-        code, ok = QInputDialog.getText(
-            self,
-            _("New language"),
-            _("Two-letter language code (e.g. \"fr\", \"de\"):"),
-        )
-        code = code.strip().lower()
-        if not ok or not code:
+        choices = language_choices(exclude=set(i18n.available_languages()))
+        label, ok = QInputDialog.getItem(self, _("New language"), _("Country: language"), list(choices), 0, False)
+        code = choices.get(label, "") if ok else ""
+        if not code:
             return
         if not (code.isalpha() and 2 <= len(code) <= 3):
             show_message(self, "dev.validation_error", detail=_("Not a valid language code."))
@@ -557,6 +554,41 @@ class EditLocalizationDialog(SettingsTableDialog):
                 "comes from the catalogue this dialog edits."
             ),
         )
+
+
+def flag(country: str) -> str:
+    """The flag emoji of a two-letter country code (IT -> the Italian flag); "" for anything else."""
+    country = country.upper()
+    if len(country) != 2 or not country.isalpha():
+        return ""
+    return "".join(chr(0x1F1E6 + ord(letter) - ord("A")) for letter in country)
+
+
+def language_choices(*, exclude: set[str] = frozenset()) -> dict[str, str]:
+    """Every language Qt knows with a two-letter code, as "<flag> Country: language (code)" -> code.
+
+    The country is the language's main one (Portugal for Portuguese, Germany for German); the catalogue is
+    the language's, whatever the country. Sorted by country; the languages in *exclude* left out.
+    """
+    from PySide6.QtCore import QLocale
+
+    choices: dict[str, tuple[str, str]] = {}
+    for language in QLocale.Language:
+        if language in (QLocale.Language.AnyLanguage, QLocale.Language.C):
+            continue
+        locale = QLocale(language)
+        code, _sep, country = locale.name().partition("_")
+        if len(code) != 2 or code in exclude or code == i18n.DEFAULT_LANGUAGE or locale.language() != language:
+            continue
+        # The language's own country where it has one - Portugal for Portuguese, not Qt's Brazil.
+        home = QLocale(f"{code}_{code.upper()}")
+        if home.language() == language and home.name() == f"{code}_{code.upper()}":
+            locale, country = home, code.upper()
+        name = locale.nativeLanguageName() or QLocale.languageToString(language)
+        place = QLocale.territoryToString(locale.territory())
+        label = f"{flag(country)} {place}: {name} ({code})".strip()
+        choices.setdefault(code, (label, place))
+    return dict(sorted(((label, code) for code, (label, _place) in choices.items()), key=lambda item: item[0][2:]))
 
 
 def ask_before_auto_translate(parent: QWidget) -> bool:

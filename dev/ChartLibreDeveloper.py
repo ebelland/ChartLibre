@@ -1,6 +1,6 @@
 """ChartLibre Developer: the contributors' tools in one window - not part of the app, not packaged.
 
-    .python/bin/python3 dev/ChartLibreDeveloper.py
+    python.nosync/bin/python3 dev/ChartLibreDeveloper.py
 
 Three columns as the app's Project page: writing code (the creators, localization, the Qt style), checking it
 (tests, NIST, size, chart previews) and shipping it (bundle, libraries, manuals). The long ones run one at a
@@ -19,6 +19,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
+
+from app.utils.qt_plugins import ensure_visible_plugins  # noqa: E402
+
+ensure_visible_plugins()  # before Qt: macOS may have flagged the environment's Qt plugins hidden
 
 from PySide6.QtCore import QProcess, QProcessEnvironment, Qt, QUrl  # noqa: E402
 from PySide6.QtGui import QDesktopServices, QFont, QTextCursor  # noqa: E402
@@ -44,7 +48,7 @@ from app.utils.machine_translation import DEEPL_KEY_SETTING  # noqa: E402
 from app.widgets.nav_bar import NavButton, NavPanel  # noqa: E402
 
 #: The one environment: .python, a link to python.nosync (out of iCloud), as the launchers use it.
-PYTHON = str(ROOT / ".python" / "bin" / "python3") if (ROOT / ".python" / "bin" / "python3").exists() else sys.executable
+PYTHON = str(ROOT / "python.nosync" / "bin" / "python3") if (ROOT / "python.nosync").exists() else sys.executable
 RESULTS = ROOT / "dev" / "test_results"
 JUNIT = RESULTS / "junit.xml"
 #: Outside the Desktop: iCloud tags files there while codesign reads them (build_bundle --work).

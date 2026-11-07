@@ -342,14 +342,18 @@ def provider_code(codes: Iterable[str], language: str) -> str | None:
 
     Each service spells languages its own way - "it" for Google, "it-IT"
     for MyMemory, "zh-CN" for Chinese on both - so take the exact code if
-    the service has it, else the first regional one it starts.
+    the service has it, else the language's own country (de-DE), else the
+    first regional one it starts.
     """
     wanted = language.lower()
     listed = list(codes)
     exact = next((code for code in listed if code.lower() == wanted), None)
     if exact is not None:
         return exact
-    return next((code for code in listed if code.lower().startswith(wanted + "-")), None)
+    regional = [code for code in listed if code.lower().startswith(wanted + "-")]
+    # The language's own country first - de-DE, not de-AT, which happened to be listed first - then the first.
+    home = next((code for code in regional if code.lower() == f"{wanted}-{wanted}"), None)
+    return home or (regional[0] if regional else None)
 
 
 def _make_translator(provider: str, language: str, *, deepl_key: str = "") -> Any:
