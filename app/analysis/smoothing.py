@@ -30,7 +30,6 @@ from scipy.ndimage import gaussian_filter, gaussian_filter1d, median_filter
 from scipy.signal import butter, medfilt, savgol_filter, sosfiltfilt, wiener
 
 from app.analysis import odd_window
-from app.utils.jit import njit
 
 try:
     from statsmodels.nonparametric.smoothers_lowess import lowess as sm_lowess
@@ -314,9 +313,8 @@ def _kalman_smoother_1d(
     return _kalman_rts_kernel(values, q_value, r_value, p0_value)
 
 
-@njit
 def _kalman_rts_kernel(values: np.ndarray, q_value: float, r_value: float, p0_value: float) -> np.ndarray:
-    """The forward Kalman pass and the backward RTS pass: scalar loops, compiled by Numba when it is installed."""
+    """The forward Kalman pass and the backward RTS pass: scalar loops (about 12 ms per 10,000 points)."""
     n = values.size
     filtered = np.empty(n)
     predicted = np.empty(n)

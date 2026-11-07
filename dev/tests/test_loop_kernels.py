@@ -1,4 +1,4 @@
-"""The compiled kernels give what the plain-Python code gave (Numba or not)."""
+"""The loop kernels: the Kalman smoother and the control charts' run rules."""
 from __future__ import annotations
 
 import numpy as np

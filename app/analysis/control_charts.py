@@ -14,7 +14,6 @@ from typing import Any
 
 import numpy as np
 
-from app.utils.jit import njit
 
 # Variables charts - a measurement per point.
 CHART_INDIVIDUALS = "Individuals (I-MR)"
@@ -408,8 +407,8 @@ def find_violations(
     if not use_nelson or not sigma.size or float(np.max(sigma)) <= 0.0:
         return deduplicate(found)
 
-    # Rules 2-8, one pass that counts runs: a bit per rule on each point
-    # (compiled by Numba when it is installed). Rules 5-8 need equal-width
+    # Rules 2-8, one pass that counts runs: a bit per rule on each point.
+    # Rules 5-8 need equal-width
     # zones, so only when sigma is constant; see the docstring.
     zones = float(np.ptp(sigma)) == 0.0
     mask = _run_rule_mask(np.asarray(values, dtype=np.float64), float(center),
@@ -432,7 +431,6 @@ RUN_RULES: dict[int, str] = {
 }
 
 
-@njit
 def _run_rule_mask(values: np.ndarray, center: float, sigma: float, zones: bool) -> np.ndarray:
     """For each point, bit *r* set when it ends a run that breaks Nelson rule *r* (2-8).
 
