@@ -10,23 +10,20 @@ msgstr " سم"
 msgid " dec."
 msgstr " ديسمبر"
 
-msgid "\"{code}\" already has a catalogue."
-msgstr "{code}\" لديه بالفعل كتالوج."
-
-msgid "\"{name}\" is already used by an existing chart type."
-msgstr "\"{name}\" مستخدم بالفعل من قبل نوع مخطط موجود."
-
-msgid "\"{name}\" is already used by an existing data operation."
-msgstr "\"{name}\" مستخدم بالفعل من قبل عملية سلسلة موجودة."
-
-msgid "\"{name}\" is already used by an existing function."
-msgstr "\"{name}\" مستخدم بالفعل من قبل وظيفة موجودة."
-
 msgid "'{key}' back to Matplotlib's default."
 msgstr "يعود '{key}' إلى مكتبة مات بلوت ليب الافتراضية."
 
 msgid "'{name}' is already a column of this table."
 msgstr "'{name}' هو بالفعل عمود من هذا الجدول."
+
+msgid "'{name}': the formula is the project's - {count} other series draw it too."
+msgstr "'{name}': الصيغة هي المشروع - {count} سلسلة أخرى ترسمها أيضًا."
+
+msgid "'{name}': the formula is the project's; the values and the range are this series'."
+msgstr "'{name}': الصيغة هي للمشروع ؛ القيم والنطاق هي هذه السلسلة '."
+
+msgid "'{part}' is not a parameter's name."
+msgstr "'{part}' ليس اسم معلمة."
 
 msgid "(Default)"
 msgstr "(افتراضي)"
@@ -52,8 +49,11 @@ msgstr "(صفوف)"
 msgid "**Demo** - a fixed script, not an AI: it shows what the assistant does with the project's tools. With a real provider the answer is written for your question."
 msgstr "**العرض التوضيحي** - نص ثابت، وليس ذكاءً اصطناعيًا: يوضح ما يفعله المساعد بأدوات المشروع. مع مقدم خدمة حقيقي، تتم كتابة الإجابة لسؤالك."
 
-msgid "-999, NA, n/d"
+msgid "-999, NA, n/a"
 msgstr "-999، غير متوفر، غير متوفر"
+
+msgid "... and {count} more"
+msgstr "... و {count} أكثر"
 
 msgid "...and {count} more, under Show Details."
 msgstr "...و {count} أكثر، ضمن عرض التفاصيل."
@@ -72,9 +72,6 @@ msgstr "0 يستكمل كل نقطة بالضبط ؛ تسمح القيم الأ�
 
 msgid "0 takes as many as the correlations have eigenvalues above 1 (see the scree plot)."
 msgstr "يأخذ 0 ما يصل إلى أن الارتباطات لها قيم ذاتية أعلى من 1 (انظر مخطط Scree)."
-
-msgid "0 tries every k up to the maximum and keeps the one with the highest mean silhouette."
-msgstr "0 يجرب كل k حتى الحد الأقصى ويحافظ على الصورة الظلية ذات أعلى متوسط."
 
 msgid "1 and 2 sigma lines:"
 msgstr "1 و 2 سطر سيجما:"
@@ -103,6 +100,9 @@ msgstr "ثنائي الأبعاد (س، ص)"
 msgid "3 is the Shewhart convention: on a stable normal process it gives about one false alarm per 370 points, which balances missed signals against chasing noise."
 msgstr "3 هي اتفاقية شيوارت: في عملية طبيعية مستقرة، تعطي إنذارًا كاذبًا واحدًا لكل 370 نقطة، مما يوازن الإشارات الفائتة مقابل ضوضاء المطاردة."
 
+msgid "3D Scatter"
+msgstr "مبعثر ثلاثي الأبعاد"
+
 msgid "3D on a grid (x, y, z)"
 msgstr "3D على شبكة (x، y، z)"
 
@@ -126,6 +126,12 @@ msgstr "نطاق التنبؤ 95%"
 
 msgid "95% prediction interval"
 msgstr "95% فاصل تنبؤي"
+
+msgid "A \"How to read this\" box in every report"
+msgstr "مربع \"كيفية قراءة هذا\" في كل تقرير"
+
+msgid "A \"What next?\" section at the end of every table analysis"
+msgstr "قسم \"ماذا بعد ؟\" في نهاية كل تحليل للجدول"
 
 msgid "A GPX file's track, route and waypoints: latitude, longitude, elevation, time."
 msgstr "مسار ملف GPX ومساره ونقاط الطريق: خط العرض وخط الطول والارتفاع والوقت."
@@ -151,6 +157,9 @@ msgstr "ملف .sNp الخاص بـ VNA: التردد وكل معلمة S (أو 
 msgid "A WAV recording: time and one column per channel."
 msgstr "تسجيل WAV: الوقت وعمود واحد لكل قناة."
 
+msgid "A chart of the selected columns: a histogram of one, else New plot"
+msgstr "مخطط للأعمدة المحددة: مخطط تكراري لواحد، وآخر مخطط جديد"
+
 msgid "A circuit simulation's waveforms: one column per trace; each plot a dataset, .step runs numbered."
 msgstr "الأشكال الموجية لمحاكاة الدائرة: عمود واحد لكل أثر ؛ كل رسم مجموعة بيانات، يتم تشغيل .step مرقمة."
 
@@ -165,15 +174,6 @@ msgstr "هناك عدد قليل من العوامل الخفية وراء ال�
 
 msgid "A field in space needs both Z and W; a flat one neither."
 msgstr "يحتاج الحقل في الفضاء إلى كل من Z وW ؛ ولا يحتاج الحقل المسطح أيضًا."
-
-msgid "A file named \"{file}\" already exists under user/charts/."
-msgstr "يوجد بالفعل ملف باسم \"{file}\" ضمن user/charts/."
-
-msgid "A file named \"{file}\" already exists under user/data_operations/."
-msgstr "يوجد بالفعل ملف باسم \"{file}\" ضمن USER/DATA_OPERATIONS/."
-
-msgid "A file named \"{file}\" already exists under user/functions/."
-msgstr "يوجد بالفعل ملف باسم \"{file}\" ضمن user/functions/."
 
 msgid "A guide line under the pointer, shared across every axes of this figure."
 msgstr "خط إرشادي أسفل المؤشر، مشترك عبر كل محاور هذا الشكل."
@@ -190,14 +190,29 @@ msgstr "إشارات المحلل المنطقي أو المحاكاة الرق�
 msgid "A measure in time order: its autocorrelation (ACF, PACF, Ljung-Box), its trend and season (STL), and an ARIMA or exponential-smoothing forecast with its prediction interval."
 msgstr "مقياس في الترتيب الزمني: ارتباطه الذاتي (ACF، PACF، Ljung - Box)، واتجاهه وموسمه (STL)، وتوقعات ARIMA أو التنعيم الأسي مع فاصل التنبؤ الخاص به."
 
+msgid "A measured die above it is binned High; empty: no upper limit."
+msgstr "القالب المقاس فوقه مرتفع ؛ فارغ: لا يوجد حد أعلى."
+
+msgid "A measured die below it is binned Low; empty: no lower limit."
+msgstr "القالب المقاس تحته يكون منخفضًا ؛ فارغ: لا يوجد حد أدنى."
+
 msgid "A model of {response} on its strongest factors: {factors}"
 msgstr "نموذج {response} على أقوى عوامله: {factors}"
+
+msgid "A model running on this computer through Ollama (ollama.com): nothing leaves the computer."
+msgstr "نموذج يعمل على هذا الكمبيوتر من خلال أولاما (ollama.com): لا شيء يغادر الكمبيوتر."
 
 msgid "A new chart of this table"
 msgstr "مخطط جديد لهذا الجدول"
 
 msgid "A new figure with this column's histogram, and its statistics in the figure's notes"
 msgstr "شكل جديد مع المدرج التكراري لهذا العمود، وإحصائياته في ملاحظات الشكل"
+
+msgid "A notch on 200 mm wafers and up, a flat on smaller ones."
+msgstr "درجة على رقائق 200 مم وأعلى، وشقة على رقائق أصغر."
+
+msgid "A query's or a function's column: named and typed by its SQL or its formula."
+msgstr "عمود استعلام أو دالة: يدعى ويكتب بواسطة SQL الخاص به أو صيغته."
 
 msgid "A row for each distinct value not listed yet (up to {n})."
 msgstr "صف لكل قيمة مميزة غير مدرجة بعد (حتى {n})."
@@ -207,6 +222,9 @@ msgstr "مسطرة بين نقطتين، مع كتابة dx/dy/slope بجانب�
 
 msgid "A second scale along the top (x) or the right (y): this axis in other units."
 msgstr "مقياس ثانٍ على طول الجزء العلوي (x) أو الأيمن (y): هذا المحور في الوحدات الأخرى."
+
+msgid "A series drawn from a stored SymPy function is differentiated or integrated as a formula - d/dx (a*x**2) = 2*a*x - rather than from its points; the result is a stored function too. Off: as any series."
+msgstr "يتم تمييز السلسلة المستمدة من دالة SymPy المخزنة أو دمجها كصيغة - d/dx (a*x**2) = 2*a*x - بدلاً من نقاطها ؛ والنتيجة هي دالة مخزنة أيضًا. OFF: مثل أي سلسلة."
 
 msgid "A spectrum (IR, UV-Vis, Raman, NMR, MS) in JCAMP-DX: x and y with their units; each block a dataset."
 msgstr "طيف (الأشعة تحت الحمراء، الأشعة فوق البنفسجية، رامان، الرنين المغناطيسي النووي، MS) في JCAMP - DX: x و y مع وحداتهم ؛ كل كتلة مجموعة بيانات."
@@ -223,8 +241,8 @@ msgstr "يحتاج الجدول إلى صف واحد على الأقل. أضف �
 msgid "A table or query named '{name}' already exists."
 msgstr "يوجد بالفعل جدول أو استعلام باسم '{name}'."
 
-msgid "A table's columns."
-msgstr "أعمدة الطاولة."
+msgid "A table's columns, each in the role the operation reads it as (X, Y)."
+msgstr "أعمدة الجدول، كل منها في الدور الذي تقرأه العملية على أنه (X، Y)."
 
 msgid "A term is significant when its p-value is at most this; the Stepwise personality adds or keeps only such terms."
 msgstr "يكون المصطلح مهمًا عندما تكون قيمته p على الأكثر ؛ تضيف الشخصية التدريجية هذه المصطلحات أو تحتفظ بها فقط."
@@ -238,6 +256,9 @@ msgstr "حقل متجهي تم أخذ عينات منه على شبكة: تبا�
 msgid "A vertical or horizontal line across the whole axes, at a value in data coordinates. Color and style have their own columns; anything else goes in Kwargs JSON, for example: {\"linewidth\": 2, \"label\": \"limit\"}."
 msgstr "خط عمودي أو أفقي عبر المحاور بأكملها، عند قيمة في إحداثيات البيانات. اللون والأسلوب لهما أعمدة خاصة بهما ؛ أي شيء آخر يدخل في Kwargs JSON، على سبيل المثال: {\"linewidth\": 2, \"label\": \"limit\"}."
 
+msgid "A wafer's measurements or defects on the wafer and per die: contour map, die bins and yield, defect density - notch or flat, any diameter, rotation."
+msgstr "قياسات أو عيوب الرقاقة على الرقاقة ولكل قالب: خريطة الكنتور، صناديق القوالب والعائد، كثافة العيب - شق أو مسطح، أي قطر، الدوران."
+
 msgid "AAB;CCB"
 msgstr "AAB;CCB"
 
@@ -246,6 +267,9 @@ msgstr "AIC"
 
 msgid "AIC (penalises free parameters)"
 msgstr "AIC (يعاقب المعايير الحرة)"
+
+msgid "AIC {value} for {model}, the lowest of the models tried: AIC weighs the fit against the parameters it takes, and lower is better."
+msgstr "AIC {value} لـ {model} ، أدنى النماذج التي تمت تجربتها: AIC يزن الملاءمة مقابل المعلمات التي يأخذها، والأقل هو الأفضل."
 
 msgid "API key"
 msgstr "مفتاح واجهة برمجة التطبيقات"
@@ -268,8 +292,8 @@ msgstr "ARIMA q (المتوسط المتحرك):"
 msgid "ARIMA with a season: how many past seasons the next value depends on (the ACF's spikes at the season's multiples)."
 msgstr "ARIMA بموسم واحد: كم عدد المواسم الماضية التي تعتمد عليها القيمة التالية (طفرات ACF في مضاعفات الموسم)."
 
-msgid "ARIMA: the next value from the last ones (p), the changes (d) and the last errors (q), with a season (P, D, Q) of its own. ARIMA, order chosen by AIC: the differences from the stationarity tests, then the p, q, P, Q with the lowest AIC. Exponential smoothing: a level, a trend and a season that each follow the newest values most."
-msgstr "ARIMA: القيمة التالية من الأخيرة (p)، التغييرات (d) والأخطاء الأخيرة (q)، مع موسم (P، D، Q) خاص بها. أريما، الترتيب الذي اختارته AIC: الاختلافات عن اختبارات الثبات، ثم p، q، P، Q مع أدنى AIC. التجانس الأسي: مستوى واتجاه وموسم يتبع كل منها أحدث القيم."
+msgid "ARIMA: the next value from the last ones (p), the changes (d) and the last errors (q), with a season (P, D, Q) of its own. ARIMA, order chosen by AIC: the differences from the stationarity tests, then the p, q, P, Q with the lowest AIC. Exponential smoothing: a level, a trend and a season that each follow the newest values most. State space: a level and a slope that wander a little each step (a local linear trend), with a season - estimated by the Kalman filter."
+msgstr "ARIMA: القيمة التالية من الأخيرة (p)، التغييرات (d) والأخطاء الأخيرة (q)، مع موسم (P، D، Q) خاص بها. ARIMA، الترتيب الذي اختارته AIC: الاختلافات عن اختبارات الثبات، ثم p، q، P، Q مع أدنى AIC. التجانس الأسي: مستوى واتجاه وموسم يتبع كل منها أحدث القيم. مساحة الحالة: مستوى ومنحدر يتجول قليلاً في كل خطوة (اتجاه خطي محلي)، مع موسم - يقدره مرشح كالمان."
 
 msgid "AUC = {value}: of a row that is {level} and one that is not, the model gives the first the higher probability {percent}% of the time. 0.5 is a coin toss, 1 never wrong; above 0.8 is usually called good."
 msgstr "AUC = {value}: من بين الصف {level} والصف الذي ليس كذلك، يعطي النموذج الأول الاحتمال الأعلى {percent}٪ من الوقت. 0.5 هو رمي عملة، 1 لا يخطئ أبدًا ؛ عادة ما يسمى فوق 0.8 جيد."
@@ -279,6 +303,9 @@ msgstr "حول"
 
 msgid "About this project"
 msgstr "نبذة عن هذا المشروع"
+
+msgid "Above 1.33, the usual minimum: the process is called capable."
+msgstr "فوق 1.33، الحد الأدنى المعتاد: تسمى العملية \"قادر\"."
 
 msgid "Above {alpha}, the usual line: these data do not show that {shown}, which is not proof that {null}."
 msgstr "فوق {alpha} ، السطر المعتاد: لا تُظهر هذه البيانات أن {shown} ، وهو ليس دليلًا على أن {null}."
@@ -418,6 +445,12 @@ msgstr "التعديل أيضًا: {names}"
 msgid "Also in"
 msgstr "أيضا في"
 
+msgid "Also list the tables the data operations wrote (their names start with _)."
+msgstr "اذكر أيضًا الجداول التي كتبتها عمليات البيانات (تبدأ أسماؤها بـ _)."
+
+msgid "Also missing:"
+msgstr "مفقود أيضًا:"
+
 msgid "Alternative"
 msgstr "بديل"
 
@@ -493,12 +526,6 @@ msgstr "يتم تخزين التعليقات التوضيحية في خيارا�
 msgid "Another ChartLibre project (.dhub)"
 msgstr "مشروع ChartLibre آخر (.dhub)"
 
-msgid "Another measure of the same process"
-msgstr "مقياس آخر لنفس العملية"
-
-msgid "Another measure over the same time"
-msgstr "إجراء آخر في نفس الوقت"
-
 msgid "Another result, the same factors"
 msgstr "نتيجة أخرى، نفس العوامل"
 
@@ -510,6 +537,9 @@ msgstr "نمط التطبيق"
 
 msgid "Appearance"
 msgstr "المظهر"
+
+msgid "Apple Foundation Models"
+msgstr "موديلات آبل فاونديشن"
 
 msgid "Application Log"
 msgstr "سجل التطبيق"
@@ -525,6 +555,9 @@ msgstr "تم تطبيقه أخيرًا. تحول إيجابي x نحو y - ال�
 
 msgid "Applied second. Positive turns z towards x."
 msgstr "الثانية المطبقة. موجب يتحول z نحو x."
+
+msgid "Apply"
+msgstr "تطبيق"
 
 msgid "Apply a preset…"
 msgstr "تطبيق إعداد مسبق..."
@@ -553,9 +586,6 @@ msgstr "هل هناك اختلافات ؟"
 msgid "Arrange every axis in this figure using the chosen layout."
 msgstr "رتب كل محور في هذا الشكل باستخدام التخطيط المختار."
 
-msgid "As JMP's Save Clusters: each row's cluster in the table's own ClusterId column - the one the Clustering operation writes - to colour or filter any chart by it; 0 for a row in no cluster."
-msgstr "مثل مجموعات حفظ JMP: مجموعة كل صف في عمود ClusterId الخاص بالجدول - العمود الذي تكتبه عملية التجميع - لتلوين أو تصفية أي مخطط به ؛ 0 لصف في أي مجموعة."
-
 msgid "As a fraction of the signal's full range. 0.1 keeps peaks standing at least a tenth of the range above their surroundings."
 msgstr "كجزء من النطاق الكامل للإشارة. 0.1 تحافظ على القمم واقفة على الأقل عُشر النطاق فوق محيطها."
 
@@ -576,12 +606,6 @@ msgstr "المساعد"
 
 msgid "Asymmetry. Smaller pushes the baseline further below the peaks; it should stay well under 0.5."
 msgstr "عدم التماثل. يدفع الأصغر خط الأساس إلى ما دون القمم ؛ يجب أن يبقى أقل بكثير من 0.5."
-
-msgid "At least one parameter is needed."
-msgstr "هناك حاجة إلى معلمة واحدة على الأقل."
-
-msgid "At least one required role is needed."
-msgstr "مطلوب دور واحد على الأقل."
 
 msgid "Attenuation (dB):"
 msgstr "التوهين (ديسيبل):"
@@ -609,6 +633,9 @@ msgstr "يحافظ التلقائية على كل قيمة كما يعطيها �
 
 msgid "Automatic range"
 msgstr "نطاق تلقائي"
+
+msgid "Automatic ticks"
+msgstr "القراد التلقائي"
 
 msgid "Automatic: the fast model for simple requests, the accurate one for the rest. Or always one of them."
 msgstr "تلقائي: النموذج السريع للطلبات البسيطة، والنموذج الدقيق للباقي. أو دائما واحد منهم."
@@ -646,6 +673,12 @@ msgstr "المحور: {name}"
 msgid "BIC (penalises them harder)"
 msgstr "رمز تعريف البنك (يعاقبهم بشدة)"
 
+msgid "Back"
+msgstr "رجوع"
+
+msgid "Back to the categories"
+msgstr "العودة إلى الفئات"
+
 msgid "Backward drops terms from the full model; forward adds them to the mean."
 msgstr "يسقط العبارات إلى الوراء من النموذج الكامل ؛ ويضيفها إلى الأمام إلى المتوسط."
 
@@ -670,8 +703,11 @@ msgstr "حجم الدفعة لإعادة أخذ عينات مونت كارلو. 
 msgid "Before"
 msgstr "قبل"
 
-msgid "Below {alpha}, the usual line, so {shown} is called real."
-msgstr "تحت {alpha} ، الخط المعتاد، لذلك يسمى {shown} حقيقي."
+msgid "Below 1: parts outside the specification are to be expected; 1.33 is the usual minimum."
+msgstr "أقل من 1: من المتوقع وجود أجزاء خارج المواصفات ؛ 1.33 هو الحد الأدنى المعتاد."
+
+msgid "Below {alpha}, the usual line, so the result is called real: {shown}."
+msgstr "تحت {alpha} ، الخط المعتاد، لذلك تسمى النتيجة REAL: {shown}."
 
 msgid "Bessel"
 msgstr "بسل"
@@ -679,14 +715,29 @@ msgstr "بسل"
 msgid "Best fit (AIC)"
 msgstr "الأنسب (AIC)"
 
+msgid "Between 1 and 1.33: capable only just - the usual minimum is 1.33."
+msgstr "بين 1 و 1.33: قادر فقط - الحد الأدنى المعتاد هو 1.33."
+
 msgid "Between samples:"
 msgstr "بين العينات:"
+
+msgid "Bias (mean difference)"
+msgstr "التحيز (متوسط الاختلاف)"
+
+msgid "Bias {bias}: {y} reads on average {bias} more than {x}. 95% of the differences fall between {lower} and {upper} - whether that is close enough depends on what the results are used for."
+msgstr "الانحياز {bias}: {y} يقرأ في المتوسط {bias} أكثر من {x}. 95 ٪ من الاختلافات تقع بين {lower} و {upper} - ما إذا كان ذلك قريبًا بما فيه الكفاية يعتمد على ما يتم استخدام النتائج من أجله."
 
 msgid "Bins:"
 msgstr "الحاويات:"
 
 msgid "Biplot"
 msgstr "Biplot"
+
+msgid "Bland-Altman"
+msgstr "Bland - Altman"
+
+msgid "Bland-Altman agreement"
+msgstr "اتفاقية بلاند- ألتمان"
 
 msgid "Boosted Tree: how much each tree corrects the ones before. Smaller needs more trees."
 msgstr "الشجرة المعززة: كم تصحح كل شجرة الشجرة السابقة. الأصغر يحتاج إلى المزيد من الأشجار."
@@ -718,6 +769,9 @@ msgstr "استراحة"
 msgid "Breslow-Day test (same odds ratio in every stratum)"
 msgstr "اختبار Breslow - Day (نفس نسبة الاحتمالات في كل طبقة)"
 
+msgid "Bring the selected hidden rows back into the charts and analyses (Hide = 0)."
+msgstr "أعد الصفوف المخفية المحددة إلى المخططات والتحليلات (إخفاء = 0)."
+
 msgid "Browse…"
 msgstr "استعراض..."
 
@@ -736,6 +790,12 @@ msgstr "CSV (*.csv);;Excel (*.xlsx)"
 msgid "CSV files (*.csv)"
 msgstr "ملفات CSV (*.csv)"
 
+msgid "CUSUM h (sigma):"
+msgstr "CUSUM h (sigma):"
+
+msgid "CUSUM k (sigma):"
+msgstr "CUSUM k (sigma):"
+
 msgid "Cancel"
 msgstr "إلغاء"
 
@@ -751,11 +811,8 @@ msgstr "قطعة أرض متعارف عليها"
 msgid "Canonical scores by {response}"
 msgstr "الدرجات الأساسية حسب {response}"
 
-msgid "Cast the columns into their roles, then press Preview."
-msgstr "ضع الأعمدة في أدوارها، ثم اضغط على معاينة."
-
-msgid "Category:"
-msgstr "الفئة:"
+msgid "Categories"
+msgstr "الفئات"
 
 msgid "Center points:"
 msgstr "نقاط المركز:"
@@ -793,6 +850,9 @@ msgstr "مركز على البيانات"
 msgid "Centre on the median:"
 msgstr "المركز على الوسيط:"
 
+msgid "Centre to edge"
+msgstr "من المركز إلى الحافة"
+
 msgid "Centre x:"
 msgstr "المركز x:"
 
@@ -819,6 +879,9 @@ msgstr "اسم المخطط"
 
 msgid "Chart properties"
 msgstr "خصائص المخطط"
+
+msgid "Chart type:"
+msgstr "نوع المخطط:"
 
 msgid "Chart:"
 msgstr "الرسم البياني:"
@@ -867,6 +930,9 @@ msgstr "اختر كيفية حساب قيم P لأندرسون- دارلينج �
 
 msgid "Choose how generated X values are built."
 msgstr "اختر كيفية إنشاء قيم X التي تم إنشاؤها."
+
+msgid "Choose k automatically"
+msgstr "اختر k تلقائيًا"
 
 msgid "Choose the baseline estimator."
 msgstr "اختر المقدر الأساسي."
@@ -946,17 +1012,23 @@ msgstr "مسح السجل"
 msgid "Clear menu"
 msgstr "مسح القائمة"
 
+msgid "Clear the log at start"
+msgstr "امسح السجل في البداية"
+
 msgid "Close"
 msgstr "إغلاق"
 
 msgid "Close the log"
 msgstr "إغلاق السجل"
 
+msgid "Close to the R² of the fit ({r2}): what it learnt holds on rows it has not seen."
+msgstr "بالقرب من R² من الملاءمة ({r2}): ما تعلمه يحمله في الصفوف التي لم يرها."
+
 msgid "Closed formats (JMP, Minitab, Origin)"
 msgstr "التنسيقات المغلقة (JMP، Minitab، Origin)"
 
-msgid "Cluster Analysis"
-msgstr "تحليل المجموعة"
+msgid "Cluster"
+msgstr "الكتلة"
 
 msgid "Cluster by:"
 msgstr "تجميع حسب:"
@@ -967,26 +1039,23 @@ msgstr "المجموعة تعني"
 msgid "Cluster profiles"
 msgstr "نبذات عن المجموعة"
 
-msgid "Cluster {n}"
-msgstr "المجموعة {n}"
-
-msgid "Clustering preview"
-msgstr "معاينة التجميع العنقودي"
-
 msgid "Clusters"
 msgstr "المجموعات"
 
-msgid "Clusters (k):"
-msgstr "المجموعات (ك):"
-
-msgid "Clusters on the principal components"
-msgstr "مجموعات حول المكونات الرئيسية"
+msgid "Clusters on two principal components"
+msgstr "مجموعات على مكونين رئيسيين"
 
 msgid "Clusters:"
 msgstr "المجموعات:"
 
 msgid "Cochran-Mantel-Haenszel test (odds ratio = 1)"
 msgstr "اختبار Cochran - Mantel - Haenszel (نسبة الاحتمالات = 1)"
+
+msgid "Code"
+msgstr "الرمز"
+
+msgid "Code:"
+msgstr "الرمز:"
 
 msgid "Coefficients"
 msgstr "المعاملات"
@@ -1030,6 +1099,9 @@ msgstr "يجب أن تكون أسماء الأعمدة فريدة."
 msgid "Column names, separated by commas:"
 msgstr "أسماء الأعمدة، مفصولة بفاصلات:"
 
+msgid "Column {number} of {count}"
+msgstr "العمود {number} من {count}"
+
 msgid "Column:"
 msgstr "Column:"
 
@@ -1050,6 +1122,9 @@ msgstr "الأعمدة:"
 
 msgid "Combine:"
 msgstr "الجمع بين:"
+
+msgid "Command"
+msgstr "الأمر"
 
 msgid "Common charts"
 msgstr "الرسوم البيانية المشتركة"
@@ -1077,6 +1152,9 @@ msgstr "المكونات:"
 
 msgid "Compute metrics"
 msgstr "حساب المقاييس"
+
+msgid "Confidence:"
+msgstr "الثقة:"
 
 msgid "Confusion matrix"
 msgstr "مصفوفة الارتباك"
@@ -1111,6 +1189,12 @@ msgstr "جدول الطوارئ"
 msgid "Contingency table (chi-squared, Fisher)"
 msgstr "جدول الطوارئ (مربع كاي، فيشر)"
 
+msgid "Contour"
+msgstr "الكنتور"
+
+msgid "Contour grid:"
+msgstr "شبكة الكنتور:"
+
 msgid "Contribution"
 msgstr "المساهمة"
 
@@ -1134,6 +1218,9 @@ msgstr "نسخ الشكل"
 
 msgid "Copy parameters"
 msgstr "نسخ المعلمات"
+
+msgid "Copy the selected cells"
+msgstr "نسخ الخلايا المحددة"
 
 msgid "Copy this table, rows and columns, under a new name"
 msgstr "انسخ هذا الجدول والصفوف والأعمدة، تحت اسم جديد"
@@ -1185,12 +1272,6 @@ msgstr "إنشاء جدول استعلام"
 
 msgid "Create a DOE test matrix as a new table."
 msgstr "إنشاء مصفوفة اختبار وزارة الطاقة كجدول جديد."
-
-msgid "Create a new table"
-msgstr "إنشاء جدول جديد"
-
-msgid "Create a new, empty catalogue"
-msgstr "إنشاء كتالوج جديد فارغ"
 
 msgid "Create a table from a database query."
 msgstr "إنشاء جدول من استعلام قاعدة بيانات."
@@ -1258,9 +1339,6 @@ msgstr "شريحة مكعبة"
 msgid "Curl"
 msgstr "تجعيد الشعر"
 
-msgid "Current axis"
-msgstr "محور التيار"
-
 msgid "Curve"
 msgstr "منحنى"
 
@@ -1300,9 +1378,6 @@ msgstr "تخميد سيجما متغير لابلاس s = سيجما + i*أوم�
 msgid "Data"
 msgstr "البيانات"
 
-msgid "Data Operation Builder"
-msgstr "منشئ عمليات السلسلة"
-
 msgid "Data column:"
 msgstr "عمود البيانات:"
 
@@ -1339,9 +1414,6 @@ msgstr "تفكيك أو تضمين عدة سلاسل معًا (PCA، ICA، NMF،
 msgid "Decreasing"
 msgstr "متناقص"
 
-msgid "DeepL API key"
-msgstr "مفتاح DeepL API"
-
 msgid "Deepest a single tree may grow. 0 means unlimited."
 msgstr "قد تنمو أعمق شجرة واحدة. 0 يعني غير محدود."
 
@@ -1353,6 +1425,9 @@ msgstr "نمط المخطط الافتراضي"
 
 msgid "Default export format"
 msgstr "تنسيق التصدير الافتراضي"
+
+msgid "Define def {name}(...) with the stored function's name."
+msgstr "حدد التعريف {name}(...) باسم الوظيفة المخزنة."
 
 msgid "Degree"
 msgstr "الدرجة"
@@ -1393,8 +1468,14 @@ msgstr "حذف السلسلة"
 msgid "Delete the selected saved query"
 msgstr "حذف الاستعلام المحفوظ المحدد"
 
+msgid "Delete the selected stored function"
+msgstr "حذف الوظيفة المخزنة المحددة"
+
 msgid "Delete the selected table"
 msgstr "حذف الجدول المحدد"
+
+msgid "Delete the selected tables"
+msgstr "حذف الجداول المحددة"
 
 msgid "Delete this figure"
 msgstr "حذف هذا الشكل"
@@ -1413,6 +1494,9 @@ msgstr "حذف..."
 
 msgid "Delimiter"
 msgstr "المحدد"
+
+msgid "Deming: the method tested's error variance over the reference's - 1 when they are alike (each one's repeatability, squared)."
+msgstr "Deming: اختبرت الطريقة تباين الخطأ على المرجع - 1 عندما يكونان متشابهين (قابلية التكرار لكل منهما، مربع)."
 
 msgid "Demo"
 msgstr "عرض توضيحي"
@@ -1435,9 +1519,6 @@ msgstr "تنازلي"
 msgid "Description"
 msgstr "البيان"
 
-msgid "Description cannot be empty."
-msgstr "لا يمكن أن يكون الوصف فارغًا."
-
 msgid "Description:"
 msgstr "الوصف:"
 
@@ -1459,11 +1540,35 @@ msgstr "الكشف عن الحالات الشاذة"
 msgid "Detrend:"
 msgstr "Detrend:"
 
-msgid "Developer mode"
-msgstr "وضع المطور"
+msgid "Diameter:"
+msgstr "القطر:"
+
+msgid "Die bins"
+msgstr "صناديق القوالب"
+
+msgid "Die bins (with limits)"
+msgstr "صناديق القوالب (بحدود)"
+
+msgid "Die grid shift x:"
+msgstr "تغيير شبكة القالب x:"
+
+msgid "Die grid shift y:"
+msgstr "تحول شبكة القالب ذ:"
+
+msgid "Die height:"
+msgstr "ارتفاع القالب:"
+
+msgid "Die width:"
+msgstr "عرض القالب:"
+
+msgid "Dies (means, or defects per die)"
+msgstr "يموت (يعني، أو عيوب لكل يموت)"
 
 msgid "Difference of means"
 msgstr "اختلاف الوسائل"
+
+msgid "Difference vs mean: slope, p"
+msgstr "الفرق مقابل المتوسط: الميل، p"
 
 msgid "Different from..."
 msgstr "مختلف عن..."
@@ -1482,6 +1587,9 @@ msgstr "هل تريد تجاهل التغييرات ؟"
 
 msgid "Discriminant"
 msgstr "تمييزي"
+
+msgid "Dismiss"
+msgstr "تجاهل"
 
 msgid "Distance metric:"
 msgstr "مقياس المسافة:"
@@ -1507,8 +1615,17 @@ msgstr "التوزيع:"
 msgid "Divergence"
 msgstr "الاختلاف"
 
+msgid "Divergence: where the field spreads out (above 0) or gathers in (below 0) - a source or a sink. Curl: where it turns, and which way - 0 where it flows without turning."
+msgstr "الاختلاف: حيث ينتشر الحقل (أعلى من 0) أو يتجمع في (أقل من 0) - مصدر أو حوض. الضفيرة: حيث تدور، وبأي اتجاه - 0 حيث تتدفق دون أن تدور."
+
 msgid "Divide by the interquartile range."
 msgstr "اقسم على المدى الربيعي."
+
+msgid "Do the clusters differ in {column}?"
+msgstr "هل تختلف المجموعات في {column}؟"
+
+msgid "Do two methods agree on the same samples? Bland-Altman bias and limits of agreement, Deming and Passing-Bablok regression with their intervals."
+msgstr "هل تتفق طريقتان على نفس العينات ؟ تحيز Bland - Altman وحدود الاتفاق، Deming وانحدار Passing - Bablok مع فواصلها الزمنية."
 
 msgid "Docs:"
 msgstr "المستندات:"
@@ -1516,8 +1633,8 @@ msgstr "المستندات:"
 msgid "Documentation"
 msgstr "التوثيق"
 
-msgid "Does a measure follow the normal (bell-shaped) distribution that t-tests, ANOVA and control charts assume? The test is chosen for you, and the answer is given in words."
-msgstr "هل يتبع المقياس التوزيع الطبيعي (على شكل جرس) الذي تفترضه اختبارات t و ANOVA ومخططات التحكم ؟ يتم اختيار الاختبار لك، ويتم إعطاء الإجابة بالكلمات."
+msgid "Does a series follow the normal (bell-shaped) distribution that t-tests, ANOVA and control charts assume? The test is chosen for you, and the answer is given in words."
+msgstr "هل تتبع السلسلة التوزيع الطبيعي (على شكل جرس) الذي تفترضه اختبارات t و ANOVA ومخططات التحكم ؟ يتم اختيار الاختبار لك، ويتم إعطاء الإجابة بالكلمات."
 
 msgid "Double-click a column to insert it at the cursor."
 msgstr "انقر نقرًا مزدوجًا فوق عمود لإدراجه في المؤشر."
@@ -1570,11 +1687,26 @@ msgstr "اسم عمود مكرر: {name}"
 msgid "Duplicate table"
 msgstr "جدول مكرر"
 
-msgid "Each column divided by its standard deviation, so that each counts the same whatever its unit - leave on unless the columns share one unit and scale."
-msgstr "كل عمود مقسومًا على انحرافه المعياري، بحيث يحسب كل عمود نفسه مهما كانت وحدته - اتركه ما لم تشترك الأعمدة في وحدة ومقياس واحد."
+msgid "EWMA and CUSUM: the process sigma (empty: the moving range's). Levey-Jennings: the material's assigned standard deviation (empty: the data's)."
+msgstr "EWMA و CUSUM: سيجما العملية (فارغة: النطاق المتحرك). Levey - Jennings: الانحراف المعياري المعين للمادة (فارغ: البيانات)."
+
+msgid "EWMA and CUSUM: the target the process should stay at. Levey-Jennings: the control material's assigned mean. Empty: the data's own."
+msgstr "EWMA و CUSUM: الهدف الذي يجب أن تبقى العملية عنده. ليفي جينينغز: المتوسط المخصص لمواد التحكم. فارغ: البيانات الخاصة."
+
+msgid "EWMA weight (lambda):"
+msgstr "وزن EWMA (لامدا):"
+
+msgid "Each cluster's mean silhouette: near 1 well apart, near 0 on a border, below 0 misplaced."
+msgstr "صورة ظلية متوسطة لكل مجموعة: بالقرب من 1 متباعدة جيدًا، بالقرب من 0 على الحدود، أقل من 0 في غير محلها."
 
 msgid "Each curve separately"
 msgstr "كل منحنى على حدة"
+
+msgid "Each feature divided by its standard deviation, so that each counts the same whatever its unit - leave on unless the features share one unit and scale."
+msgstr "كل سمة مقسومة على انحرافها المعياري، بحيث تحسب كل واحدة نفس الشيء مهما كانت وحدتها - تترك ما لم تشترك الميزات في وحدة ومقياس واحد."
+
+msgid "Each feature's mean in each cluster."
+msgstr "متوسط كل ميزة في كل مجموعة."
 
 msgid "Each library is used under its own licence, named above and shipped with the package it belongs to. Versions are the ones installed here, not the ones pinned."
 msgstr "يتم استخدام كل مكتبة بموجب ترخيصها الخاص، المذكور أعلاه ويتم شحنها مع الحزمة التي تنتمي إليها. الإصدارات هي المثبتة هنا، وليست تلك المثبتة."
@@ -1582,14 +1714,29 @@ msgstr "يتم استخدام كل مكتبة بموجب ترخيصها الخا
 msgid "Each new coordinate is its row of the matrix times x and y (and z, for a 3D series), about the centre below. With offsets adds the last column afterwards. Untick 'Centre on the data' and set the centre to 0 for the matrix exactly as written."
 msgstr "كل إحداثي جديد هو صف المصفوفة مضروبًا في x و y (و z، لسلسلة ثلاثية الأبعاد)، حول المركز أدناه. مع الإزاحة يضيف العمود الأخير بعد ذلك. قم بإلغاء تحديد \"توسيط البيانات\" واضبط المركز على 0 للمصفوفة تمامًا كما هو مكتوب."
 
+msgid "Each of the last values forecast one step ahead from only the values before it, the model refitted each time; its errors beside those of the naive forecast (the last value). Below 1 relative to naive: the model forecasts better than it."
+msgstr "تتنبأ كل قيمة من القيم الأخيرة بخطوة واحدة إلى الأمام من القيم التي قبلها فقط، حيث يتم إصلاح النموذج في كل مرة ؛ أخطاءه إلى جانب أخطاء التنبؤ الساذج (القيمة الأخيرة). أقل من 1 بالنسبة إلى السذاجة: يتنبأ النموذج بشكل أفضل منه."
+
 msgid "Each of {count} series fitted separately"
 msgstr "تم تركيب كل سلسلة من سلاسل {count} بشكل منفصل"
+
+msgid "Each parameter with its value: a=1, b=2. x, y and z are the coordinates."
+msgstr "كل معلمة بقيمتها: a=1، b=2. x، y و z هي الإحداثيات."
+
+msgid "Each point is one sample of the {series} series, placed so that samples alike are near each other. Read the groups and the paths the points draw: the axes have no unit, and far-apart distances say little."
+msgstr "كل نقطة هي عينة واحدة من سلسلة {series} ، موضوعة بحيث تكون العينات على حد سواء بالقرب من بعضها البعض. اقرأ المجموعات والمسارات التي ترسمها النقاط: المحاور ليس لها وحدة، والمسافات البعيدة لا تقول الكثير."
 
 msgid "Each role needs a column of its own."
 msgstr "يحتاج كل دور إلى عمود خاص به."
 
+msgid "Each row across the features as a parallel plot, coloured by its cluster."
+msgstr "كل صف عبر الميزات كمخطط موازٍ، ملون بواسطة مجموعته."
+
 msgid "Each row's origin: Both, Left only or Right only."
 msgstr "أصل كل صف: كلاهما، يسار فقط أو يمين فقط."
+
+msgid "Edge exclusion:"
+msgstr "استبعاد الحافة:"
 
 msgid "Edges:"
 msgstr "الحواف:"
@@ -1597,14 +1744,11 @@ msgstr "الحواف:"
 msgid "Edit"
 msgstr "تعديل"
 
-msgid "Edit Localization"
-msgstr "تعديل التوطين"
-
-msgid "Edit Localization, Data Operation Builder, Function Creator and Renderer Helper on the Project page, and the DeepL key below."
-msgstr "تحرير التوطين، منشئ عملية البيانات، منشئ الوظيفة ومساعد العارض في صفحة المشروع، ومفتاح DeepL أدناه."
-
 msgid "Edit cells, add or delete rows and columns, change a column's type, and manage the Hide and ClusterId columns"
 msgstr "تحرير الخلايا، وإضافة أو حذف الصفوف والأعمدة، وتغيير نوع العمود، وإدارة عمودي Hide و ClusterId"
+
+msgid "Edit function…"
+msgstr "تحرير الدالة..."
 
 msgid "Edit query…"
 msgstr "تعديل الاستعلام..."
@@ -1678,6 +1822,9 @@ msgstr "الترميز:"
 msgid "End of the range to evaluate over."
 msgstr "نهاية النطاق للتقييم."
 
+msgid "End of the y range for z = f(x, y)."
+msgstr "نهاية النطاق y لـ z = f(x, y)."
+
 msgid "Engine"
 msgstr "المحرك"
 
@@ -1698,6 +1845,9 @@ msgstr "يساوي..."
 
 msgid "Equal width"
 msgstr "عرض متساوٍ"
+
+msgid "Error variance ratio:"
+msgstr "نسبة تباين الخطأ:"
 
 msgid "Estimate"
 msgstr "التقدير"
@@ -1720,11 +1870,23 @@ msgstr "كل عملية تحليل وبيانات، حسب الفئة، حسب �
 msgid "Every change made in this editor will be undone, and the table put back as it was.\n\nThis cannot be redone."
 msgstr "سيتم التراجع عن كل تغيير تم إجراؤه في هذا المحرر، وستعود الطاولة كما كانت.\n\nلا يمكن إعادة هذا."
 
+msgid "Every chart of '{table}' draws only its rows marked Selected; the others stay, out of view - nothing is hidden, and analyses read every row."
+msgstr "يرسم كل مخطط من مخططات '{table}' صفوفه المحددة فقط ؛ ويبقى الآخرون بعيدين عن الأنظار - لا يوجد شيء مخفي، وتقرأ التحليلات كل صف."
+
 msgid "Every figure is drawn again, with its notes."
 msgstr "يتم رسم كل شكل مرة أخرى، مع ملاحظاته."
 
 msgid "Every selected series is linearly resampled onto this many evenly spaced points across their shared x range, before decomposing or embedding them together."
 msgstr "يتم إعادة أخذ عينات خطية من كل سلسلة محددة على هذه النقاط العديدة المتباعدة بالتساوي عبر نطاق x المشترك، قبل تحليلها أو تضمينها معًا."
+
+msgid "Exact derivative (SymPy)"
+msgstr "المشتق الدقيق (SymPy)"
+
+msgid "Exact for a stored function"
+msgstr "بالضبط لوظيفة مخزنة"
+
+msgid "Exact integral (SymPy)"
+msgstr "تكامل تام (SymPy)"
 
 msgid "Excel binary workbook"
 msgstr "Excel binary workbook"
@@ -1741,6 +1903,9 @@ msgstr "جزء متوقع من النقاط المتطرفة."
 msgid "Experiment settings"
 msgstr "إعدادات التجربة"
 
+msgid "Explain"
+msgstr "اشرح"
+
 msgid "Explained variance"
 msgstr "التباين الموضح"
 
@@ -1749,6 +1914,15 @@ msgstr "قيم X الصريحة حيث يتم تقييم Y."
 
 msgid "Export"
 msgstr "تصدير"
+
+msgid "Export as HTML"
+msgstr "تصدير بتنسيق HTML"
+
+msgid "Export as PDF"
+msgstr "تصدير كملف PDF"
+
+msgid "Export function"
+msgstr "تصدير الدالة"
 
 msgid "Export report"
 msgstr "تصدير التقرير"
@@ -1767,6 +1941,9 @@ msgstr "تصدير العرض بتنسيق CSV"
 
 msgid "Export view as CSV…"
 msgstr "تصدير العرض بتنسيق CSV..."
+
+msgid "Export..."
+msgstr "تصدير..."
 
 msgid "Export…"
 msgstr "تصدير..."
@@ -1876,18 +2053,6 @@ msgstr "ملف"
 msgid "File created:"
 msgstr "تم إنشاء الملف:"
 
-msgid "File name must be a valid Python file name, e.g. my_chart.py."
-msgstr "يجب أن يكون اسم الملف اسم ملف Python صالحًا، على سبيل المثال my_chart.py."
-
-msgid "File name must be a valid Python file name, e.g. my_function.py."
-msgstr "يجب أن يكون اسم الملف اسمًا صالحًا لملف Python، على سبيل المثال my_function.py."
-
-msgid "File name must be a valid Python file name, e.g. my_operation_dialog.py."
-msgstr "يجب أن يكون اسم الملف اسمًا صالحًا لملف Python، على سبيل المثال my_operation_dialog.py."
-
-msgid "File name:"
-msgstr "اسم الملف:"
-
 msgid "Files of programs whose format has no free reader: export them as CSV or Excel."
 msgstr "ملفات البرامج التي لا يحتوي تنسيقها على قارئ مجاني: قم بتصديرها بتنسيق CSV أو Excel."
 
@@ -1896,9 +2061,6 @@ msgstr "تعبئة"
 
 msgid "Fill empty cells in '{column}'"
 msgstr "املأ الخلايا الفارغة في '{column}'"
-
-msgid "Fill every empty translation with a machine translation to review"
-msgstr "املأ كل ترجمة فارغة بترجمة آلية للمراجعة"
 
 msgid "Fill from the data"
 msgstr "املأ من البيانات"
@@ -1912,6 +2074,9 @@ msgstr "املأ العمود الأولي من البيانات: مقدر ال�
 msgid "Fill with:"
 msgstr "املأ بـ:"
 
+msgid "Filled Contour"
+msgstr "محيط معبأ"
+
 msgid "Filter by name or category. Sections with no match are hidden."
 msgstr "التصفية حسب الاسم أو الفئة. المقاطع التي لا تطابق مخفية."
 
@@ -1923,6 +2088,9 @@ msgstr "ترتيب التصفية. الأعلى هو التدحرج الأكثر
 
 msgid "Filter the model catalog by name."
 msgstr "قم بتصفية كتالوج الطراز حسب الاسم."
+
+msgid "Filter unsafe commands"
+msgstr "تصفية الأوامر غير الآمنة"
 
 msgid "Filter, detrend or demodulate a series (scipy.signal)"
 msgstr "تصفية أو إلغاء اتجاه أو إزالة تضمين سلسلة (scipy.signal)"
@@ -1978,11 +2146,8 @@ msgstr "نماذج بيانات FIT"
 msgid "Fit mode"
 msgstr "وضع الملاءمة"
 
-msgid "Fitted"
-msgstr "تم تركيبه"
-
-msgid "Fitted to each column: its curve on the histogram, the Q-Q plot against it, its parameters and goodness of fit in the report. Best fit: the one of these with the lowest AIC."
-msgstr "تم تركيبه على كل عمود: منحنى على الرسم البياني، ومؤامرة Q - Q ضده، ومعلماته وجودة الملاءمة في التقرير. أفضل ملاءمة: واحدة من هذه مع أدنى AIC."
+msgid "Fitted to each series: its curve on the histogram, the Q-Q plot against it, its parameters and goodness of fit in the report. Best fit: the one of these with the lowest AIC."
+msgstr "تتناسب مع كل سلسلة: منحناها على الرسم البياني، ومؤامرة Q - Q ضدها، ومعلماتها وجودة الملاءمة في التقرير. أفضل ملاءمة: واحدة من هذه مع أدنى AIC."
 
 msgid "Fitted {distribution}"
 msgstr "مجهز {distribution}"
@@ -1998,6 +2163,12 @@ msgstr "ثابت: {what}"
 
 msgid "Flags runs, trends and other patterns that stay inside the limits - the signals a limits-only chart misses. The zone rules switch themselves off on a chart whose limits move."
 msgstr "تشغيل الأعلام والاتجاهات والأنماط الأخرى التي تبقى داخل الحدود - الإشارات التي يخطئها مخطط الحدود فقط. تغلق قواعد المنطقة نفسها على مخطط تتحرك حدوده."
+
+msgid "Flat"
+msgstr "مسطح"
+
+msgid "Fligner-Killeen equal variances"
+msgstr "Fligner - Killeen متباينات متساوية"
 
 msgid "Fold the negative frequencies onto the positive ones. Correct for real-valued signals."
 msgstr "اطوِ الترددات السالبة على الموجبة. صحيح للإشارات ذات القيمة الحقيقية."
@@ -2047,11 +2218,8 @@ msgstr "توجد على شبكة x/y الخاصة بالسطح."
 msgid "Fraction of each segment shared with the next."
 msgstr "جزء من كل جزء تمت مشاركته مع الجزء التالي."
 
-msgid "Free plan keys end in :fx"
-msgstr "تنتهي مفاتيح الخطة المجانية بـ :fx"
-
-msgid "From x:"
-msgstr "من x:"
+msgid "Friedman test"
+msgstr "اختبار فريدمان"
 
 msgid "Full factorial"
 msgstr "عاملي كامل"
@@ -2062,8 +2230,8 @@ msgstr "كامل الخارج: كل صف"
 msgid "Function"
 msgstr "الوظيفة"
 
-msgid "Function Creator"
-msgstr "منشئ الوظيفة"
+msgid "Function already exists. Confirm modifications?"
+msgstr "الوظيفة موجودة بالفعل. هل تريد تأكيد التعديلات ؟"
 
 msgid "Function expression"
 msgstr "تعبير الوظيفة"
@@ -2071,11 +2239,20 @@ msgstr "تعبير الوظيفة"
 msgid "Function expression with evaluated parameters"
 msgstr "تعبير الوظيفة مع المعلمات التي تم تقييمها"
 
+msgid "Function name:"
+msgstr "اسم الوظيفة:"
+
+msgid "Function of '{name}'"
+msgstr "وظيفة '{name}'"
+
 msgid "GPS track (GPX)"
 msgstr "مسار نظام تحديد المواقع العالمي (GPX)"
 
 msgid "Gage R&R"
 msgstr "Gage R&R"
+
+msgid "Gage R&R {percent}% of the study variation: the part the measuring system adds itself. Under 10% is usually called acceptable, 10 to 30% marginal, above 30% not."
+msgstr "مقياس R&R {percent}٪ من تباين الدراسة: الجزء الذي يضيفه نظام القياس لنفسه. أقل من 10 % i ثانية عادة ما تسمى مقبولة، 10 إلى 30 ٪ هامشية، أكثر من 30 ٪ لا."
 
 msgid "Gamma"
 msgstr "جاما"
@@ -2098,6 +2275,12 @@ msgstr "البيانات التي تم إنشاؤها"
 msgid "Generated table schema"
 msgstr "مخطط الجدول الذي تم إنشاؤه"
 
+msgid "GitHub Copilot"
+msgstr "مساعد GitHub"
+
+msgid "GitHub Copilot's models through GitHub Models, with a GitHub token - or any OpenAI-compatible chat endpoint."
+msgstr "نماذج GitHub Copilot من خلال نماذج GitHub، مع رمز GitHub - أو أي نقطة نهاية دردشة متوافقة مع OpenAI."
+
 msgid "Give X, Y and Z this coordinate's grid and ticks."
 msgstr "أعطِ X و Y و Z شبكة الإحداثيات والقراد."
 
@@ -2118,6 +2301,12 @@ msgstr "عالمي: تناسب واحد من جميع السلاسل التي ت
 
 msgid "Goodness of fit"
 msgstr "جودة الملاءمة"
+
+msgid "Granger causality (VAR)"
+msgstr "علاقة جرانجر السببية (VAR)"
+
+msgid "Graph"
+msgstr "الرسم البياني"
 
 msgid "GraphPad Prism (.pzfx)"
 msgstr "موشور GraphPad (.pzfx)"
@@ -2152,11 +2341,8 @@ msgstr "مقارنة المجموعة (ANOVA)"
 msgid "Group means"
 msgstr "المجموعة تعني"
 
-msgid "Group similar data"
-msgstr "تجميع بيانات متشابهة"
-
-msgid "Group the rows on several columns - K Means, Hierarchical (Ward) or Normal Mixtures - with k chosen by the silhouette; each cluster's size and means, its rows on the principal components."
-msgstr "قم بتجميع الصفوف على عدة أعمدة - K Means أو Hierarchical (Ward) أو Normal Mixtures - مع k يتم اختيارها بواسطة الصورة الظلية ؛ حجم كل مجموعة ووسائلها، وصفوفها على المكونات الرئيسية."
+msgid "Group similar rows - k-means, hierarchical (Ward), normal mixtures, DBSCAN and more - with k chosen by the silhouette; each cluster's size and means, its rows on the principal components."
+msgstr "تجميع صفوف متشابهة - وسائل k، هرمية (جناح)، مخاليط عادية، DBSCAN والمزيد - مع k يتم اختيارها بواسطة الصورة الظلية ؛ حجم كل مجموعة ووسائلها، صفوفها على المكونات الرئيسية."
 
 msgid "Groups"
 msgstr "المجموعات"
@@ -2181,6 +2367,9 @@ msgstr "HTML - ملف واحد، يفتح في أي متصفح"
 
 msgid "HTML page (*.html)"
 msgstr "صفحة HTML (*.html)"
+
+msgid "Half the shift to detect, in sigmas: 0.5 for a shift of one sigma."
+msgstr "نصف التحول للكشف، في سيغما: 0.5 لتحول سيغما واحد."
 
 msgid "Half-prominence bounds"
 msgstr "حدود نصف البروز"
@@ -2212,6 +2401,9 @@ msgstr "ساعدني في الاختيار"
 msgid "Help me choose…"
 msgstr "ساعدني في الاختيار..."
 
+msgid "Here it follows {measure} one step behind: the model predicts little beyond the last value. A model that fits better (ARIMA chosen by AIC, a season) brings it onto the data."
+msgstr "هنا يتبع {measure} خطوة واحدة إلى الوراء: يتنبأ النموذج بقليل يتجاوز القيمة الأخيرة. النموذج الذي يتناسب بشكل أفضل (أريما التي اختارتها AIC، موسم) يجلبها إلى البيانات."
+
 msgid "Hide"
 msgstr "إخفاء"
 
@@ -2229,6 +2421,9 @@ msgstr "إخفاء الصفوف حيث {column} {operator}:"
 
 msgid "Hide selected points"
 msgstr "إخفاء النقاط المحددة"
+
+msgid "Hide selected rows"
+msgstr "إخفاء الصفوف المحددة"
 
 msgid "Hide spines"
 msgstr "إخفاء العمود الفقري"
@@ -2296,8 +2491,8 @@ msgstr "كيف يتم ترجيح بقايا كبيرة. تثق المربعات 
 msgid "How continuous columns move together: the correlation matrix, each pair's correlation with its confidence interval and p-value, and the scatterplot matrix."
 msgstr "كيف تتحرك الأعمدة المستمرة معًا: مصفوفة الارتباط، وارتباط كل زوج بفاصل الثقة وقيمة p، ومصفوفة المخطط المبعثر."
 
-msgid "How densely to sample. A curve with sharp features needs more; a straight line needs two."
-msgstr "ما مدى كثافة العينة. يحتاج المنحنى ذو السمات الحادة إلى المزيد ؛ بينما يحتاج الخط المستقيم إلى خطين."
+msgid "How densely to sample."
+msgstr "ما مدى كثافة العينة."
 
 msgid "How each bracketed crossing is refined. The three bracketing solvers cannot leave the interval they were given; Newton can, and is checked afterwards."
 msgstr "كيف يتم صقل كل تقاطع بين قوسين. لا يمكن لآلات حل الأقواس الثلاثة ترك الفاصل الزمني الذي تم إعطاؤه لهم ؛ يمكن لنيوتن، ويتم فحصه بعد ذلك."
@@ -2325,6 +2520,9 @@ msgstr "كم عدد العوامل التي تجمعها تفاعلات الما
 
 msgid "How many nearby points each one is connected to. Lowered automatically if it does not fit the sample count."
 msgstr "كم عدد النقاط القريبة التي ترتبط بها كل نقطة. يتم خفضه تلقائيًا إذا كان لا يتناسب مع عدد العينات."
+
+msgid "How many of the analyses opened last the navigation bar lists under Recent; 0 hides the section."
+msgstr "كم عدد التحليلات التي فتحت آخر قوائم شريط التنقل تحت الأخيرة ؛ 0 يخفي القسم."
 
 msgid "How many past errors the next value depends on: the lags where the ACF stands out."
 msgstr "كم عدد الأخطاء السابقة التي تعتمد عليها القيمة التالية: التأخيرات التي تبرز فيها ACF."
@@ -2422,14 +2620,20 @@ msgstr "كيف يتم عرض القيم في الجدول: القيم نفسها
 msgid "How the values are stored. Changing it converts them; a value that cannot be read in the new type is left empty."
 msgstr "كيف يتم تخزين القيم. يؤدي تغييرها إلى تحويلها ؛ تُترك القيمة التي لا يمكن قراءتها في النوع الجديد فارغة."
 
-msgid "How to produce a translated copy of the user manual"
-msgstr "كيفية إنتاج نسخة مترجمة من دليل المستخدم"
+msgid "How to read this"
+msgstr "كيف تقرأ هذا"
+
+msgid "How to write the code"
+msgstr "كيفية كتابة الرمز"
 
 msgid "How two rows for the same group and label are combined."
 msgstr "كيف يتم الجمع بين صفين لنفس المجموعة والتسمية."
 
 msgid "IQR multiplier:"
 msgstr "مضاعف IQR:"
+
+msgid "Identity"
+msgstr "الهوية"
 
 msgid "Impact %"
 msgstr "التأثير %"
@@ -2448,6 +2652,12 @@ msgstr "استيراد من الملف"
 
 msgid "Import from the web"
 msgstr "استيراد من الويب"
+
+msgid "Import function"
+msgstr "استيراد الدالة"
+
+msgid "Import..."
+msgstr "استيراد..."
 
 msgid "Importance"
 msgstr "الأهمية"
@@ -2500,6 +2710,9 @@ msgstr "التفاعل {a} × {b}"
 msgid "Interquartile range"
 msgstr "المدى الربيعي"
 
+msgid "Interval"
+msgstr "الفترة"
+
 msgid "Intervals [a, b)"
 msgstr "الفواصل الزمنية [أ، ب)"
 
@@ -2545,6 +2758,9 @@ msgstr "التكرارات"
 msgid "Iterations:"
 msgstr "التكرارات:"
 
+msgid "Its arguments are the parameters only: x and y are given, not passed."
+msgstr "حججه هي المعلمات فقط: يتم إعطاء x و y، وليس تمريرها."
+
 msgid "Its curl, coloured by its size"
 msgstr "تجعيده، ملون بحجمه"
 
@@ -2571,9 +2787,6 @@ msgstr "دفتر اليومية"
 
 msgid "Journal column…"
 msgstr "عمود دفتر اليومية..."
-
-msgid "K Means: round clusters of similar size, the usual choice. Hierarchical (Ward): merges the closest rows step by step. Normal Mixtures: clusters of any shape and spread, each row with its most likely cluster."
-msgstr "K يعني: مجموعات مستديرة ذات حجم مماثل، الخيار المعتاد. التسلسل الهرمي (الجناح): يدمج أقرب الصفوف خطوة بخطوة. المخاليط العادية: مجموعات من أي شكل وانتشار، كل صف مع مجموعته الأكثر احتمالا."
 
 msgid "K-means convergence threshold."
 msgstr "K - يعني عتبة التقارب."
@@ -2613,6 +2826,9 @@ msgstr "النواة:"
 
 msgid "Kind"
 msgstr "لطيف"
+
+msgid "Kind:"
+msgstr "النوع:"
 
 msgid "Knots:"
 msgstr "العقد:"
@@ -2677,8 +2893,8 @@ msgstr "لامدا:"
 msgid "Language"
 msgstr "اللغة"
 
-msgid "Largest k tried:"
-msgstr "أكبر عدد من المحاولات:"
+msgid "Largest k:"
+msgstr "أكبر k:"
 
 msgid "Largest lag to keep. 0 keeps every lag."
 msgstr "أكبر تأخر يجب الاحتفاظ به. 0 يحافظ على كل تأخر."
@@ -2715,6 +2931,9 @@ msgstr "اترك القيم الفارغة"
 
 msgid "Leave out the values between two ends - 10, 90 - so the two sides fill the axis: a few points far from the rest. Linear scale only; x and y."
 msgstr "اترك القيم بين طرفين - 10، 90 - حتى يملأ الجانبان المحور: بضع نقاط بعيدة عن الباقي. مقياس خطي فقط ؛ x و y."
+
+msgid "Leave the selected rows out of every chart and analysis (Hide = 1); they stay in the table, greyed."
+msgstr "اترك الصفوف المحددة خارج كل مخطط وتحليل (إخفاء = 1 )؛ تبقى في الجدول، باللون الرمادي."
 
 msgid "Leaves"
 msgstr "الإجازات"
@@ -2806,11 +3025,8 @@ msgstr "الرابط"
 msgid "Link zoom/pan across axes"
 msgstr "ربط التكبير/التصغير عبر المحاور"
 
-msgid "Link:"
-msgstr "الرابط:"
-
-msgid "Link: a chain for a table linked to its source, Q for a saved query"
-msgstr "الرابط: سلسلة لجدول مرتبط بمصدره، Q لاستعلام محفوظ"
+msgid "Link: a chain for a table linked to its source, Q for a saved query, F for a stored function"
+msgstr "الرابط: سلسلة لجدول مرتبط بمصدره، Q لاستعلام محفوظ، F لوظيفة مخزنة"
 
 msgid "Linkage method:"
 msgstr "طريقة الربط:"
@@ -2820,6 +3036,9 @@ msgstr "مرتبط"
 
 msgid "Linked to its source"
 msgstr "مرتبط بمصدره"
+
+msgid "Links that open the analysis that usually comes next, on the same table and columns."
+msgstr "الروابط التي تفتح التحليل الذي عادة ما يأتي بعد ذلك، على نفس الجدول والأعمدة."
 
 msgid "Live updates"
 msgstr "تحديثات مباشرة"
@@ -2833,11 +3052,8 @@ msgstr "تحميل المصفوفة"
 msgid "Loading plot"
 msgstr "جارٍ تحميل المخطط"
 
-msgid "Localized manual"
-msgstr "دليل محلي"
-
-msgid "Localized manual…"
-msgstr "دليل مترجم..."
+msgid "Log"
+msgstr "السجل"
 
 msgid "Log-rank"
 msgstr "رتبة السجل"
@@ -2848,8 +3064,8 @@ msgstr "LogWorth {value} لـ {term} ، التأثير الأقوى: تبلغ ق
 msgid "Logarithmic"
 msgstr "لوغاريتمي"
 
-msgid "Logarithmic puts equal numbers of points in each decade, which is what a curve plotted on a log axis needs. It requires a range strictly above zero."
-msgstr "يضع اللوغاريتمي أعدادًا متساوية من النقاط في كل عقد، وهو ما يحتاجه المنحنى المرسوم على محور لوغاريتمي. يتطلب نطاقًا أعلى من الصفر تمامًا."
+msgid "Logarithmic spacing requires a range strictly above zero."
+msgstr "يتطلب التباعد اللوغاريتمي نطاقًا أعلى من الصفر تمامًا."
 
 msgid "Lognormal"
 msgstr "Lognormal"
@@ -2865,6 +3081,12 @@ msgstr "أقل"
 
 msgid "Lower control limit"
 msgstr "الحد الأدنى للتحكم"
+
+msgid "Lower limit of agreement"
+msgstr "الحد الأدنى للاتفاق"
+
+msgid "Lower limit:"
+msgstr "الحد الأدنى:"
 
 msgid "Lower or equal..."
 msgstr "أقل أو يساوي..."
@@ -2887,9 +3109,6 @@ msgstr "دفعة MC:"
 msgid "MC resamples:"
 msgstr "إعادة أخذ عينات ميرسي كور:"
 
-msgid "Machine translation"
-msgstr "الترجمة الآلية"
-
 msgid "Macro"
 msgstr "ماكرو"
 
@@ -2911,11 +3130,17 @@ msgstr "مان ويتني يو"
 msgid "Mantel-Haenszel over strata"
 msgstr "Mantel - Haenszel over strata"
 
-msgid "Manual"
-msgstr "يدوي"
-
 msgid "Manual spacing"
 msgstr "التباعد اليدوي"
+
+msgid "Many points"
+msgstr "العديد من النقاط"
+
+msgid "Map (contour, or the defects)"
+msgstr "الخريطة (الكنتور، أو العيوب)"
+
+msgid "Mark at:"
+msgstr "ضع علامة عند:"
 
 msgid "Marker"
 msgstr "علامة"
@@ -2937,9 +3162,6 @@ msgstr "محرر نمط مكتبة مات بلوت ليب"
 
 msgid "Matplotlib default"
 msgstr "مكتبة مات بلوت ليب الافتراضية"
-
-msgid "Matplotlib documentation URL (optional)"
-msgstr "رابط توثيق مكتبة مات بلوت ليب (اختياري)"
 
 msgid "Matrix"
 msgstr "المصفوفة"
@@ -3001,11 +3223,20 @@ msgstr "ماكنمار (مقترن)"
 msgid "Mean"
 msgstr "المتوسط"
 
+msgid "Mean (target):"
+msgstr "المتوسط (الهدف):"
+
 msgid "Mean lower limit"
 msgstr "متوسط الحد الأدنى"
 
-msgid "Mean silhouette by k"
-msgstr "متوسط الصورة الظلية بواسطة k"
+msgid "Mean of the two methods"
+msgstr "متوسط الطريقتين"
+
+msgid "Mean silhouette"
+msgstr "صورة ظلية متوسطة"
+
+msgid "Mean silhouette {value} with {k} clusters: from -1 to 1, how much nearer a row is to its own cluster than to the next one. Above 0.5 is usually called a clear structure, below 0.25 a weak one."
+msgstr "متوسط الصورة الظلية {value} مع {k} مجموعات: من -1 إلى 1، كم هو أقرب صف إلى المجموعة الخاصة به من المجموعة التالية. عادة ما يسمى ما فوق 0.5 بنية واضحة، وأقل من 0.25 بنية ضعيفة."
 
 msgid "Mean upper limit"
 msgstr "متوسط الحد الأعلى"
@@ -3055,6 +3286,9 @@ msgstr "البيانات الوصفية"
 msgid "Method"
 msgstr "الطريقة"
 
+msgid "Method Comparison"
+msgstr "مقارنة الطريقة"
+
 msgid "Method:"
 msgstr "الطريقة:"
 
@@ -3103,11 +3337,8 @@ msgstr "عرض المرآة:"
 msgid "Mirror line"
 msgstr "خط المرآة"
 
-msgid "Missing only"
-msgstr "مفقود فقط"
-
-msgid "Missing value codes:"
-msgstr "رموز القيمة المفقودة:"
+msgid "Misclassification {percent}%: the model puts {count} of {rows} rows in another group than their own. These are the rows it was fitted to: on new rows it usually does a little worse."
+msgstr "خطأ في التصنيف {percent}%: يضع النموذج {count} من {rows} صفوف في مجموعة أخرى غير مجموعتهم. هذه هي الصفوف التي تم تركيبها عليها: في الصفوف الجديدة عادة ما يكون الأمر أسوأ قليلاً."
 
 msgid "Missing values:"
 msgstr "القيم المفقودة:"
@@ -3124,6 +3355,9 @@ msgstr "نوع النمذجة:"
 msgid "Models tried, best AIC first"
 msgstr "النماذج التي تمت تجربتها، أفضل AIC أولاً"
 
+msgid "Modify stored function"
+msgstr "تعديل الوظيفة المخزنة"
+
 msgid "Moments"
 msgstr "لحظات"
 
@@ -3132,6 +3366,12 @@ msgstr "مراقبة استقرار العملية (I - MR، X - bar، p، np، 
 
 msgid "Monotone cubic (PCHIP)"
 msgstr "مكعب رتيب (PCHIP)"
+
+msgid "Mood median test"
+msgstr "اختبار متوسط المزاج"
+
+msgid "More"
+msgstr "المزيد"
 
 msgid "More accurate on smooth data than the trapezoidal rule. Assumes the curve is well approximated by parabolas."
 msgstr "أكثر دقة في البيانات السلسة من قاعدة شبه المنحرف. يفترض أن المنحنى مقارب بشكل جيد بواسطة القطع المكافئ."
@@ -3184,14 +3424,8 @@ msgstr "الاسم"
 msgid "Name and notes"
 msgstr "الاسم والملاحظات"
 
-msgid "Name cannot be empty."
-msgstr "لا يمكن ترك الاسم فارغًا."
-
 msgid "Name columns by:"
 msgstr "اسم الأعمدة حسب:"
-
-msgid "Name of the SQLite table where fitted values/residuals are saved."
-msgstr "اسم جدول SQLite حيث يتم حفظ القيم/المخلفات المجهزة."
 
 msgid "Name of the new column:"
 msgstr "اسم العمود الجديد:"
@@ -3204,6 +3438,12 @@ msgstr "الاسم والنوع ونوع النمذجة والتسمية وال�
 
 msgid "Name:"
 msgstr "الاسم:"
+
+msgid "Names"
+msgstr "الأسماء"
+
+msgid "Navigation"
+msgstr "التنقل"
 
 msgid "Neighborhood radius for DBSCAN. 0 uses the default 0.5."
 msgstr "يستخدم نصف قطر الحي لـ DBSCAN. 0 القيمة الافتراضية 0.5."
@@ -3220,6 +3460,9 @@ msgstr "الجيران:"
 msgid "Nelson rules:"
 msgstr "قواعد نيلسون:"
 
+msgid "New"
+msgstr "جديد"
+
 msgid "New Blank Table"
 msgstr "جدول فارغ جديد"
 
@@ -3229,8 +3472,8 @@ msgstr "مخطط جديد"
 msgid "New Table"
 msgstr "جدول جديد"
 
-msgid "New axis in the current figure"
-msgstr "محور جديد في الشكل الحالي"
+msgid "New axes and figures use this chart type. Same axis keeps the selected axis."
+msgstr "تستخدم المحاور والأشكال الجديدة هذا النوع من المخططات. نفس المحور يحافظ على المحور المحدد."
 
 msgid "New chart from selected columns"
 msgstr "مخطط جديد من الأعمدة المحددة"
@@ -3250,14 +3493,14 @@ msgstr "قاعدة البيانات الجديدة"
 msgid "New figure"
 msgstr "رقم جديد"
 
-msgid "New language"
-msgstr "لغة جديدة"
-
-msgid "New language…"
-msgstr "لغة جديدة..."
+msgid "New function"
+msgstr "وظيفة جديدة"
 
 msgid "New name for '{column}':"
 msgstr "اسم جديد لـ '{column}':"
+
+msgid "New name for '{name}':"
+msgstr "اسم جديد لـ '{name}':"
 
 msgid "New query, not saved yet."
 msgstr "استعلام جديد، لم يتم حفظه بعد."
@@ -3265,8 +3508,14 @@ msgstr "استعلام جديد، لم يتم حفظه بعد."
 msgid "New series from selection"
 msgstr "سلسلة جديدة من التحديد"
 
+msgid "New session"
+msgstr "جلسة جديدة"
+
 msgid "New table"
 msgstr "جدول جديد"
+
+msgid "New table: blank, from a file, the clipboard, the web or a database"
+msgstr "جدول جديد: فارغ، من ملف أو الحافظة أو الويب أو قاعدة بيانات"
 
 msgid "New type for '{column}':"
 msgstr "نوع جديد لـ '{column}':"
@@ -3276,6 +3525,9 @@ msgstr "قيمة جديدة"
 
 msgid "New, open, import and save"
 msgstr "جديد وفتح واستيراد وحفظ"
+
+msgid "Next"
+msgstr "التالي"
 
 msgid "No"
 msgstr "لا"
@@ -3292,6 +3544,9 @@ msgstr "لم يتم تثبيت أي مزود مساعد."
 msgid "No axes found"
 msgstr "لم يتم العثور على محاور"
 
+msgid "No chart is ticked in the Charts tab: tick one, or choose not to draw a chart."
+msgstr "لم يتم وضع علامة على أي مخطط في علامة التبويب المخططات: ضع علامة على واحد، أو اختر عدم رسم مخطط."
+
 msgid "No correlation matrix available."
 msgstr "لا توجد مصفوفة ارتباط متاحة."
 
@@ -3303,6 +3558,9 @@ msgstr "لا توجد kwargs متاحة لهذا العارض."
 
 msgid "No metrics available."
 msgstr "لا توجد مقاييس متاحة."
+
+msgid "No names yet."
+msgstr "لا توجد أسماء حتى الآن."
 
 msgid "No operation has been applied in this project since it began recording them."
 msgstr "لم يتم تطبيق أي عملية في هذا المشروع منذ أن بدأ في تسجيلها."
@@ -3367,9 +3625,6 @@ msgstr "لم يتم التحقق من أي شيء: تدخل القيمة n لك�
 msgid "Normal"
 msgstr "طبيعي"
 
-msgid "Normal quantile"
-msgstr "الكمي العادي"
-
 msgid "Normalisation:"
 msgstr "التطبيع:"
 
@@ -3385,17 +3640,26 @@ msgstr "طبيعية الاختلافات المقترنة"
 msgid "Normalize features by standard deviation before k-means."
 msgstr "تطبيع الميزات عن طريق الانحراف المعياري قبل k - means."
 
-msgid "Not a valid language code."
-msgstr "رمز لغة غير صالح."
-
 msgid "Not analysed: this model needs {needs}."
 msgstr "لم يتم تحليله: يحتاج هذا النموذج إلى {needs}."
+
+msgid "Not drawn: {names} - the project's functions are not trusted on this computer."
+msgstr "غير مرسومة: {names} - وظائف المشروع غير موثوق بها على هذا الكمبيوتر."
+
+msgid "Not run: the function '{name}' is not trusted on this computer."
+msgstr "لا يعمل: الوظيفة '{name}' غير موثوق بها على هذا الكمبيوتر."
 
 msgid "Not sure where to start? Start from what you want to find out"
 msgstr "لست متأكدًا من أين تبدأ ؟ ابدأ مما تريد معرفته"
 
 msgid "Not sure which analysis?"
 msgstr "لست متأكدًا من أي تحليل ؟"
+
+msgid "Not trusted on this computer: shown, not run."
+msgstr "غير موثوق به على هذا الكمبيوتر: يظهر، لا يعمل."
+
+msgid "Notch"
+msgstr "الشق"
 
 msgid "Notes"
 msgstr "ملاحظات"
@@ -3445,6 +3709,9 @@ msgstr "تتم مقارنة عدد الجيران للكثافة المحلية 
 msgid "Number of trees in the ensemble. More is smoother and slower."
 msgstr "عدد الأشجار في المجموعة. المزيد أكثر سلاسة وأبطأ."
 
+msgid "Number of y samples for z = f(x, y)."
+msgstr "عدد عينات y لـ z = f(x, y)."
+
 msgid "Numbers 1, 2, 3..."
 msgstr "الأرقام 1، 2، 3..."
 
@@ -3460,6 +3727,9 @@ msgstr "من:"
 msgid "Offset"
 msgstr "الإزاحة"
 
+msgid "Ollama"
+msgstr "سلسلة"
+
 msgid "On:"
 msgstr "بتاريخ:"
 
@@ -3469,18 +3739,6 @@ msgstr "لا يمكن لمحور واحد الاحتفاظ بهذه السلسل
 msgid "One axis per value of this column - one per species, per batch, per site - each with every series, filtered to that value."
 msgstr "محور واحد لكل قيمة من هذا العمود - محور واحد لكل نوع، لكل دفعة، لكل موقع - لكل سلسلة، يتم تصفيته إلى تلك القيمة."
 
-msgid "One column at a time: the histogram, quantiles, moments and normality tests."
-msgstr "عمود واحد في كل مرة: المدرج التكراري والكميات واللحظات واختبارات الحالة الطبيعية."
-
-msgid "One line, shown in the Analysis panel."
-msgstr "سطر واحد، كما هو موضح في لوحة التحليل."
-
-msgid "One line, shown in the chart picker."
-msgstr "سطر واحد، كما هو موضح في منتقي المخطط."
-
-msgid "One line, shown in the fit dialog's model list."
-msgstr "سطر واحد، كما هو موضح في قائمة طرازات مربع حوار الملاءمة."
-
 msgid "One more split: the one that best separates the response."
 msgstr "انقسام آخر: الانقسام الذي يفصل الاستجابة بشكل أفضل."
 
@@ -3489,6 +3747,9 @@ msgstr "تقرير واحد لكل عمود: مستمر، أو المجموعا�
 
 msgid "One row per distinct combination. None checked: one row of totals."
 msgstr "صف واحد لكل تركيبة مميزة. لم يتم التحقق: صف واحد من المجاميع."
+
+msgid "One series at a time: the histogram, quantiles, moments and normality tests."
+msgstr "Ollama One في كل مرة: المدرج التكراري والكميات واللحظات واختبارات الحالة الطبيعية."
 
 msgid "One tree you can read; a Bootstrap Forest (many trees on resampled rows, averaged); or a Boosted Tree (many small trees, each correcting the ones before)."
 msgstr "شجرة واحدة يمكنك قراءتها ؛ غابة Bootstrap (العديد من الأشجار على صفوف تم أخذ عينات منها، في المتوسط )؛ أو شجرة معززة (العديد من الأشجار الصغيرة، كل منها يصحح الأشجار السابقة)."
@@ -3510,6 +3771,9 @@ msgstr "أنوفا أحادية الاتجاه"
 
 msgid "Only cells that match exactly"
 msgstr "فقط الخلايا التي تتطابق تمامًا"
+
+msgid "Only the Selected rows of '{table}': {count} of {total}."
+msgstr "فقط الصفوف المحددة من '{table}': {count} من {total}."
 
 msgid "Open"
 msgstr "فتح"
@@ -3541,6 +3805,9 @@ msgstr "افتح منشئ الاستعلام على الأعمدة والصفو�
 msgid "Open this saved query in the Query Builder"
 msgstr "افتح هذا الاستعلام المحفوظ في منشئ الاستعلام"
 
+msgid "Open this stored function in Functions: its formula, parameters and range"
+msgstr "افتح هذه الوظيفة المخزنة في الوظائف: صيغتها ومعلماتها ونطاقها"
+
 msgid "Operation"
 msgstr "التشغيل"
 
@@ -3556,11 +3823,11 @@ msgstr "المشغل"
 msgid "Operators"
 msgstr "المشغلون"
 
+msgid "Optional description"
+msgstr "الوصف الاختياري"
+
 msgid "Optional range as 'start, stop'. Empty = data range plus Extend."
 msgstr "نطاق اختياري كـ \"START، STOP\". فارغ = نطاق البيانات زائد توسيع."
-
-msgid "Optional roles:"
-msgstr "الأدوار الاختيارية:"
 
 msgid "Optional: 1 (or Validation) on the rows kept out of the fit, to judge it."
 msgstr "اختياري: 1 (أو التحقق من الصحة) على الصفوف التي تم إبعادها عن الملاءمة، للحكم عليها."
@@ -3595,6 +3862,9 @@ msgstr "ترتيب متعدد الحدود المثبت على كل نافذة."
 msgid "Order:"
 msgstr "الترتيب:"
 
+msgid "Orientation mark:"
+msgstr "علامة الاتجاه:"
+
 msgid "Oscilloscopes and logic"
 msgstr "مناظير الذبذبات والمنطق"
 
@@ -3606,12 +3876,6 @@ msgstr "القيم المتطرفة"
 
 msgid "Outliers:"
 msgstr "القيم المتطرفة:"
-
-msgid "Output"
-msgstr "المخرجات"
-
-msgid "Output table"
-msgstr "جدول المخرجات"
 
 msgid "Output:"
 msgstr "المخرجات:"
@@ -3633,6 +3897,9 @@ msgstr "ارتباطات PLS"
 
 msgid "PNG"
 msgstr "بابوا غينيا الجديدة"
+
+msgid "Page trend test"
+msgstr "ذروة اختبار اتجاه الصفحة"
 
 msgid "Pages:"
 msgstr "الصفحات:"
@@ -3772,6 +4039,9 @@ msgstr "نقطة"
 msgid "Points"
 msgstr "النقاط"
 
+msgid "Points across the wafer the measurements are interpolated on."
+msgstr "النقاط عبر الرقاقة التي يتم استيفاء القياسات عليها."
+
 msgid "Points at half prominence. Raise it to reject single-sample spikes, which are usually instrument artefacts rather than features."
 msgstr "نقاط في نصف بروز. ارفعها لرفض المسامير ذات العينة الواحدة، والتي عادة ما تكون قطعًا أثرية وليست ميزات."
 
@@ -3804,6 +4074,15 @@ msgstr "المنفذ"
 
 msgid "Position"
 msgstr "المنصب"
+
+msgid "Predicted"
+msgstr "متوقع"
+
+msgid "Predicted is each value forecast one step ahead from the ones before it, as JMP's Predicted; the Residual is the value minus it."
+msgstr "من المتوقع أن تتقدم كل قيمة متوقعة بخطوة واحدة عن القيمة السابقة لها، كما هو متوقع من JMP ؛ المتبقي هو القيمة مطروحًا منها."
+
+msgid "Prediction interval ({level}%)"
+msgstr "الفاصل الزمني للتنبؤ ({level}٪)"
 
 msgid "Prediction profile"
 msgstr "الملف التعريفي للتنبؤ"
@@ -3910,8 +4189,14 @@ msgstr "تقليم"
 msgid "Pulse (one time)"
 msgstr "النبض (مرة واحدة)"
 
+msgid "Put the result in f_numeric and return it."
+msgstr "ضع النتيجة في f_numeric وأعدها."
+
 msgid "Put this operation's statement in the editor and run it"
 msgstr "ضع عبارة هذه العملية في المحرر وقم بتشغيلها"
+
+msgid "Q-Q Plot"
+msgstr "قطعة أرض Q - Q"
 
 msgid "Quality and Process"
 msgstr "الجودة والعملية"
@@ -3939,6 +4224,9 @@ msgstr "استعلام:"
 
 msgid "Quick answers"
 msgstr "إجابات سريعة"
+
+msgid "Q² = {value}: on rows left out of each fit, the model accounts for {percent}% of how much {y} varies - its R² for prediction."
+msgstr "Q² = {value}: في الصفوف التي تم تركها خارج كل توافق، يمثل النموذج {percent}% من مقدار {y} الاختلاف - R² للتنبؤ."
 
 msgid "R"
 msgstr "R"
@@ -4000,6 +4288,9 @@ msgstr "جاهز"
 msgid "Recent"
 msgstr "الأخيرة"
 
+msgid "Recent analyses"
+msgstr "التحليلات الأخيرة"
+
 msgid "Recomputes the limits without the points they flagged - the trial-limits-then-revised-limits pass every SPC text runs. Use only when the flagged points have an assigned cause you have removed; otherwise it hides the problem."
 msgstr "يعيد حساب الحدود دون النقاط التي أشاروا إليها - الحدود التجريبية - ثم المنقحة - تجتاز كل عمليات تشغيل نص SPC. استخدم فقط عندما يكون للنقاط التي تم وضع علامة عليها سبب معين قمت بإزالته ؛ وإلا فإنه يخفي المشكلة."
 
@@ -4023,6 +4314,12 @@ msgstr "المراجع"
 
 msgid "Refuse SQL that would change the database"
 msgstr "رفض لغة الاستعلام البنيوية التي من شأنها تغيير قاعدة البيانات"
+
+msgid "Refuse imports, eval, exec, open and names starting with _ - against mistakes and lines pasted from the web, not a sandbox."
+msgstr "رفض الاستيراد والتقييم والتنفيذ والفتح والأسماء التي تبدأ بـ _ - ضد الأخطاء والخطوط الملصقة من الويب، وليس وضع الحماية."
+
+msgid "Regression"
+msgstr "الانحدار"
 
 msgid "Regularization:"
 msgstr "التنظيم:"
@@ -4060,23 +4357,20 @@ msgstr "تمت الإزالة باعتبارها غير مهمة: {terms}."
 msgid "Removed before integrating. Without this, a raised baseline contributes its offset times the width to the area."
 msgstr "تمت الإزالة قبل الدمج. بدون هذا، يساهم خط الأساس المرتفع في إزاحته مضروباً في العرض على المنطقة."
 
+msgid "Rename"
+msgstr "إعادة التسمية"
+
 msgid "Rename column"
 msgstr "إعادة تسمية العمود"
 
-msgid "Rename current table"
-msgstr "إعادة تسمية الجدول الحالي"
-
-msgid "Rename table"
-msgstr "إعادة تسمية الجدول"
+msgid "Rename the selected table, saved query or stored function"
+msgstr "إعادة تسمية الجدول المحدد أو الاستعلام المحفوظ أو الوظيفة المخزنة"
 
 msgid "Rename…"
 msgstr "إعادة التسمية..."
 
 msgid "Render as:"
 msgstr "تقديم على النحو التالي:"
-
-msgid "Renderer Helper"
-msgstr "مساعد العارض"
 
 msgid "Renderer not found."
 msgstr "لم يتم العثور على مقدم العرض."
@@ -4086,6 +4380,9 @@ msgstr "مقدمو العروض"
 
 msgid "Reorder series"
 msgstr "سلسلة إعادة الطلب"
+
+msgid "Repeated-measures tests"
+msgstr "اختبارات التدابير المتكررة"
 
 msgid "Replace the effects with a standard model of the selected columns."
 msgstr "استبدل التأثيرات بنموذج قياسي للأعمدة المحددة."
@@ -4105,11 +4402,11 @@ msgstr "التقرير على الأكثر:"
 msgid "Report written: {path}"
 msgstr "التقرير المكتوب: {path}"
 
+msgid "Reports"
+msgstr "التقارير"
+
 msgid "Reports the Durbin-Watson diagnostic for lag-one residual correlation. Values near 2 indicate little lag-one correlation; no generic p-value is reported."
 msgstr "تقارير تشخيص دوربين- واتسون للارتباط المتبقي المتأخر. تشير القيم القريبة من 2 إلى ارتباط ضئيل بالتأخر ؛ لم يتم الإبلاغ عن قيمة p عامة."
-
-msgid "Required roles:"
-msgstr "الأدوار المطلوبة:"
 
 msgid "Rescale or reshape a series' distribution"
 msgstr "إعادة تحجيم أو إعادة تشكيل توزيع سلسلة"
@@ -4177,11 +4474,17 @@ msgstr "هل تريد استعادة الطاولة ؟"
 msgid "Result"
 msgstr "النتيجة"
 
+msgid "Result name:"
+msgstr "اسم النتيجة:"
+
 msgid "Result preview"
 msgstr "معاينة النتيجة"
 
 msgid "Results"
 msgstr "النتائج"
+
+msgid "Results ({count})"
+msgstr "النتائج ({count})"
 
 msgid "Right"
 msgstr "صحيح"
@@ -4212,6 +4515,12 @@ msgstr "الأدوار"
 
 msgid "Rolling window size, in points, used to compute the local median."
 msgstr "يستخدم حجم النافذة المتدحرجة، بالنقاط، لحساب الوسيط المحلي."
+
+msgid "Rolling-origin validation"
+msgstr "التحقق من صحة الأصل المتداول"
+
+msgid "Rolling-origin validation, one step ahead"
+msgstr "التحقق من صحة الأصل المتداول، خطوة واحدة إلى الأمام"
 
 msgid "Rotate, move, scale or mirror a series' coordinates"
 msgstr "تدوير إحداثيات السلسلة أو تحريكها أو تحجيمها أو عكسها"
@@ -4270,6 +4579,15 @@ msgstr "الصفوف: {ra} تمت إضافتها، {rr} تمت إزالتها، 
 msgid "Rule"
 msgstr "القاعدة"
 
+msgid "Run"
+msgstr "تشغيل"
+
+msgid "Run the project's functions on this computer: their code is shown first."
+msgstr "قم بتشغيل وظائف المشروع على هذا الكمبيوتر: يتم عرض التعليمات البرمجية الخاصة بهم أولاً."
+
+msgid "Run the project's functions?"
+msgstr "تشغيل وظائف المشروع ؟"
+
 msgid "Runs"
 msgstr "الجري"
 
@@ -4278,6 +4596,9 @@ msgstr "R² = {value}: حسابات FIT لـ {percent}% من مقدار {y} يخ
 
 msgid "SAS"
 msgstr "إس إيه إس"
+
+msgid "SD of the differences"
+msgstr "الانحراف المعياري للاختلافات"
 
 msgid "SELECT ... FROM ..."
 msgstr "اختر ... من ..."
@@ -4321,11 +4642,20 @@ msgstr "متبقي من الفولاذ المقاوم للصدأ"
 msgid "SVG - sharp at any zoom"
 msgstr "SVG - حاد عند أي تكبير/تصغير"
 
+msgid "Same axis"
+msgstr "نفس المحور"
+
+msgid "Same figure"
+msgstr "نفس الشكل"
+
 msgid "Sample rows"
 msgstr "عينات من الصفوف"
 
 msgid "Sample size column:"
 msgstr "عمود حجم العينة:"
+
+msgid "Samples"
+msgstr "العينات"
 
 msgid "Samples per Welch segment. Longer segments resolve finer frequency detail; shorter ones average away more noise."
 msgstr "عينات لكل قطعة ويلش. تحل المقاطع الأطول تفاصيل التردد الأكثر دقة ؛ أما المقاطع الأقصر فتتوسط المزيد من الضوضاء."
@@ -4338,12 +4668,6 @@ msgstr "معدل أخذ العينات من x"
 
 msgid "Save"
 msgstr "حفظ"
-
-msgid "Save ClusterId in the table"
-msgstr "حفظ معرف المجموعة في الجدول"
-
-msgid "Save HTML"
-msgstr "حفظ HTML"
 
 msgid "Save Matplotlib Style"
 msgstr "حفظ نمط مكتبة مات بلوت ليب"
@@ -4368,6 +4692,9 @@ msgstr "حفظ قاعدة البيانات باسم"
 
 msgid "Save figure"
 msgstr "احفظ الرقم"
+
+msgid "Save function"
+msgstr "حفظ الوظيفة"
 
 msgid "Save parameters as CSV"
 msgstr "حفظ المعلمات بتنسيق CSV"
@@ -4417,6 +4744,9 @@ msgstr "المقياس ص حسب:"
 msgid "Scale z by:"
 msgstr "مقياس z حسب:"
 
+msgid "Scale:"
+msgstr "المقياس:"
+
 msgid "Scales:"
 msgstr "المقاييس:"
 
@@ -4449,9 +4779,6 @@ msgstr "نماذج البحث..."
 
 msgid "Search properties..."
 msgstr "البحث عن عقارات..."
-
-msgid "Search source or translation…"
-msgstr "مصدر البحث أو الترجمة..."
 
 msgid "Search…"
 msgstr "بحث..."
@@ -4528,6 +4855,9 @@ msgstr "تحديد صفوف مساوية للخلية المحددة"
 msgid "Select rows where {column} {operator}:"
 msgstr "حدد الصفوف حيث {column} {operator}:"
 
+msgid "Select stored function..."
+msgstr "حدد الوظيفة المخزنة..."
+
 msgid "Select the column to insert before first."
 msgstr "حدد العمود المراد إدراجه قبل الأول."
 
@@ -4536,6 +4866,9 @@ msgstr "حدد الصف المراد إدراجه أعلاه أولاً."
 
 msgid "Select the rows to delete first."
 msgstr "حدد الصفوف المراد حذفها أولاً."
+
+msgid "Selection cleared."
+msgstr "تم مسح التحديد."
 
 msgid "Send questions and data to the provider"
 msgstr "إرسال الأسئلة والبيانات إلى مقدم الخدمة"
@@ -4560,6 +4893,9 @@ msgstr "خصائص السلسلة"
 
 msgid "Series:"
 msgstr "السلسلة:"
+
+msgid "Session"
+msgstr "الجلسة"
 
 msgid "Set Figure layout to Manual to edit spacing by hand."
 msgstr "اضبط تخطيط الشكل على يدوي لتحرير التباعد يدويًا."
@@ -4606,8 +4942,8 @@ msgstr "القص ص لكل س:"
 msgid "Sheet"
 msgstr "ورقة"
 
-msgid "Show"
-msgstr "عرض"
+msgid "Show all"
+msgstr "عرض الكل"
 
 msgid "Show data tables"
 msgstr "عرض جداول البيانات"
@@ -4621,6 +4957,15 @@ msgstr "عرض الشبكة"
 msgid "Show in legend"
 msgstr "عرض في وسيلة الإيضاح"
 
+msgid "Show log"
+msgstr "عرض السجل"
+
+msgid "Show only the Selected rows of '{table}'"
+msgstr "أظهر فقط الصفوف المحددة من '{table}'"
+
+msgid "Show only the Selected rows on the charts"
+msgstr "اعرض الصفوف المحددة فقط على المخططات"
+
 msgid "Show residual Durbin-Watson statistic"
 msgstr "عرض إحصائيات دوربين واتسون المتبقية"
 
@@ -4632,6 +4977,12 @@ msgstr "عرض اختبار الجري المتبقي"
 
 msgid "Show residual turning-point test"
 msgstr "عرض اختبار نقطة التحول المتبقية"
+
+msgid "Show selected rows"
+msgstr "عرض الصفوف المحددة"
+
+msgid "Show the Assistant in the navigation bar"
+msgstr "اعرض المساعد في شريط التنقل"
 
 msgid "Show the estimated distribution of one or more samples."
 msgstr "اعرض التوزيع المقدر لعينه أو أكثر."
@@ -4645,9 +4996,6 @@ msgstr "اعرض الشريط الجانبي"
 msgid "Show the tables written by fits, smoothing, outlier and spectral operations. Their names start with an underscore."
 msgstr "اعرض الجداول المكتوبة حسب النوبات، والتنعيم، والعمليات المتطرفة والطيفية. تبدأ أسماؤهم بشرطة سفلية."
 
-msgid "Show the tools for extending the app"
-msgstr "اعرض أدوات توسيع التطبيق"
-
 msgid "Showing the first {count} rows."
 msgstr "عرض أول {count} صفوف."
 
@@ -4659,6 +5007,9 @@ msgstr "سيجما (داخل)"
 
 msgid "Sigma estimate"
 msgstr "تقدير سيجما"
+
+msgid "Sigma:"
+msgstr "سيجما:"
 
 msgid "Sign test"
 msgstr "اختبار التوقيع"
@@ -4674,6 +5025,9 @@ msgstr "مستوى الأهمية (α):"
 
 msgid "Silhouette"
 msgstr "صورة ظلية"
+
+msgid "Silhouette by cluster"
+msgstr "صورة ظلية حسب المجموعة"
 
 msgid "Simpson's rule:"
 msgstr "قاعدة سيمبسون:"
@@ -4789,6 +5143,9 @@ msgstr "ابدأ في قياس المسافة والميل إلى نقطة أخ�
 msgid "Start of the range to evaluate over."
 msgstr "ابدأ النطاق للتقييم."
 
+msgid "Start of the y range for z = f(x, y)."
+msgstr "بداية النطاق y لـ z = f(x, y)."
+
 msgid "Start params:"
 msgstr "معلمات البدء:"
 
@@ -4834,20 +5191,20 @@ msgstr "حجم الخطوة المستخدمة من قبل تباعد عدد ص�
 msgid "Step:"
 msgstr "الخطوة:"
 
-msgid "Stop"
-msgstr "إيقاف"
-
 msgid "Stopped. Nothing was changed."
 msgstr "توقف. لم يتغير شيء."
+
+msgid "Stored function: its values on its range"
+msgstr "الوظيفة المخزنة: قيمها على نطاقها"
+
+msgid "Stored:"
+msgstr "المخزن:"
 
 msgid "Straight line"
 msgstr "خط مستقيم"
 
 msgid "Straight line between endpoints"
 msgstr "خط مستقيم بين نقاط النهاية"
-
-msgid "Strings"
-msgstr "السلاسل"
 
 msgid "Student t-test (equal variances)"
 msgstr "اختبار t للطالب (فروق متساوية)"
@@ -4885,8 +5242,17 @@ msgstr "ملخص"
 msgid "Summary of fit"
 msgstr "ملخص الملاءمة"
 
+msgid "Surface Plot"
+msgstr "قطعة أرض سطحية"
+
 msgid "Survival (Kaplan-Meier, log-rank)"
 msgstr "البقاء على قيد الحياة (كابلان ماير، رتبة لوغاريتمية)"
+
+msgid "SymPy commands on the project's tables: get, save, plot"
+msgstr "أوامر SymPy على طاولات المشروع: GET، SAVE، PLAN"
+
+msgid "SymPy workpad"
+msgstr "لوحة عمل SymPy"
 
 msgid "Table"
 msgstr "جدول"
@@ -4896,6 +5262,9 @@ msgstr "تم إنشاء الجدول '{name}'."
 
 msgid "Table name:"
 msgstr "اسم الجدول:"
+
+msgid "Table with roles"
+msgstr "جدول بالأدوار"
 
 msgid "Table:"
 msgstr "الجدول:"
@@ -4963,6 +5332,9 @@ msgstr "يستخدم ملف PDF دائمًا PNG."
 msgid "The analysis could not run: {error}"
 msgstr "تعذر تشغيل التحليل: {error}"
 
+msgid "The assistant is working..."
+msgstr "المساعد يعمل..."
+
 msgid "The assistant sends questions and data from the project to {provider}. Allow it in Settings > Assistant."
 msgstr "يرسل المساعد أسئلة وبيانات من المشروع إلى {provider}. اسمح بذلك في الإعدادات > المساعد."
 
@@ -4987,14 +5359,8 @@ msgstr "يتم رسم المخطط مرة أخرى، مع ملاحظاته."
 msgid "The chart style of every figure that has none of its own."
 msgstr "نمط المخطط لكل شكل ليس له شكل خاص به."
 
-msgid "The class imported, but axis_renderer_scanner did not discover it as a renderer - check that it subclasses BaseAxisRenderer directly."
-msgstr "تم استيراد الفئة، ولكن لم يكتشفها AXIS_RENDERER_SCANNER على أنها عارض - تحقق من أنها تصنف BaseAxisRenderer مباشرة."
-
-msgid "The class imported, but data_operation_scanner did not discover it as an operation - check that it subclasses DataOperationDialogBase directly."
-msgstr "تم استيراد الفئة، لكن data_operation_scanner لم يكتشفها كعملية - تحقق من أنها تصنف الفئات الفرعية DataOperationDialogBase مباشرة."
-
-msgid "The class imported, but functions_scanner did not discover it as a function - check that it subclasses base_function directly."
-msgstr "تم استيراد الفئة، لكن FUNCTIONS_SCANNER لم تكتشفها كدالة - تحقق من أنها تصنف BASE_FUNCTION مباشرة."
+msgid "The code must define def {name}(...)."
+msgstr "يجب أن يحدد الرمز def {name}(...)."
 
 msgid "The colour the outliers are drawn in."
 msgstr "اللون الذي يتم رسم القيم المتطرفة فيه."
@@ -5032,17 +5398,11 @@ msgstr "الأعمدة التي قد تقودها."
 msgid "The columns the tree may split on."
 msgstr "الأعمدة التي قد تنقسم عليها الشجرة."
 
-msgid "The columns to describe, one report each."
-msgstr "الأعمدة التي يجب وصفها، تقرير واحد لكل منها."
-
 msgid "The columns to model: one model each."
 msgstr "الأعمدة للنمذجة: نموذج واحد لكل منها."
 
 msgid "The columns to show; none checked: all of them."
 msgstr "الأعمدة المراد عرضها ؛ لم يتم التحقق من أي منها: جميعها."
-
-msgid "The continuous columns the rows are grouped on."
-msgstr "الأعمدة المستمرة التي يتم تجميع الصفوف عليها."
 
 msgid "The continuous columns to correlate, two by two."
 msgstr "الأعمدة المستمرة للارتباط، اثنان في اثنين."
@@ -5056,8 +5416,17 @@ msgstr "الأعمدة المستمرة التي يتم تلخيص اختلاف�
 msgid "The continuous measures that tell the groups apart."
 msgstr "التدابير المستمرة التي تفرق بين المجموعات."
 
+msgid "The current figure draws no series: open the analysis on a chart, or read a table."
+msgstr "الشكل الحالي لا يرسم أي سلسلة: افتح التحليل على مخطط، أو اقرأ جدولًا."
+
 msgid "The dates' format, in strftime codes: %d day, %m month, %Y year, %H:%M:%S time, %b month name."
 msgstr "تنسيق التواريخ، برموز وقت التشغيل: %d يوم، %m شهر، %Y سنة، %H :%M:%S وقت، %b اسم الشهر."
+
+msgid "The decision interval: 4 or 5 sigmas, with k = 0.5."
+msgstr "الفاصل الزمني للقرار: 4 أو 5 سيغما، مع k = 0.5."
+
+msgid "The def's parameters, each with its value: a=1, b=2."
+msgstr "معلمات الدفاع، لكل منها قيمته: a=1، b=2."
 
 msgid "The demo projects are built from these datasets, saved under dev/demo/sample data/. Thanks to their authors for making them freely available."
 msgstr "يتم بناء المشاريع التجريبية من مجموعات البيانات هذه، ويتم حفظها تحت DEV/DEMO/SAMPLE DATA/. بفضل مؤلفيهم لإتاحتهم مجانًا."
@@ -5089,11 +5458,26 @@ msgstr "عائلة المرشح. باتروورث مسطحة إلى أقصى ح�
 msgid "The first {count} are shown."
 msgstr "يتم عرض أول {count}."
 
+msgid "The first {count} component(s) carry {percent}% of the variation of the {series} series: drawn, they show most of what the series hold. A component that adds only a few percent is mostly noise."
+msgstr "يحمل أول {count} مكونًا(مكونات) {percent}% من تباين السلسلة {series}: مرسومة، وهي تعرض معظم ما تحمله السلسلة. المكون الذي يضيف نسبة قليلة فقط هو الضوضاء في الغالب."
+
+msgid "The first {count} components carry {percent}% of the variation of the {columns} columns: a scatter of them shows most of what the columns hold. An eigenvalue above 1 - more than one column's worth - is the usual line for a component worth keeping: {kept} here."
+msgstr "تحمل المكونات {count} الأولى {percent}% من تباين الأعمدة {columns}: تُظهر مبعثرتها معظم ما تحمله الأعمدة. القيمة الذاتية فوق 1 - قيمة أكثر من عمود واحد - هي السطر المعتاد لمكون يستحق الاحتفاظ به: {kept} هنا."
+
 msgid "The fixed point's z."
 msgstr "النقطة الثابتة هي z."
 
 msgid "The fixed point. Rotation, scaling, mirroring and shearing all leave this point exactly where it is; a translation ignores it."
 msgstr "النقطة الثابتة. الدوران والتحجيم والانعكاس والقص كلها تترك هذه النقطة بالضبط حيث هي ؛ الترجمة تتجاهلها."
+
+msgid "The formula for every chart of the function; the values and the range for this series."
+msgstr "صيغة كل مخطط للدالة ؛ القيم والنطاق لهذه السلسلة."
+
+msgid "The formula is empty."
+msgstr "الصيغة فارغة."
+
+msgid "The grid's shift from the centre, mm: half a die puts a die corner on the centre."
+msgstr "تحول الشبكة من المركز، مم: نصف قالب يضع زاوية قالب في المركز."
 
 msgid "The groups"
 msgstr "المجموعات"
@@ -5110,6 +5494,12 @@ msgstr "يستبعد الفاصل الزمني 0، لذلك يسمى التغي�
 msgid "The key works: {provider} answered."
 msgstr "الأعمال الرئيسية: {provider} تمت الإجابة عليها."
 
+msgid "The largest number of clusters tried."
+msgstr "حاول أكبر عدد من المجموعات."
+
+msgid "The level of every interval."
+msgstr "مستوى كل فترة."
+
 msgid "The limits move with the sample size, so the zone rules (Nelson 5-8) do not apply and were not run."
 msgstr "تتحرك الحدود مع حجم العينة، لذلك لا تنطبق قواعد المنطقة (نيلسون 5-8) ولم يتم تشغيلها."
 
@@ -5118,6 +5508,9 @@ msgstr "الخط المراد التفكير فيه، من خلال المركز
 
 msgid "The linear region around zero of a symlog scale."
 msgstr "المنطقة الخطية حول الصفر من مقياس سيمولوج."
+
+msgid "The log file is emptied each time the application starts, so it holds the current session only."
+msgstr "يتم إفراغ ملف السجل في كل مرة يبدأ فيها التطبيق، لذلك يحتفظ بالجلسة الحالية فقط."
 
 msgid "The log was cleared."
 msgstr "تم مسح السجل."
@@ -5131,20 +5524,35 @@ msgstr "المقياس، قيمة واحدة في كل مرة."
 msgid "The measured values."
 msgstr "القيم المقاسة."
 
+msgid "The model built into macOS (Apple Intelligence): no key, and nothing leaves the computer."
+msgstr "النموذج المدمج في macOS (Apple Intelligence): لا يوجد مفتاح، ولا شيء يغادر الكمبيوتر."
+
 msgid "The model has no effects: select columns and press Add."
 msgstr "النموذج ليس له أي تأثيرات: حدد الأعمدة واضغط على إضافة."
+
+msgid "The name does not start with _: it is written as a generated table all the same."
+msgstr "لا يبدأ الاسم بـ _: يتم كتابته كجدول تم إنشاؤه بنفس الطريقة."
+
+msgid "The name of the tables (and functions) the operation writes, starting with _ as every generated one does; each result adds its series' name to it. Empty: named automatically."
+msgstr "اسم الجداول (والدوال) التي تكتبها العملية، بدءًا من_ كما يفعل كل واحد تم إنشاؤه ؛ تضيف كل نتيجة اسم متسلسلتها إليها. فارغ: يتم تسميته تلقائيًا."
+
+msgid "The newest value's weight: 0.05-0.25 for small shifts (smaller, smaller shifts); 1 is an individuals chart. Limits at the sigma above (2.7-3 with 0.1-0.2)."
+msgstr "وزن أحدث قيمة: 0.05-0.25 للمناوبات الصغيرة (مناوبات أصغر وأصغر )؛ 1 هو مخطط فردي. الحدود عند السيجما أعلاه (2.7-3 مع 0.1-0.2)."
+
+msgid "The next column - the changes to this one are saved first"
+msgstr "العمود التالي - يتم حفظ التغييرات على هذا العمود أولاً"
+
+msgid "The next is less than 2 above it: the two fit about as well."
+msgstr "التالي أقل من 2 فوقه: يتناسب الاثنان أيضًا."
+
+msgid "The next is {gap} above it: a clear choice (more than 2, the usual line)."
+msgstr "التالي هو {gap} فوقه: خيار واضح (أكثر من 2، الخط المعتاد)."
 
 msgid "The nodes' x."
 msgstr "العقد x."
 
 msgid "The nodes' y."
 msgstr "العقد."
-
-msgid "The numbers to follow over time."
-msgstr "الأرقام التي يجب متابعتها بمرور الوقت."
-
-msgid "The numbers whose distribution to judge."
-msgstr "الأرقام التي يوزع توزيعها على القاضي."
 
 msgid "The numeric columns to run on, one series each."
 msgstr "الأعمدة الرقمية المراد تشغيلها، سلسلة واحدة لكل منها."
@@ -5161,14 +5569,14 @@ msgstr "العمليات المطبقة على هذا الجدول أو منه"
 msgid "The other half of the fixed point."
 msgstr "النصف الآخر من النقطة الثابتة."
 
+msgid "The previous column - the changes to this one are saved first"
+msgstr "العمود السابق - يتم حفظ التغييرات على هذا العمود أولاً"
+
 msgid "The process is not in statistical control: capability describes a stable process, so read these indices with care."
 msgstr "العملية ليست في السيطرة الإحصائية: القدرة تصف عملية مستقرة، لذلك اقرأ هذه المؤشرات بعناية."
 
 msgid "The process mean the limits are built around."
 msgstr "تعني العملية أن الحدود مبنية حولها."
-
-msgid "The process measurements to watch."
-msgstr "قياسات العملية التي يجب مراقبتها."
 
 msgid "The process' distribution for the capability. Not normal: the percentile method (ISO 22514-4) - Pp and Ppk from the fitted distribution's 0.135% and 99.865% points."
 msgstr "توزيع العملية للقدرة. غير طبيعي: طريقة النسبة المئوية (ISO 22514-4) - Pp و Ppk من نقاط التوزيع المجهزة 0.135 ٪ و 99.865 ٪."
@@ -5182,8 +5590,8 @@ msgstr "يحتوي المشروع على {count} جدول ؛ نظرت إلى **{
 msgid "The project's first figure, drawn again each time the project is saved."
 msgstr "الشكل الأول للمشروع، يتم رسمه مرة أخرى في كل مرة يتم فيها حفظ المشروع."
 
-msgid "The project's information, history, database and log - and, in developer mode, the tools for extending the app"
-msgstr "معلومات المشروع وتاريخه وقاعدة بياناته وسجله - وفي وضع المطور، أدوات توسيع التطبيق"
+msgid "The project's information, history, database and log"
+msgstr "معلومات المشروع وتاريخه وقاعدة بياناته وسجله"
 
 msgid "The response's distribution; its canonical link (log for Gamma)."
 msgstr "توزيع الاستجابة ؛ رابطها الأساسي (سجل غاما)."
@@ -5191,8 +5599,20 @@ msgstr "توزيع الاستجابة ؛ رابطها الأساسي (سجل غ�
 msgid "The response: its type and X's choose the analysis."
 msgstr "الإجابة: نوعه ونوع X يختاران التحليل."
 
+msgid "The results of the method being tested."
+msgstr "نتائج الطريقة التي يتم اختبارها."
+
+msgid "The ring at the edge left out, mm: its points count nowhere."
+msgstr "الحلقة على الحافة استبعدت، مم: نقاطها لا تحتسب في أي مكان."
+
+msgid "The rows on the first two principal components of the features, coloured by cluster."
+msgstr "الصفوف على أول مكونين رئيسيين للميزات، ملونة حسب المجموعة."
+
 msgid "The same groups ({group}), another measure"
 msgstr "نفس المجموعات ({group})، مقياس آخر"
+
+msgid "The same samples' results by the reference method."
+msgstr "نفس نتائج العينات بالطريقة المرجعية."
 
 msgid "The same seed gives the same run order and the same Latin hypercube."
 msgstr "نفس البذرة تعطي نفس ترتيب التشغيل ونفس المكعب التشعبي اللاتيني."
@@ -5209,6 +5629,12 @@ msgstr "السلسلة لا تعبر هذا المستوى أبدًا. تحقق 
 msgid "The sources of the data and methods: a citation, and if it has them a DOI (10.xxxx/...) and a web link. Reports list them with their links."
 msgstr "مصادر البيانات والأساليب: اقتباس، وإذا كان يحتوي عليها DOI (10.xxxx/...) ورابط ويب. تسردها التقارير مع روابطها."
 
+msgid "The step between major ticks, in the axis' units (days on a date axis): 0.5, 10. A linear scale only; a comma works as the decimal point too."
+msgstr "الخطوة بين القراد الرئيسية، في وحدات المحور (أيام على محور التاريخ): 0.5، 10. مقياس خطي فقط ؛ تعمل الفاصلة كفاصلة عشرية أيضًا."
+
+msgid "The strongest peak is at frequency {frequency}: a cycle every {period} units of x. A peak matters when it stands well above its neighbours; in a short series one high bin is often noise."
+msgstr "أقوى قمة هي عند التردد {frequency}: دورة كل {period} وحدة من x. الذروة مهمة عندما تقف فوق جيرانها ؛ في سلسلة قصيرة، غالبًا ما يكون هناك صندوق مرتفع واحد هو الضوضاء."
+
 msgid "The style and the language are applied the next time the app starts."
 msgstr "يتم تطبيق الأسلوب واللغة في المرة التالية التي يبدأ فيها التطبيق."
 
@@ -5217,6 +5643,9 @@ msgstr "لا يصل السطح أبدًا إلى هذا المستوى - يبق�
 
 msgid "The table has no visible rows."
 msgstr "لا يحتوي الجدول على صفوف مرئية."
+
+msgid "The table's columns, types and cells; a function's formula; a query's SQL"
+msgstr "أعمدة الجدول وأنواعه وخلاياه ؛ صيغة الدالة ؛ SQL للاستعلام"
 
 msgid "The tables, their size and notes"
 msgstr "الجداول وحجمها وملاحظاتها"
@@ -5229,6 +5658,9 @@ msgstr "الحدود العليا والسفلى. بدونها، يكون الم
 
 msgid "The values to predict: a concentration, a property."
 msgstr "القيم التي يجب التنبؤ بها: تركيز، خاصية."
+
+msgid "The wafer's diameter."
+msgstr "قطر الرقاقة."
 
 msgid "The width of the specification: adds each source's share of it (% Tolerance)."
 msgstr "عرض المواصفات: يضيف حصة كل مصدر منها (% تفاوت)."
@@ -5251,20 +5683,29 @@ msgstr "الربع الثالث"
 msgid "This chart and its notes as an HTML or PDF report, like File > Export for the whole project"
 msgstr "هذا المخطط وملاحظاته كتقرير HTML أو PDF، مثل ملف > تصدير للمشروع بأكمله"
 
+msgid "This draws {count} points. The chart computes them again each time it is drawn, which may be slow. Draw them all the same?"
+msgstr "هذا يسحب {count} نقطة. يحسبها المخطط مرة أخرى في كل مرة يتم رسمها، والتي قد تكون بطيئة. ارسمهم جميعًا متشابهين ؟"
+
 msgid "This figure could not be drawn: {reason}"
 msgstr "تعذر رسم هذا الرقم: {reason}"
 
 msgid "This file is no longer there: {path}"
 msgstr "لم يعد هذا الملف موجودًا: {path}"
 
-msgid "This fills every empty translation with a machine translation from an online service - a starting point to review, not a finished translation. Continue?"
-msgstr "هذا يملأ كل ترجمة فارغة بترجمة آلية من خدمة عبر الإنترنت - نقطة بداية للمراجعة، وليس ترجمة نهائية. هل تريد المتابعة ؟"
-
 msgid "This function takes no parameters."
 msgstr "لا تأخذ هذه الوظيفة أي معلمات."
 
 msgid "This project contains SQL that would change the database. It has been blocked and will not run until it is edited:\n\n{items}"
 msgstr "يحتوي هذا المشروع على SQL التي من شأنها تغيير قاعدة البيانات. تم حظره ولن يتم تشغيله حتى يتم تحريره:\n\n{items}"
+
+msgid "This project keeps functions that run code on this computer whenever they are drawn or fitted. Run them only if you trust where the project comes from."
+msgstr "يحتفظ هذا المشروع بالوظائف التي تقوم بتشغيل التعليمات البرمجية على هذا الكمبيوتر كلما تم رسمها أو تركيبها. قم بتشغيلها فقط إذا كنت تثق في مصدر المشروع."
+
+msgid "This series draws y = f(x): a formula of x and y needs a chart of its own (Function)."
+msgstr "ترسم هذه السلسلة y = f(x): تحتاج صيغة x و y إلى مخطط خاص بها (الدالة)."
+
+msgid "This series draws z = f(x, y): the formula must use y."
+msgstr "ترسم هذه السلسلة z = f(x, y): يجب أن تستخدم الصيغة y."
 
 msgid "This surface's points were not a complete x/y grid, so the peaks below were found on a linearly interpolated one - treat them as approximate."
 msgstr "لم تكن نقاط هذا السطح شبكة x/y كاملة، لذلك تم العثور على القمم أدناه على شبكة مستكملة خطيًا - تعامل معها على أنها تقريبية."
@@ -5305,14 +5746,14 @@ msgstr "العنوان"
 msgid "Titles and labels over several lines - type \\n where a line ends, as in Time\\n(s): how their lines line up with each other."
 msgstr "العناوين والتسميات على عدة أسطر - اكتب \\n حيث ينتهي السطر، كما هو الحال في الوقت\\n(s): كيف تصطف أسطرهم مع بعضها البعض."
 
-msgid "To x:"
-msgstr "إلى x:"
-
 msgid "Tolerance (USL - LSL):"
 msgstr "التسامح (USL - LSL):"
 
 msgid "Tolerance (digits):"
 msgstr "التسامح (الأرقام):"
+
+msgid "Tolerance interval ({share}% of values, {level}% confidence)"
+msgstr "فاصل التسامح ({share}% من القيم، {level}% cمؤكد)"
 
 msgid "Top"
 msgstr "أعلى"
@@ -5328,18 +5769,6 @@ msgstr "تتبع على شبكة x/y الخاصة بالسطح."
 
 msgid "Training"
 msgstr "التدريب"
-
-msgid "Translate missing (auto)"
-msgstr "ترجمة مفقودة (تلقائي)"
-
-msgid "Translating {done} of {total}…"
-msgstr "جارٍ ترجمة {done} من {total}..."
-
-msgid "Translation"
-msgstr "الترجمة"
-
-msgid "Translation service"
-msgstr "خدمة الترجمة"
 
 msgid "Transpose:"
 msgstr "تبديل الموقع:"
@@ -5368,20 +5797,32 @@ msgstr "المتوسط المشذب:"
 msgid "True positive rate"
 msgstr "معدل إيجابي حقيقي"
 
+msgid "Trust..."
+msgstr "الثقة..."
+
+msgid "Trusted, they are remembered on this computer and asked about again only if their code changes. Not run, what they draw stays empty."
+msgstr "موثوق به، يتم تذكره على هذا الكمبيوتر وسؤاله مرة أخرى فقط إذا تغيرت التعليمات البرمجية الخاصة به. لا يركضون، ما يرسمونه يبقى فارغًا."
+
 msgid "Try"
 msgstr "ليرة تركية"
 
 msgid "Try every SciPy distribution"
 msgstr "جرب كل توزيع SciPy"
 
+msgid "Try every k from 2 to the largest and keep the one with the best mean silhouette. DBSCAN, OPTICS and MeanShift find their own number of clusters."
+msgstr "جرب كل k من 2 إلى الأكبر واحتفظ بالصورة الظلية الأفضل. تعثر DBSCAN و OPTICS و MeanShift على عدد المجموعات الخاصة بها."
+
 msgid "Trying the key..."
 msgstr "جاري تجربة المفتاح..."
+
+msgid "Trying..."
+msgstr "جاري المحاولة..."
 
 msgid "Tukey's p-values are already adjusted for the number of pairs, so each can be read against 0.05 on its own. Where Levene says the variances differ, read Welch's ANOVA rather than the classical one."
 msgstr "تم تعديل قيم p لتوكي بالفعل لعدد الأزواج، لذلك يمكن قراءة كل منها مقابل 0.05 من تلقاء نفسها. حيث يقول ليفين إن الفروق تختلف، اقرأ أنوفا ويلش بدلاً من الكلاسيكية."
 
-msgid "Two-letter language code (e.g. \"fr\", \"de\"):"
-msgstr "رمز لغة مكون من حرفين (على سبيل المثال \"fr\"، \"de \"):"
+msgid "Turns the data counterclockwise about the centre, degrees: a map read with the notch elsewhere brought to the mark."
+msgstr "يدير البيانات عكس اتجاه عقارب الساعة حول المركز، الدرجات: خريطة مقروءة مع الشق في مكان آخر إلى العلامة."
 
 msgid "Two-level factorial"
 msgstr "عامل ذو مستويين"
@@ -5422,6 +5863,9 @@ msgstr "URL"
 msgid "Undefined points"
 msgstr "نقاط غير محددة"
 
+msgid "Under each report's main result, two sentences on what its key numbers - a p-value, R², a Cpk - say about these data."
+msgstr "تحت النتيجة الرئيسية لكل تقرير، جملتان حول ما تقوله أرقامه الرئيسية - قيمة p، R²، Cpk - عن هذه البيانات."
+
 msgid "Undo every change made here and close"
 msgstr "التراجع عن كل تغيير تم إجراؤه هنا وإغلاقه"
 
@@ -5461,6 +5905,12 @@ msgstr "الحد الأعلى على جزء من أخطاء التدريب وا�
 msgid "Upper control limit"
 msgstr "الحد الأعلى للتحكم"
 
+msgid "Upper limit of agreement"
+msgstr "الحد الأعلى للاتفاق"
+
+msgid "Upper limit:"
+msgstr "الحد الأعلى:"
+
 msgid "Upper spec (USL):"
 msgstr "المواصفات العليا (USL):"
 
@@ -5479,20 +5929,23 @@ msgstr "استخدم أحدث المعلمات المجهزة"
 msgid "Use the middle of the series' own extent as the fixed point instead of the values above - which is what is wanted when the intent is 'turn this shape', not 'turn it about the origin'."
 msgstr "استخدم منتصف السلسلة \"الامتداد الخاص\" كنقطة ثابتة بدلاً من القيم أعلاه - وهو ما هو مطلوب عندما يكون القصد هو \"قلب هذا الشكل\"، وليس \"قلبه حول الأصل\"."
 
-msgid "Used by Edit Localization to translate with DeepL. Kept on this computer only, and sent to nobody but DeepL. Leave it empty to translate with Google or MyMemory."
-msgstr "يُستخدم من قبل Edit Localization للترجمة باستخدام DeepL. احتفظت بهذا الكمبيوتر فقط، وأرسلته إلى لا أحد سوى DeepL. اتركه فارغًا للترجمة باستخدام Google أو MyMemory."
-
 msgid "User manual and credits"
 msgstr "دليل المستخدم والاعتمادات"
 
 msgid "Username"
 msgstr "اسم المستخدم"
 
+msgid "Using y in the body makes it a surface f(x, y)."
+msgstr "باستخدام y في الجسم يجعله سطح f(x, y)."
+
 msgid "V"
 msgstr "V"
 
 msgid "VCD (value change dump)"
 msgstr "VCD (تفريغ تغيير القيمة)"
+
+msgid "VIP {value} for {variable}, the most important: how much it weighs in the components, against the average variable's 1. Above 0.8, the usual line, a variable is worth keeping."
+msgstr "VIP {value} لـ {variable} ، الأهم: كم يزن في المكونات، مقابل المتغير المتوسط 1. فوق 0.8، الخط المعتاد، المتغير يستحق الاحتفاظ به."
 
 msgid "Validation"
 msgstr "التحقق من الصحة"
@@ -5512,14 +5965,11 @@ msgstr "القيمة:"
 msgid "Values"
 msgstr "القيم"
 
-msgid "Values that mean \"no value\", separated by commas: the analyses read them as empty."
-msgstr "القيم التي تعني \"لا قيمة\"، مفصولة بفواصل: تقرأها التحليلات على أنها فارغة."
-
 msgid "Values that mean \"no value\", separated by commas: they are imported as empty cells."
 msgstr "القيم التي تعني \"لا قيمة\"، مفصولة بفاصلات: يتم استيرادها كخلايا فارغة."
 
-msgid "Values used to evaluate the function. Nothing is fitted here."
-msgstr "القيم المستخدمة لتقييم الدالة. لا يوجد شيء مناسب هنا."
+msgid "Values that stand for \"no value\", separated by commas: filled like the empty cells. Text is matched whatever its case (na is NA); a number by its value (-999 is -999.0). Empty cells - NULL and blank text - are always filled."
+msgstr "القيم التي ترمز إلى \"لا قيمة\"، مفصولة بفاصلات: مملوءة مثل الخلايا الفارغة. يتطابق النص مهما كانت حالته (غير متوفر) ؛ رقم بقيمته (-999 هو -999.0). يتم ملء الخلايا الفارغة - النص الفارغ والنص الفارغ - دائمًا."
 
 msgid "Values:"
 msgstr "القيم:"
@@ -5569,6 +6019,12 @@ msgstr "W"
 msgid "WAV audio"
 msgstr "صوت WAV"
 
+msgid "Wafer"
+msgstr "ويفر"
+
+msgid "Wafer Map"
+msgstr "خريطة الويفر"
+
 msgid "Wald-Wolfowitz test of whether positive and negative residuals occur in a random order around zero. Ties at zero are omitted."
 msgstr "اختبار والد وولفويتز حول ما إذا كانت البقايا الإيجابية والسلبية تحدث بترتيب عشوائي حول الصفر. تم حذف التعادل عند الصفر."
 
@@ -5590,6 +6046,9 @@ msgstr "ويلش أنوفا (فروق غير متكافئة)"
 msgid "Welch t-test"
 msgstr "اختبار ويلش تي"
 
+msgid "Well below the R² of the fit ({r2}): part of what it learnt is noise; fewer components may predict better."
+msgstr "أقل بكثير من R² من الملاءمة ({r2}): جزء مما تعلمته هو الضوضاء ؛ قد تتنبأ مكونات أقل بشكل أفضل."
+
 msgid "What do you want to find out?"
 msgstr "ما الذي تريد معرفته ؟"
 
@@ -5610,6 +6069,9 @@ msgstr "ماذا بعد ؟"
 
 msgid "What the assistant may do. Every change to the data is confirmed first and can be undone."
 msgstr "ما قد يفعله المساعد. يتم تأكيد كل تغيير في البيانات أولاً ويمكن التراجع عنه."
+
+msgid "What the columns are drawn as, before the operation runs on them."
+msgstr "كيف يتم رسم الأعمدة، قبل تشغيل العملية عليها."
 
 msgid "What the database answers:"
 msgstr "ما الذي تجيب عليه قاعدة البيانات:"
@@ -5641,8 +6103,11 @@ msgstr "عندما يرفض اختبار Breslow - Day، تخفي نسبة ال�
 msgid "When the project was created. A project older than this record shows the date its file was created."
 msgstr "عندما تم إنشاء المشروع. يعرض مشروع أقدم من هذا السجل تاريخ إنشاء ملفه."
 
-msgid "Where the result is drawn: on the axis of its data, on a new axis beside it, or in a figure of its own."
-msgstr "حيث يتم استخلاص النتيجة: على محور بياناتها، على محور جديد بجانبها، أو في شكل خاص بها."
+msgid "Where the notch or flat is drawn: the data is in the wafer's own frame, the mark where the map shows it."
+msgstr "حيث يتم رسم الشق أو المسطح: تكون البيانات في إطار الرقاقة الخاص، وهي العلامة التي تعرضها الخريطة."
+
+msgid "Where the result is drawn: on the axis of its data (the first chart only), in the current figure as new axes, or in a figure of its own."
+msgstr "حيث يتم رسم النتيجة: على محور بياناتها (الرسم البياني الأول فقط)، في الشكل الحالي كمحاور جديدة، أو في شكل خاص بها."
 
 msgid "Where:"
 msgstr "أين:"
@@ -5707,8 +6172,8 @@ msgstr "النافذة:"
 msgid "With a specification limit the report gives the process capability: Cp, Cpk, Pp, Ppk and the share out of specification. Empty when there is none."
 msgstr "مع وجود حد للمواصفات، يمنح التقرير قدرة العملية: Cp و Cpk و Pp و Ppk والحصة خارج المواصفات. فارغ عندما لا يكون هناك شيء."
 
-msgid "With k at 0: k from 2 to this."
-msgstr "مع k عند 0: k من 2 إلى هذا."
+msgid "With automatic k: the mean silhouette of each k tried."
+msgstr "مع k التلقائي: الصورة الظلية المتوسطة لكل k تمت تجربتها."
 
 msgid "With no validation column: this share of rows, at random, judges the tree. 0 for none."
 msgstr "بدون عمود التحقق من الصحة: هذه الحصة من الصفوف، بشكل عشوائي، تحكم على الشجرة. 0 مقابل لا شيء."
@@ -5734,15 +6199,6 @@ msgstr "اكتب حرفًا على كل لوحة من شكل متعدد المح
 msgid "Write what the statement returns as a new table: fixed rows, not read again like a saved query"
 msgstr "اكتب ما تعرضه العبارة كجدول جديد: صفوف ثابتة، لا تقرأ مرة أخرى مثل استعلام محفوظ"
 
-msgid "Writes a new file under user/charts/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. render_axis is left for you to write the actual drawing code into."
-msgstr "يكتب ملفًا جديدًا تحت المستخدم/المخططات/ مع فصل مملوء بالفعل من هذه الحقول - لا توجد خطوة تسجيل، يلتقطه الماسح الضوئي بمجرد وجود الملف. render_axis متروك لك لكتابة رمز الرسم الفعلي فيه."
-
-msgid "Writes a new file under user/data_operations/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. compute_results already passes each selected series through unchanged; replace it with the real computation."
-msgstr "يكتب ملفًا جديدًا ضمن USER/DATA_OPERATIONS/ مع فئة مملوءة بالفعل من هذه الحقول - لا توجد خطوة تسجيل، يلتقطها الماسح الضوئي بمجرد وجود الملف. تمر COMPUTE_RESULTS بالفعل بكل سلسلة محددة دون تغيير ؛ استبدلها بالحساب الحقيقي."
-
-msgid "Writes a new file under user/functions/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. execute(x, p) already evaluates a real polynomial in the declared parameters; replace it with the actual formula."
-msgstr "يكتب ملفًا جديدًا تحت المستخدم/الوظائف/ مع فئة مملوءة بالفعل من هذه الحقول - لا توجد خطوة تسجيل، يلتقطها الماسح الضوئي بمجرد وجود الملف. يقوم(x، p) بالفعل بتقييم متعدد الحدود الحقيقي في المعلمات المعلنة ؛ استبدله بالصيغة الفعلية."
-
 msgid "Written by"
 msgstr "كتبه"
 
@@ -5755,11 +6211,20 @@ msgstr "X"
 msgid "X axis: click to edit it"
 msgstr "المحور X: انقر لتحريره"
 
+msgid "X from:"
+msgstr "X من:"
+
+msgid "X points:"
+msgstr "X نقطة:"
+
 msgid "X range:"
 msgstr "النطاق س:"
 
 msgid "X spacing:"
 msgstr "التباعد السيني:"
+
+msgid "X to:"
+msgstr "من X إلى:"
 
 msgid "X, covariates"
 msgstr "X، المتغيرات المشتركة"
@@ -5769,6 +6234,9 @@ msgstr "X، الإدخال"
 
 msgid "X, input in the model (transfer function)"
 msgstr "X، الإدخال في النموذج (وظيفة النقل)"
+
+msgid "X, reference"
+msgstr "X، المرجع"
 
 msgid "X:"
 msgstr "خ:"
@@ -5785,11 +6253,23 @@ msgstr "المحور ص: انقر لتحريره"
 msgid "Y from many X that move together - a spectrum's wavelengths: a few latent components, their number chosen by cross-validation; variable importance (VIP), loadings, scores, predictions."
 msgstr "Y من العديد من X التي تتحرك معًا - الأطوال الموجية للطيف: بعض المكونات الكامنة، يتم اختيار عددها عن طريق التحقق المتبادل ؛ الأهمية المتغيرة (VIP)، الأحمال، الدرجات، التنبؤات."
 
+msgid "Y from:"
+msgstr "ص من:"
+
+msgid "Y points:"
+msgstr "نقاط Y:"
+
+msgid "Y to:"
+msgstr "من نعم إلى:"
+
 msgid "Y, columns"
 msgstr "نعم، الأعمدة"
 
 msgid "Y, group"
 msgstr "نعم، مجموعة"
+
+msgid "Y, method tested"
+msgstr "نعم، تم اختبار الطريقة"
 
 msgid "Y, time series"
 msgstr "Y، السلاسل الزمنية"
@@ -5836,6 +6316,12 @@ msgstr "حوالي {count} مرة في 1000"
 msgid "auto"
 msgstr "تلقائي"
 
+msgid "automatic"
+msgstr "تلقائي"
+
+msgid "axis {number}"
+msgstr "محور {number}"
+
 msgid "b1"
 msgstr "b1"
 
@@ -5851,44 +6337,17 @@ msgstr "بار"
 msgid "choose a table"
 msgstr "اختر طاولة"
 
-msgid "comma-separated, e.g. intercept, slope"
-msgstr "مفصولة بفواصل، على سبيل المثال الاعتراض، المنحدر"
-
-msgid "comma-separated, e.g. x, y"
-msgstr "مفصولة بفواصل، على سبيل المثال x، y"
-
-msgid "comma-separated, optional"
-msgstr "مفصولة بفواصل، اختيارية"
+msgid "curve"
+msgstr "منحنى"
 
 msgid "density: power per unit frequency. spectrum: power per segment."
 msgstr "الكثافة: الطاقة لكل وحدة تردد. الطيف: الطاقة لكل شريحة."
 
-msgid "docs/manual/user_manual.typ is not translated by this tool - it is prose inside Typst markup, not a string catalogue. To produce a translated copy:\n\n1. Copy user_manual.typ to user_manual_<lang>.typ (e.g. user_manual_it.typ).\n2. Translate the prose, leaving every #-command, code block and image reference untouched.\n3. Compile it: typst compile user_manual_<lang>.typ.\n\nThe application text itself does not need this step - it comes from the catalogue this dialog edits."
-msgstr "لا تترجم هذه الأداة docs/manual/user_manual.typ - إنها نثر داخل ترميز Typst، وليست كتالوج سلسلة. لإنتاج نسخة مترجمة:\n\n1. انسخ user_manual.typ إلى user_manual _<lang>.typ (مثل user_manual_it.typ).\n2. ترجم النثر، تاركًا كل #-أمر وكتلة التعليمات البرمجية ومرجع الصورة دون مساس.\n3. قم بتجميعه: typst compile user_manual _<lang>.typ.\n\nلا يحتاج نص التطبيق نفسه إلى هذه الخطوة - فهو يأتي من الكتالوج الذي يحرره مربع الحوار هذا."
-
-msgid "e.g. Envelope Detector"
-msgstr "على سبيل المثال، كاشف المغلفات"
-
-msgid "e.g. Ridgeline Plot"
-msgstr "على سبيل المثال، قطعة أرض Ridgeline"
-
-msgid "e.g. Stretched Exponential"
-msgstr "على سبيل المثال، الأسي الممتد"
-
-msgid "e.g. envelope_detector_dialog.py"
-msgstr "على سبيل المثال envelope_detector_dialog.py"
-
-msgid "e.g. ridgeline.py"
-msgstr "على سبيل المثال ridgeline.py"
-
-msgid "e.g. stretched_exponential.py"
-msgstr "على سبيل المثال stretched_exponential.py"
+msgid "e.g. m = get('Penguins', 'body_mass_g'); mean(m)"
+msgstr "على سبيل المثال m = get(\" طيور البطريق \"،\" body_mass_g \")؛ المتوسط(m)"
 
 msgid "empty: replace the column"
 msgstr "فارغ: استبدل العمود"
-
-msgid "fall"
-msgstr "سقوط"
 
 msgid "falling"
 msgstr "السقوط"
@@ -5914,8 +6373,8 @@ msgstr "الأعلى عند {level}"
 msgid "https://example.com/data.csv"
 msgstr "https://example.com/data.csv"
 
-msgid "large"
-msgstr "كبير"
+msgid "large effect"
+msgstr "تأثير كبير"
 
 msgid "less than once in 1000"
 msgstr "أقل من مرة في 1000"
@@ -5956,8 +6415,8 @@ msgstr "الحد الأقصى"
 msgid "measured"
 msgstr "المقاس"
 
-msgid "medium"
-msgstr "متوسطة"
+msgid "medium effect"
+msgstr "تأثير متوسط"
 
 msgid "minimum"
 msgstr "الحد الأدنى"
@@ -5965,14 +6424,20 @@ msgstr "الحد الأدنى"
 msgid "mm, °C, mV..."
 msgstr "مم، درجة مئوية، مللي فولط..."
 
+msgid "mm."
+msgstr "ملم."
+
+msgid "mm. The dies are the whole ones on the usable wafer."
+msgstr "مم. القوالب هي القوالب الكاملة الموجودة على الرقاقة القابلة للاستخدام."
+
 msgid "modified {date}"
 msgstr "تم تعديل {date}"
 
-msgid "negligible"
-msgstr "لا يكاد يذكر"
+msgid "more factors are needed"
+msgstr "هناك حاجة إلى المزيد من العوامل"
 
-msgid "no answer"
-msgstr "لا توجد إجابة"
+msgid "negligible effect"
+msgstr "تأثير ضئيل"
 
 msgid "none"
 msgstr "لا يوجد"
@@ -5982,6 +6447,9 @@ msgstr "غير مثبت"
 
 msgid "not reached"
 msgstr "لم يتم الوصول إليه"
+
+msgid "np (numpy) and sp (sympy) are ready to use; only numpy and sympy may be imported."
+msgstr "np (numpy) و sp (sympy) جاهزة للاستخدام ؛ يمكن استيراد numpy و sympy فقط."
 
 msgid "of"
 msgstr "من"
@@ -5998,14 +6466,14 @@ msgstr "قم بتركيب حلقة مفاتيح النقطة للاحتفاظ ب
 msgid "practically never"
 msgstr "عمليا أبدا"
 
-msgid "r = {r}: {y} tends to {trend} as {x} rises; 1 or -1 would be a straight line, 0 no straight-line link. They share {percent}% of their variation (r²) - a link, not proof that one causes the other."
-msgstr "r = {r}: {y} يميل إلى {trend} مع ارتفاع {x}؛ 1 أو -1 سيكون خطًا مستقيمًا، 0 لا يوجد رابط خط مستقيم. يتشاركون {percent}٪ من تباينهم (r²) - رابط، وليس دليلًا على أن أحدهما يسبب الآخر."
+msgid "r = {r}: {y} tends to fall as {x} rises; 1 or -1 would be a straight line, 0 no straight-line link. They share {percent}% of their variation (r²) - a link, not proof that one causes the other."
+msgstr "r = {r}: {y} يميل إلى الانخفاض مع ارتفاع {x}؛ 1 أو -1 سيكون خطًا مستقيمًا، 0 لا يوجد رابط خط مستقيم. يتشاركون {percent}٪ من تباينهم (r²) - رابط، وليس دليلًا على أن أحدهما يسبب الآخر."
+
+msgid "r = {r}: {y} tends to rise as {x} rises; 1 or -1 would be a straight line, 0 no straight-line link. They share {percent}% of their variation (r²) - a link, not proof that one causes the other."
+msgstr "r = {r}: {y} يميل إلى الارتفاع مع ارتفاع {x}؛ 1 أو -1 سيكون خطًا مستقيمًا، 0 لا يوجد رابط خط مستقيم. يتشاركون {percent}٪ من تباينهم (r²) - رابط، وليس دليلًا على أن أحدهما يسبب الآخر."
 
 msgid "residual"
 msgstr "متبقي"
-
-msgid "rise"
-msgstr "ارتفاع"
 
 msgid "rises with it"
 msgstr "يرتفع معها"
@@ -6022,14 +6490,11 @@ msgstr "مشترك: {names}"
 msgid "slice"
 msgstr "شريحة"
 
-msgid "small"
-msgstr "صغير"
+msgid "small effect"
+msgstr "تأثير صغير"
 
 msgid "space"
 msgstr "مسكن"
-
-msgid "stopped"
-msgstr "توقف"
 
 msgid "strftime codes: %d day, %m month, %Y year, %H:%M:%S time, %b month name."
 msgstr "رموز strftime: %d يوم، %m شهر، %Y سنة، %H:%M:%S وقت، %b اسم الشهر."
@@ -6037,14 +6502,53 @@ msgstr "رموز strftime: %d يوم، %m شهر، %Y سنة، %H:%M:%S وقت،
 msgid "t and p test whether each parameter is zero, with {dof} residual degrees of freedom. Fixed parameters have no error, so none is shown."
 msgstr "اختبار t و p ما إذا كانت كل معلمة صفرًا، مع {dof} درجة متبقية من الحرية. لا تحتوي المعلمات الثابتة على خطأ، لذلك لا يتم عرض أي منها."
 
+msgid "the axis"
+msgstr "المحور"
+
+msgid "the axis '{name}'"
+msgstr "المحور '{name}'"
+
+msgid "the difference did not change with the level"
+msgstr ""
+
+msgid "the difference grows with the level (a proportional bias)"
+msgstr ""
+
+msgid "the figure"
+msgstr ""
+
 msgid "the groups account for {percent}% of the variation"
 msgstr "تمثل المجموعات {percent}% من التباين"
+
+msgid "the groups differ on them"
+msgstr ""
+
+msgid "the groups of {group} had the same {measure}"
+msgstr ""
+
+msgid "the groups of {response} had the same means of {covariates}"
+msgstr ""
+
+msgid "the groups of {x} had the same mean of {y}"
+msgstr ""
+
+msgid "the mean of {column}"
+msgstr ""
+
+msgid "the means differ"
+msgstr ""
+
+msgid "the series had the same mean"
+msgstr ""
 
 msgid "the strength of the link between the two, from 0 (none) to 1 (complete)"
 msgstr "قوة الرابط بين الاثنين، من 0 (لا شيء) إلى 1 (كامل)"
 
 msgid "the two means are {value} standard deviations apart"
 msgstr "الوسيلتان هما {value} انحرافات معيارية منفصلة"
+
+msgid "their means differ"
+msgstr ""
 
 msgid "truncated"
 msgstr "مبتور"
@@ -6063,6 +6567,9 @@ msgstr "مجال المتجه (x، y، u، v)"
 
 msgid "written to the project; the report begins:"
 msgstr "كتابيًا إلى المشروع ؛ يبدأ التقرير:"
+
+msgid "x, y and z are the coordinates, never parameters."
+msgstr ""
 
 msgid "y range"
 msgstr "النطاق ص"
@@ -6088,8 +6595,8 @@ msgstr "تم تغيير {count} خلية(خلايا)."
 msgid "{count} could not be drawn"
 msgstr "تعذر رسم {count}"
 
-msgid "{count} discarded because a placeholder such as {{name}} or %s was lost"
-msgstr "تم تجاهل {count} بسبب فقدان عنصر نائب مثل {{name}} أو %s"
+msgid "{count} factor(s) were enough to explain the correlations"
+msgstr ""
 
 msgid "{count} figure(s), {date}"
 msgstr "{count} رقم(أرقام)، {date}"
@@ -6097,11 +6604,11 @@ msgstr "{count} رقم(أرقام)، {date}"
 msgid "{count} further candidates fitted worse and are not shown."
 msgstr "{count} مرشحون آخرون تم تركيبهم بشكل أسوأ ولم يتم عرضهم."
 
-msgid "{count} not translated by the service ({error})"
-msgstr "{count} لم تترجمه الخدمة ({error})"
-
 msgid "{count} of {total} points signal. The process is not in statistical control."
 msgstr "يشير {count} من {total} نقطة. العملية ليست تحت السيطرة الإحصائية."
+
+msgid "{count} of {total} values flagged by {method}: unusually far from the rest by that rule. An outlier is a question, not an error - look at its row before leaving it out."
+msgstr ""
 
 msgid "{count} operation(s), oldest first"
 msgstr "{count} عملية(عمليات)، الأقدم أولاً"
@@ -6124,14 +6631,14 @@ msgstr "{count} صف(صفوف) في الجدول الجديد."
 msgid "{count} row(s) marked Selected."
 msgstr "تم تحديد {count} صف(صفوف)."
 
+msgid "{count} row(s) of '{table}' selected."
+msgstr ""
+
 msgid "{count} series"
 msgstr "سلسلة {count}"
 
 msgid "{count} signal(s) - a point outside, or a run on one side - point to a cause worth finding."
 msgstr "{count} إشارة(إشارات) - نقطة في الخارج، أو ركض على جانب واحد - تشير إلى سبب يستحق البحث عنه."
-
-msgid "{count} string(s), {missing} missing translation."
-msgstr "{count} سلسلة(سلاسل)، {missing} ترجمة مفقودة."
 
 msgid "{count} value(s) could not be read as {kind} and were left empty."
 msgstr "تعذر قراءة {count} قيمة(قيم) على أنها {kind} وتركت فارغة."
@@ -6145,8 +6652,20 @@ msgstr "{distribution} مخطط كمي"
 msgid "{distribution} quantiles"
 msgstr "{distribution} من الكميات"
 
-msgid "{first} refused the requests, continued with {second}"
-msgstr "رفض {first} الطلبات، واستمر مع {second}"
+msgid "{factor} accounts for {percent}% of what the splits explain: the factor the tree leans on most. A share is not a test - check that it holds on validation rows."
+msgstr ""
+
+msgid "{factor} affects {response}"
+msgstr ""
+
+msgid "{factor} had no effect on {response}"
+msgstr ""
+
+msgid "{input}'s past added nothing to forecasting {measure}"
+msgstr ""
+
+msgid "{input}'s past helps forecast {measure} (Granger)"
+msgstr ""
 
 msgid "{label}: {value}"
 msgstr "{label}: {value}"
@@ -6178,26 +6697,92 @@ msgstr "{measure} حسب الجزء والمشغل"
 msgid "{measure} by {group}"
 msgstr "{measure} بواسطة {group}"
 
+msgid "{measure} comes back to a stable level"
+msgstr ""
+
+msgid "{measure} depends on {group}"
+msgstr ""
+
+msgid "{measure} did not depend on {group}"
+msgstr ""
+
+msgid "{measure} differs between them"
+msgstr ""
+
+msgid "{measure} had no trend"
+msgstr ""
+
+msgid "{measure} has a trend"
+msgstr ""
+
+msgid "{measure} kept the same level throughout"
+msgstr ""
+
 msgid "{measure} over time"
 msgstr "{measure} مع مرور الوقت"
+
+msgid "{measure} shifted at one point"
+msgstr ""
+
+msgid "{measure} wandered with no level to come back to"
+msgstr ""
 
 msgid "{measure}: control chart"
 msgstr "{measure}: مخطط التحكم"
 
-msgid "{measure}: normal Q-Q plot"
-msgstr "{measure}: مخطط Q - Q طبيعي"
-
 msgid "{model} · {tokens_in} tokens in, {tokens_out} out"
 msgstr "{model} · {tokens_in} من الرموز في، {tokens_out} خارج"
+
+msgid "{names}: needs a value."
+msgstr ""
+
+msgid "{names}: not among the parameters - add it with its value ({first}=1)."
+msgstr ""
+
+msgid "{names}: not among the parameters. List it under Parameters - x, y and z are the coordinates."
+msgstr ""
+
+msgid "{names}: the def's parameters need their values in Parameters ({first}=1)."
+msgstr ""
+
+msgid "{name} (new)"
+msgstr ""
 
 msgid "{name} (selection)"
 msgstr "{name} (التحديد)"
 
-msgid "{name} = {value}: {meaning}. That is {size} by the usual marks ({small} small, {medium} medium, {large} large): how much the difference matters, where p only says whether there is one."
-msgstr "{name} = {value}: {meaning}. هذا هو {size} بالعلامات المعتادة ({small} صغيرة، {medium} متوسطة، {large} كبيرة): مدى أهمية الاختلاف، حيث يقول p فقط ما إذا كان هناك واحد."
+msgid "{name} = {value}: the nearest specification limit is {sigmas} standard deviations from the mean (3 × {name})."
+msgstr ""
 
-msgid "{name}: {clusters} clusters, {clustered}/{total} clustered rows, tool={tool}, features={features}"
-msgstr "{name}:{clusters} مجموعات، {clustered}/{total} صفوف مجمعة، الأداة={tool}، الميزات={features}"
+msgid "{name} = {value}: {meaning}. By the usual marks ({small} small, {medium} medium, {large} large) it is a {size}: how much the difference matters, where p only says whether there is one."
+msgstr ""
+
+msgid "{name} is given twice."
+msgstr ""
+
+msgid "{name} needs its value: {name}=1."
+msgstr ""
+
+msgid "{name}: '{number}' is not a number."
+msgstr ""
+
+msgid "{name}: defects"
+msgstr ""
+
+msgid "{name}: defects per die"
+msgstr ""
+
+msgid "{name}: die bins"
+msgstr ""
+
+msgid "{name}: die means"
+msgstr ""
+
+msgid "{name}: map"
+msgstr ""
+
+msgid "{ndc} distinct categories: the system tells that many groups of parts apart - 5 or more is the usual minimum."
+msgstr ""
 
 msgid "{n} nodes, {dims}D"
 msgstr "{n} عقدة، {dims} عقدة"
@@ -6207,6 +6792,9 @@ msgstr "{personality} يحتاج إلى Y مستمر ؛ {columns} اسمي - ا�
 
 msgid "{personality} needs a nominal Y; {columns} is continuous - set its type to Nominal, or choose a least-squares personality."
 msgstr "{personality} يحتاج إلى Y اسمي ؛ {columns} مستمر - اضبط نوعه على Nominal، أو اختر شخصية المربعات الصغرى."
+
+msgid "{provider} answered."
+msgstr ""
 
 msgid "{provider} · {level}"
 msgstr "{provider}. {level}"
@@ -6247,9 +6835,6 @@ msgstr "{series} — {count} نقطة، المتوسط x: {x} ، المتوسط 
 msgid "{series} — {percent:.1f}% of the total"
 msgstr "{series} — {percent:.1f}% من الإجمالي"
 
-msgid "{services} refused for their request limit - Google for a while, MyMemory until tomorrow"
-msgstr "رفض {services} حد طلبهم - Google لفترة من الوقت، MyMemory حتى الغد"
-
 msgid "{stored} is shown {shown}"
 msgstr "{stored} معروض {shown}"
 
@@ -6262,11 +6847,449 @@ msgstr ""
 msgid "{test}, {p}: values like these are common from a normal distribution, so nothing here says {column} is not normal. Below {alpha}, the usual line, it would say so."
 msgstr ""
 
+msgid "{what} of {element}"
+msgstr ""
+
+msgid "{x} and {y} are correlated"
+msgstr ""
+
+msgid "{x} and {y} were not correlated"
+msgstr ""
+
+msgid "{x} did not change the odds of {y}"
+msgstr ""
+
+msgid "{y} - {x}"
+msgstr ""
+
+msgid "{y} against {x}"
+msgstr ""
+
 msgid "{y} by {x}"
+msgstr ""
+
+msgid "{y} depends on {x}"
+msgstr ""
+
+msgid "{y} did not depend on {x}"
 msgstr ""
 
 msgid "▲ number · ● category · ◐ ordered category · ◷ date"
 msgstr ""
+
+msgid "\"{code}\" already has a catalogue."
+msgstr "{code}\" لديه بالفعل كتالوج."
+
+msgid "\"{name}\" is already used by an existing chart type."
+msgstr "\"{name}\" مستخدم بالفعل من قبل نوع مخطط موجود."
+
+msgid "\"{name}\" is already used by an existing data operation."
+msgstr "\"{name}\" مستخدم بالفعل من قبل عملية سلسلة موجودة."
+
+msgid "\"{name}\" is already used by an existing function."
+msgstr "\"{name}\" مستخدم بالفعل من قبل وظيفة موجودة."
+
+msgid "-999, NA, n/d"
+msgstr "-999، غير متوفر، غير متوفر"
+
+msgid "0 tries every k up to the maximum and keeps the one with the highest mean silhouette."
+msgstr "0 يجرب كل k حتى الحد الأقصى ويحافظ على الصورة الظلية ذات أعلى متوسط."
+
+msgid "A file named \"{file}\" already exists under user/charts/."
+msgstr "يوجد بالفعل ملف باسم \"{file}\" ضمن user/charts/."
+
+msgid "A file named \"{file}\" already exists under user/data_operations/."
+msgstr "يوجد بالفعل ملف باسم \"{file}\" ضمن USER/DATA_OPERATIONS/."
+
+msgid "A file named \"{file}\" already exists under user/functions/."
+msgstr "يوجد بالفعل ملف باسم \"{file}\" ضمن user/functions/."
+
+msgid "A table's columns."
+msgstr "أعمدة الطاولة."
+
+msgid "ARIMA: the next value from the last ones (p), the changes (d) and the last errors (q), with a season (P, D, Q) of its own. ARIMA, order chosen by AIC: the differences from the stationarity tests, then the p, q, P, Q with the lowest AIC. Exponential smoothing: a level, a trend and a season that each follow the newest values most."
+msgstr "ARIMA: القيمة التالية من الأخيرة (p)، التغييرات (d) والأخطاء الأخيرة (q)، مع موسم (P، D، Q) خاص بها. أريما، الترتيب الذي اختارته AIC: الاختلافات عن اختبارات الثبات، ثم p، q، P، Q مع أدنى AIC. التجانس الأسي: مستوى واتجاه وموسم يتبع كل منها أحدث القيم."
+
+msgid "Another measure of the same process"
+msgstr "مقياس آخر لنفس العملية"
+
+msgid "Another measure over the same time"
+msgstr "إجراء آخر في نفس الوقت"
+
+msgid "As JMP's Save Clusters: each row's cluster in the table's own ClusterId column - the one the Clustering operation writes - to colour or filter any chart by it; 0 for a row in no cluster."
+msgstr "مثل مجموعات حفظ JMP: مجموعة كل صف في عمود ClusterId الخاص بالجدول - العمود الذي تكتبه عملية التجميع - لتلوين أو تصفية أي مخطط به ؛ 0 لصف في أي مجموعة."
+
+msgid "At least one parameter is needed."
+msgstr "هناك حاجة إلى معلمة واحدة على الأقل."
+
+msgid "At least one required role is needed."
+msgstr "مطلوب دور واحد على الأقل."
+
+msgid "Below {alpha}, the usual line, so {shown} is called real."
+msgstr "تحت {alpha} ، الخط المعتاد، لذلك يسمى {shown} حقيقي."
+
+msgid "Cast the columns into their roles, then press Preview."
+msgstr "ضع الأعمدة في أدوارها، ثم اضغط على معاينة."
+
+msgid "Category:"
+msgstr "الفئة:"
+
+msgid "Cluster Analysis"
+msgstr "تحليل المجموعة"
+
+msgid "Cluster {n}"
+msgstr "المجموعة {n}"
+
+msgid "Clustering preview"
+msgstr "معاينة التجميع العنقودي"
+
+msgid "Clusters (k):"
+msgstr "المجموعات (ك):"
+
+msgid "Clusters on the principal components"
+msgstr "مجموعات حول المكونات الرئيسية"
+
+msgid "Create a new table"
+msgstr "إنشاء جدول جديد"
+
+msgid "Create a new, empty catalogue"
+msgstr "إنشاء كتالوج جديد فارغ"
+
+msgid "Current axis"
+msgstr "محور التيار"
+
+msgid "Data Operation Builder"
+msgstr "منشئ عمليات السلسلة"
+
+msgid "DeepL API key"
+msgstr "مفتاح DeepL API"
+
+msgid "Description cannot be empty."
+msgstr "لا يمكن أن يكون الوصف فارغًا."
+
+msgid "Developer mode"
+msgstr "وضع المطور"
+
+msgid "Does a measure follow the normal (bell-shaped) distribution that t-tests, ANOVA and control charts assume? The test is chosen for you, and the answer is given in words."
+msgstr "هل يتبع المقياس التوزيع الطبيعي (على شكل جرس) الذي تفترضه اختبارات t و ANOVA ومخططات التحكم ؟ يتم اختيار الاختبار لك، ويتم إعطاء الإجابة بالكلمات."
+
+msgid "Each column divided by its standard deviation, so that each counts the same whatever its unit - leave on unless the columns share one unit and scale."
+msgstr "كل عمود مقسومًا على انحرافه المعياري، بحيث يحسب كل عمود نفسه مهما كانت وحدته - اتركه ما لم تشترك الأعمدة في وحدة ومقياس واحد."
+
+msgid "Edit Localization"
+msgstr "تعديل التوطين"
+
+msgid "Edit Localization, Data Operation Builder, Function Creator and Renderer Helper on the Project page, and the DeepL key below."
+msgstr "تحرير التوطين، منشئ عملية البيانات، منشئ الوظيفة ومساعد العارض في صفحة المشروع، ومفتاح DeepL أدناه."
+
+msgid "File name must be a valid Python file name, e.g. my_chart.py."
+msgstr "يجب أن يكون اسم الملف اسم ملف Python صالحًا، على سبيل المثال my_chart.py."
+
+msgid "File name must be a valid Python file name, e.g. my_function.py."
+msgstr "يجب أن يكون اسم الملف اسمًا صالحًا لملف Python، على سبيل المثال my_function.py."
+
+msgid "File name must be a valid Python file name, e.g. my_operation_dialog.py."
+msgstr "يجب أن يكون اسم الملف اسمًا صالحًا لملف Python، على سبيل المثال my_operation_dialog.py."
+
+msgid "File name:"
+msgstr "اسم الملف:"
+
+msgid "Fill every empty translation with a machine translation to review"
+msgstr "املأ كل ترجمة فارغة بترجمة آلية للمراجعة"
+
+msgid "Fitted"
+msgstr "تم تركيبه"
+
+msgid "Fitted to each column: its curve on the histogram, the Q-Q plot against it, its parameters and goodness of fit in the report. Best fit: the one of these with the lowest AIC."
+msgstr "تم تركيبه على كل عمود: منحنى على الرسم البياني، ومؤامرة Q - Q ضده، ومعلماته وجودة الملاءمة في التقرير. أفضل ملاءمة: واحدة من هذه مع أدنى AIC."
+
+msgid "Free plan keys end in :fx"
+msgstr "تنتهي مفاتيح الخطة المجانية بـ :fx"
+
+msgid "From x:"
+msgstr "من x:"
+
+msgid "Function Creator"
+msgstr "منشئ الوظيفة"
+
+msgid "Group similar data"
+msgstr "تجميع بيانات متشابهة"
+
+msgid "Group the rows on several columns - K Means, Hierarchical (Ward) or Normal Mixtures - with k chosen by the silhouette; each cluster's size and means, its rows on the principal components."
+msgstr "قم بتجميع الصفوف على عدة أعمدة - K Means أو Hierarchical (Ward) أو Normal Mixtures - مع k يتم اختيارها بواسطة الصورة الظلية ؛ حجم كل مجموعة ووسائلها، وصفوفها على المكونات الرئيسية."
+
+msgid "How densely to sample. A curve with sharp features needs more; a straight line needs two."
+msgstr "ما مدى كثافة العينة. يحتاج المنحنى ذو السمات الحادة إلى المزيد ؛ بينما يحتاج الخط المستقيم إلى خطين."
+
+msgid "How to produce a translated copy of the user manual"
+msgstr "كيفية إنتاج نسخة مترجمة من دليل المستخدم"
+
+msgid "K Means: round clusters of similar size, the usual choice. Hierarchical (Ward): merges the closest rows step by step. Normal Mixtures: clusters of any shape and spread, each row with its most likely cluster."
+msgstr "K يعني: مجموعات مستديرة ذات حجم مماثل، الخيار المعتاد. التسلسل الهرمي (الجناح): يدمج أقرب الصفوف خطوة بخطوة. المخاليط العادية: مجموعات من أي شكل وانتشار، كل صف مع مجموعته الأكثر احتمالا."
+
+msgid "Largest k tried:"
+msgstr "أكبر عدد من المحاولات:"
+
+msgid "Link:"
+msgstr "الرابط:"
+
+msgid "Link: a chain for a table linked to its source, Q for a saved query"
+msgstr "الرابط: سلسلة لجدول مرتبط بمصدره، Q لاستعلام محفوظ"
+
+msgid "Localized manual"
+msgstr "دليل محلي"
+
+msgid "Localized manual…"
+msgstr "دليل مترجم..."
+
+msgid "Logarithmic puts equal numbers of points in each decade, which is what a curve plotted on a log axis needs. It requires a range strictly above zero."
+msgstr "يضع اللوغاريتمي أعدادًا متساوية من النقاط في كل عقد، وهو ما يحتاجه المنحنى المرسوم على محور لوغاريتمي. يتطلب نطاقًا أعلى من الصفر تمامًا."
+
+msgid "Machine translation"
+msgstr "الترجمة الآلية"
+
+msgid "Manual"
+msgstr "يدوي"
+
+msgid "Matplotlib documentation URL (optional)"
+msgstr "رابط توثيق مكتبة مات بلوت ليب (اختياري)"
+
+msgid "Mean silhouette by k"
+msgstr "متوسط الصورة الظلية بواسطة k"
+
+msgid "Missing only"
+msgstr "مفقود فقط"
+
+msgid "Missing value codes:"
+msgstr "رموز القيمة المفقودة:"
+
+msgid "Name cannot be empty."
+msgstr "لا يمكن ترك الاسم فارغًا."
+
+msgid "Name of the SQLite table where fitted values/residuals are saved."
+msgstr "اسم جدول SQLite حيث يتم حفظ القيم/المخلفات المجهزة."
+
+msgid "New axis in the current figure"
+msgstr "محور جديد في الشكل الحالي"
+
+msgid "New language"
+msgstr "لغة جديدة"
+
+msgid "New language…"
+msgstr "لغة جديدة..."
+
+msgid "Normal quantile"
+msgstr "الكمي العادي"
+
+msgid "Not a valid language code."
+msgstr "رمز لغة غير صالح."
+
+msgid "One column at a time: the histogram, quantiles, moments and normality tests."
+msgstr "عمود واحد في كل مرة: المدرج التكراري والكميات واللحظات واختبارات الحالة الطبيعية."
+
+msgid "One line, shown in the Analysis panel."
+msgstr "سطر واحد، كما هو موضح في لوحة التحليل."
+
+msgid "One line, shown in the chart picker."
+msgstr "سطر واحد، كما هو موضح في منتقي المخطط."
+
+msgid "One line, shown in the fit dialog's model list."
+msgstr "سطر واحد، كما هو موضح في قائمة طرازات مربع حوار الملاءمة."
+
+msgid "Optional roles:"
+msgstr "الأدوار الاختيارية:"
+
+msgid "Output"
+msgstr "المخرجات"
+
+msgid "Output table"
+msgstr "جدول المخرجات"
+
+msgid "Rename current table"
+msgstr "إعادة تسمية الجدول الحالي"
+
+msgid "Rename table"
+msgstr "إعادة تسمية الجدول"
+
+msgid "Renderer Helper"
+msgstr "مساعد العارض"
+
+msgid "Required roles:"
+msgstr "الأدوار المطلوبة:"
+
+msgid "Save ClusterId in the table"
+msgstr "حفظ معرف المجموعة في الجدول"
+
+msgid "Save HTML"
+msgstr "حفظ HTML"
+
+msgid "Search source or translation…"
+msgstr "مصدر البحث أو الترجمة..."
+
+msgid "Show"
+msgstr "عرض"
+
+msgid "Show the tools for extending the app"
+msgstr "اعرض أدوات توسيع التطبيق"
+
+msgid "Stop"
+msgstr "إيقاف"
+
+msgid "Strings"
+msgstr "السلاسل"
+
+msgid "The class imported, but axis_renderer_scanner did not discover it as a renderer - check that it subclasses BaseAxisRenderer directly."
+msgstr "تم استيراد الفئة، ولكن لم يكتشفها AXIS_RENDERER_SCANNER على أنها عارض - تحقق من أنها تصنف BaseAxisRenderer مباشرة."
+
+msgid "The class imported, but data_operation_scanner did not discover it as an operation - check that it subclasses DataOperationDialogBase directly."
+msgstr "تم استيراد الفئة، لكن data_operation_scanner لم يكتشفها كعملية - تحقق من أنها تصنف الفئات الفرعية DataOperationDialogBase مباشرة."
+
+msgid "The class imported, but functions_scanner did not discover it as a function - check that it subclasses base_function directly."
+msgstr "تم استيراد الفئة، لكن FUNCTIONS_SCANNER لم تكتشفها كدالة - تحقق من أنها تصنف BASE_FUNCTION مباشرة."
+
+msgid "The columns to describe, one report each."
+msgstr "الأعمدة التي يجب وصفها، تقرير واحد لكل منها."
+
+msgid "The continuous columns the rows are grouped on."
+msgstr "الأعمدة المستمرة التي يتم تجميع الصفوف عليها."
+
+msgid "The numbers to follow over time."
+msgstr "الأرقام التي يجب متابعتها بمرور الوقت."
+
+msgid "The numbers whose distribution to judge."
+msgstr "الأرقام التي يوزع توزيعها على القاضي."
+
+msgid "The process measurements to watch."
+msgstr "قياسات العملية التي يجب مراقبتها."
+
+msgid "The project's information, history, database and log - and, in developer mode, the tools for extending the app"
+msgstr "معلومات المشروع وتاريخه وقاعدة بياناته وسجله - وفي وضع المطور، أدوات توسيع التطبيق"
+
+msgid "This fills every empty translation with a machine translation from an online service - a starting point to review, not a finished translation. Continue?"
+msgstr "هذا يملأ كل ترجمة فارغة بترجمة آلية من خدمة عبر الإنترنت - نقطة بداية للمراجعة، وليس ترجمة نهائية. هل تريد المتابعة ؟"
+
+msgid "To x:"
+msgstr "إلى x:"
+
+msgid "Translate missing (auto)"
+msgstr "ترجمة مفقودة (تلقائي)"
+
+msgid "Translating {done} of {total}…"
+msgstr "جارٍ ترجمة {done} من {total}..."
+
+msgid "Translation"
+msgstr "الترجمة"
+
+msgid "Translation service"
+msgstr "خدمة الترجمة"
+
+msgid "Two-letter language code (e.g. \"fr\", \"de\"):"
+msgstr "رمز لغة مكون من حرفين (على سبيل المثال \"fr\"، \"de \"):"
+
+msgid "Used by Edit Localization to translate with DeepL. Kept on this computer only, and sent to nobody but DeepL. Leave it empty to translate with Google or MyMemory."
+msgstr "يُستخدم من قبل Edit Localization للترجمة باستخدام DeepL. احتفظت بهذا الكمبيوتر فقط، وأرسلته إلى لا أحد سوى DeepL. اتركه فارغًا للترجمة باستخدام Google أو MyMemory."
+
+msgid "Values that mean \"no value\", separated by commas: the analyses read them as empty."
+msgstr "القيم التي تعني \"لا قيمة\"، مفصولة بفواصل: تقرأها التحليلات على أنها فارغة."
+
+msgid "Values used to evaluate the function. Nothing is fitted here."
+msgstr "القيم المستخدمة لتقييم الدالة. لا يوجد شيء مناسب هنا."
+
+msgid "Where the result is drawn: on the axis of its data, on a new axis beside it, or in a figure of its own."
+msgstr "حيث يتم استخلاص النتيجة: على محور بياناتها، على محور جديد بجانبها، أو في شكل خاص بها."
+
+msgid "With k at 0: k from 2 to this."
+msgstr "مع k عند 0: k من 2 إلى هذا."
+
+msgid "Writes a new file under user/charts/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. render_axis is left for you to write the actual drawing code into."
+msgstr "يكتب ملفًا جديدًا تحت المستخدم/المخططات/ مع فصل مملوء بالفعل من هذه الحقول - لا توجد خطوة تسجيل، يلتقطه الماسح الضوئي بمجرد وجود الملف. render_axis متروك لك لكتابة رمز الرسم الفعلي فيه."
+
+msgid "Writes a new file under user/data_operations/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. compute_results already passes each selected series through unchanged; replace it with the real computation."
+msgstr "يكتب ملفًا جديدًا ضمن USER/DATA_OPERATIONS/ مع فئة مملوءة بالفعل من هذه الحقول - لا توجد خطوة تسجيل، يلتقطها الماسح الضوئي بمجرد وجود الملف. تمر COMPUTE_RESULTS بالفعل بكل سلسلة محددة دون تغيير ؛ استبدلها بالحساب الحقيقي."
+
+msgid "Writes a new file under user/functions/ with a class already filled in from these fields - no registration step, the scanner picks it up as soon as the file exists. execute(x, p) already evaluates a real polynomial in the declared parameters; replace it with the actual formula."
+msgstr "يكتب ملفًا جديدًا تحت المستخدم/الوظائف/ مع فئة مملوءة بالفعل من هذه الحقول - لا توجد خطوة تسجيل، يلتقطها الماسح الضوئي بمجرد وجود الملف. يقوم(x، p) بالفعل بتقييم متعدد الحدود الحقيقي في المعلمات المعلنة ؛ استبدله بالصيغة الفعلية."
+
+msgid "comma-separated, e.g. intercept, slope"
+msgstr "مفصولة بفواصل، على سبيل المثال الاعتراض، المنحدر"
+
+msgid "comma-separated, e.g. x, y"
+msgstr "مفصولة بفواصل، على سبيل المثال x، y"
+
+msgid "comma-separated, optional"
+msgstr "مفصولة بفواصل، اختيارية"
+
+msgid "docs/manual/user_manual.typ is not translated by this tool - it is prose inside Typst markup, not a string catalogue. To produce a translated copy:\n\n1. Copy user_manual.typ to user_manual_<lang>.typ (e.g. user_manual_it.typ).\n2. Translate the prose, leaving every #-command, code block and image reference untouched.\n3. Compile it: typst compile user_manual_<lang>.typ.\n\nThe application text itself does not need this step - it comes from the catalogue this dialog edits."
+msgstr "لا تترجم هذه الأداة docs/manual/user_manual.typ - إنها نثر داخل ترميز Typst، وليست كتالوج سلسلة. لإنتاج نسخة مترجمة:\n\n1. انسخ user_manual.typ إلى user_manual _<lang>.typ (مثل user_manual_it.typ).\n2. ترجم النثر، تاركًا كل #-أمر وكتلة التعليمات البرمجية ومرجع الصورة دون مساس.\n3. قم بتجميعه: typst compile user_manual _<lang>.typ.\n\nلا يحتاج نص التطبيق نفسه إلى هذه الخطوة - فهو يأتي من الكتالوج الذي يحرره مربع الحوار هذا."
+
+msgid "e.g. Envelope Detector"
+msgstr "على سبيل المثال، كاشف المغلفات"
+
+msgid "e.g. Ridgeline Plot"
+msgstr "على سبيل المثال، قطعة أرض Ridgeline"
+
+msgid "e.g. Stretched Exponential"
+msgstr "على سبيل المثال، الأسي الممتد"
+
+msgid "e.g. envelope_detector_dialog.py"
+msgstr "على سبيل المثال envelope_detector_dialog.py"
+
+msgid "e.g. ridgeline.py"
+msgstr "على سبيل المثال ridgeline.py"
+
+msgid "e.g. stretched_exponential.py"
+msgstr "على سبيل المثال stretched_exponential.py"
+
+msgid "fall"
+msgstr "سقوط"
+
+msgid "large"
+msgstr "كبير"
+
+msgid "medium"
+msgstr "متوسطة"
+
+msgid "negligible"
+msgstr "لا يكاد يذكر"
+
+msgid "no answer"
+msgstr "لا توجد إجابة"
+
+msgid "r = {r}: {y} tends to {trend} as {x} rises; 1 or -1 would be a straight line, 0 no straight-line link. They share {percent}% of their variation (r²) - a link, not proof that one causes the other."
+msgstr "r = {r}: {y} يميل إلى {trend} مع ارتفاع {x}؛ 1 أو -1 سيكون خطًا مستقيمًا، 0 لا يوجد رابط خط مستقيم. يتشاركون {percent}٪ من تباينهم (r²) - رابط، وليس دليلًا على أن أحدهما يسبب الآخر."
+
+msgid "rise"
+msgstr "ارتفاع"
+
+msgid "small"
+msgstr "صغير"
+
+msgid "stopped"
+msgstr "توقف"
+
+msgid "{count} discarded because a placeholder such as {{name}} or %s was lost"
+msgstr "تم تجاهل {count} بسبب فقدان عنصر نائب مثل {{name}} أو %s"
+
+msgid "{count} not translated by the service ({error})"
+msgstr "{count} لم تترجمه الخدمة ({error})"
+
+msgid "{count} string(s), {missing} missing translation."
+msgstr "{count} سلسلة(سلاسل)، {missing} ترجمة مفقودة."
+
+msgid "{first} refused the requests, continued with {second}"
+msgstr "رفض {first} الطلبات، واستمر مع {second}"
+
+msgid "{measure}: normal Q-Q plot"
+msgstr "{measure}: مخطط Q - Q طبيعي"
+
+msgid "{name} = {value}: {meaning}. That is {size} by the usual marks ({small} small, {medium} medium, {large} large): how much the difference matters, where p only says whether there is one."
+msgstr "{name} = {value}: {meaning}. هذا هو {size} بالعلامات المعتادة ({small} صغيرة، {medium} متوسطة، {large} كبيرة): مدى أهمية الاختلاف، حيث يقول p فقط ما إذا كان هناك واحد."
+
+msgid "{name}: {clusters} clusters, {clustered}/{total} clustered rows, tool={tool}, features={features}"
+msgstr "{name}:{clusters} مجموعات، {clustered}/{total} صفوف مجمعة، الأداة={tool}، الميزات={features}"
+
+msgid "{services} refused for their request limit - Google for a while, MyMemory until tomorrow"
+msgstr "رفض {services} حد طلبهم - Google لفترة من الوقت، MyMemory حتى الغد"
 
 msgid "(choose in the window)"
 msgstr "(اختر في النافذة)"
@@ -6483,9 +7506,6 @@ msgstr "Qt Stylesheet (* .qss);;All Files (*)"
 
 msgid "Refresh the selected table from its import link"
 msgstr "تحديث الجدول المحدد من رابط الاستيراد الخاص به"
-
-msgid "Regression"
-msgstr "الانحدار"
 
 msgid "Replace previous smoothing preview in chart"
 msgstr "استبدال معاينة التنعيم السابقة في المخطط"
