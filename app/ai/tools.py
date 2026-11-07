@@ -174,6 +174,16 @@ class AssistantTools:
         if name not in {spec.name for spec in self.specs(level)}:
             return f"'{name}' is not allowed at this permission level.", True
         handler = getattr(self, f"_tool_{name}")
+        parameters = inspect.signature(handler).parameters
+        # Names a small model mangles (" roles") trimmed, and arguments the tool does not have left out.
+        arguments = {str(key).strip(): value for key, value in dict(arguments).items()}
+        arguments = {key: value for key, value in arguments.items() if key in parameters}
+        if "table" in parameters:
+            # Only one choice: the project's only table, when the model left it out or named a column instead.
+            names = [str(table) for table in self._repo.list_user_tables()["Table"]]
+            given = str(arguments.get("table") or "")
+            if len(names) == 1 and _closest(given, names) not in names:
+                arguments["table"] = names[0]
         try:
             inspect.signature(handler).bind(**dict(arguments))
         except TypeError as error:  # an argument missing, or not one of the tool's

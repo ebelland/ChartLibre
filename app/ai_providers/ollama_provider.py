@@ -62,6 +62,31 @@ def _arguments(raw: Any) -> dict[str, Any]:
     return parsed if isinstance(parsed, dict) else {}
 
 
+def text_tool_calls(text: str, names: set[str]) -> list[tuple[str, dict[str, Any]]]:
+    """Tool calls a small model wrote as text instead of making them: (name, arguments) for each one found.
+
+    llama3.2 often answers with the call itself - {"name": "create_chart", "parameters": {...}}, sometimes in a
+    code fence, sometimes several - and the request then ends with nothing done. Only a known tool's name counts.
+    """
+    found: list[tuple[str, dict[str, Any]]] = []
+    decoder = json.JSONDecoder()
+    index = 0
+    while (start := text.find("{", index)) != -1:
+        try:
+            value, end = decoder.raw_decode(text, start)
+        except ValueError:
+            index = start + 1
+            continue
+        index = end
+        if isinstance(value, dict) and value.get("function") and isinstance(value["function"], dict):
+            value = value["function"]
+        name = value.get("name") if isinstance(value, dict) else None
+        if name in names:
+            arguments = value.get("parameters", value.get("arguments", {}))
+            found.append((str(name), _arguments(arguments)))
+    return found
+
+
 class OllamaSession(ChatSession):
     """One conversation: the history in /api/chat's form, sent whole on every turn."""
 
@@ -111,6 +136,12 @@ class OllamaSession(ChatSession):
             return turn
         if turn.stop == "too_long":
             return turn  # a tool call cut short is not kept: its result would be missing from the next request
+        if not calls:
+            # A call written as text is made: the request goes on instead of ending with nothing done.
+            known = {tool["function"]["name"] for tool in self._tools}
+            for name, arguments in text_tool_calls(turn.text, known):
+                self._counter += 1
+                calls.append(ToolCall(f"call_{self._counter}", name, arguments))
         assistant: dict[str, Any] = {"role": "assistant", "content": turn.text}
         if calls:
             assistant["tool_calls"] = [{"function": {"name": call.name, "arguments": dict(call.input)}}

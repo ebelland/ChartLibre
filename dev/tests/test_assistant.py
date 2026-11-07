@@ -59,8 +59,11 @@ def test_reading_tools_and_the_permission_levels(qapp, repo, monkeypatch) -> Non
                                       "roles": {"response": ["mass"]}}, settings.READ_ONLY)[1]
     assert "run_analysis" not in {spec.name for spec in tools.specs(settings.READ_ONLY)}
     assert "change_data" not in {spec.name for spec in tools.specs(settings.ANALYSES)}
+    # A misspelt argument is left out, and the project's only table taken (step B of the small-models plan).
     text, failed = tools.run("describe_table", {"tabel": "birds"}, settings.READ_ONLY)
-    assert failed and text.startswith("Wrong arguments for describe_table")  # said to the model, not raised
+    assert not failed and text.startswith("birds:")
+    text, failed = tools.run("query", {}, settings.READ_ONLY)
+    assert failed and text.startswith("Wrong arguments for query")  # said to the model, not raised
 
 
 def test_an_analysis_run_by_the_assistant_is_written_as_its_ok_writes_it(qapp, repo) -> None:
@@ -266,8 +269,32 @@ def test_what_a_small_model_gets_nearly_right_is_understood(qapp, repo) -> None:
     assert not failed and text.endswith("Box Plot of mass.")
     text, failed = tools.run("compare_groups", {"table": "species", "measure": "mass", "groups": "species"},
                              settings.ANALYSES)
-    assert failed and "Tables: birds" in text
+    assert not failed  # a column given as the table: the only table is meant
     text, failed = tools.run("compare_groups", {"table": "birds", "measure": "weight", "groups": "species"},
                              settings.ANALYSES)
     assert failed and "Columns: species, mass" in text
 
+
+
+def test_a_tool_call_written_as_text_is_recognised() -> None:
+    """llama3.2 writes the call instead of making it: a known tool's name and its arguments are taken back."""
+    from app.ai_providers.ollama_provider import text_tool_calls
+
+    text = ('I will draw it: ```json\n{"name": "create_chart", "parameters": {"chart_type": "Box Plot", '
+            '"y": ["mass"]}}\n``` then {"name": "unknown_tool", "parameters": {}} and {"x": 1}')
+    assert text_tool_calls(text, {"create_chart"}) == [("create_chart", {"chart_type": "Box Plot", "y": ["mass"]})]
+    nested = '{"type": "function", "function": {"name": "query", "arguments": "{\\"sql\\": \\"SELECT 1\\"}"}}'
+    assert text_tool_calls(nested, {"query"}) == [("query", {"sql": "SELECT 1"})]
+    assert text_tool_calls("No call here.", {"query"}) == []
+
+
+def test_the_only_table_is_filled_in_when_left_out(repo) -> None:
+    tools, _made = _tools(repo)
+    text, failed = tools.run("describe_table", {}, settings.ANALYSES)
+    assert not failed and text.startswith("birds:")
+
+
+def test_a_column_given_as_the_table_and_a_stray_argument_are_mended(repo) -> None:
+    tools, _made = _tools(repo)
+    text, failed = tools.run("describe_table", {"table": "mass", " extra": 1}, settings.ANALYSES)
+    assert not failed and text.startswith("birds:")
