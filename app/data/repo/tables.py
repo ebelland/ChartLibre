@@ -1524,8 +1524,15 @@ class TablesMixin(_Host):
         table = self.row_table(sql)
         if not table or not self.selected_only(table):
             return sql
-        chosen = (f'SELECT rowid FROM {_quote_ident(table)} WHERE "Selected" = 1'
-                  if self.has_column(table, "Selected") else "SELECT NULL WHERE 0")
+        if not self.has_column(table, "Selected"):
+            return f"SELECT * FROM ({sql}) WHERE 0"
+        if not has_projection_alias(sql, ROW_ID):
+            # A grouping or an aggregate names no row id: the rows it reads are filtered instead. Filtering
+            # outside on a name the query lacks compared a string with numbers - and drew nothing.
+            if self.is_table_backed_sql(sql):
+                return self._sql_with_where_clause(sql, '"Selected" = 1')
+            return sql
+        chosen = f'SELECT rowid FROM {_quote_ident(table)} WHERE "Selected" = 1'
         return f"SELECT * FROM ({sql}) WHERE {_quote_ident(ROW_ID)} IN ({chosen})"
 
     @ensure_connection_wrapper

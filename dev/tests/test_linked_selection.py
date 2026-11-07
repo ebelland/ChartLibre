@@ -189,3 +189,22 @@ def test_show_only_selected_draws_the_selected_rows_says_so_and_shows_all_again(
     finally:
         panel.close()
         repo.close()
+
+
+def test_show_only_selected_keeps_a_grouped_chart_and_its_order(tmp_path):
+    """A grouping names no row id: its rows are filtered, not the groups compared with a missing name (empty)."""
+    import numpy as np
+    import pandas as pd
+
+    from app.data.sqlite_repo import SqliteRepo
+
+    repo = SqliteRepo(db_path=tmp_path / "p.dhub")
+    repo.import_dataframe(pd.DataFrame({"x": np.arange(10.0), "g": list("ab" * 5)}), table_name="T",
+                          normalize_columns=False)
+    repo.select_rows("T", [2, 3, 4])
+    repo.set_selected_only("T", True)
+    grouped = repo.sql_selected_only(repo.sql_with_row_id('SELECT "g", AVG("x") AS m FROM "T" GROUP BY "g"'))
+    assert repo.query_df(grouped)["m"].tolist() == [2.0, 2.0]
+    ordered = repo.sql_selected_only(repo.sql_with_row_id('SELECT "x" FROM "T" ORDER BY "x" DESC'))
+    assert repo.query_df(ordered)["x"].tolist() == [3.0, 2.0, 1.0]
+    repo.close()
