@@ -67,7 +67,7 @@ ChartLibre aims at the first of those without the price tag:
 | **Quality and process** | Wafer Map, Multi-Vari |
 | **Specialized** | Sankey, Treemap, Ternary, Wind Rose, Timeline, Bullet, Table, Text |
 
-The first five families follow [Matplotlib's own plot types](https://matplotlib.org/stable/plot_types/). New chart opens on your recent charts and the families, each with a small picture of what it holds.
+The first five families follow [Matplotlib's own plot types](https://matplotlib.org/stable/plot_types/). New chart opens on your recent charts and the families, and each chart type shows an example and when to use it.
 
 Multiple axes per figure, multi-axis layout presets (shared scale, main + secondary, overlapping), annotations and reference lines, and an interactive canvas for measuring, annotating and selecting points.
 
@@ -87,7 +87,8 @@ The three **quick answers** — *Are there differences?*, *What has the most imp
 
 An optional panel answers questions about your project and, if you allow it, runs analyses and draws charts. It reads your tables and runs the same analyses as the dialogs.
 
-- **Your choice of model** — [Claude](https://www.anthropic.com/claude) or GitHub Models with your own key or token, or [Ollama](https://ollama.com) on your own computer.
+- **Your choice of model** — [Claude](https://www.anthropic.com/claude) or GitHub Models with your own key or token, or [Ollama](https://ollama.com) on your own computer, or Apple's on-device model on a recent Mac (questions about your data only, for now).
+- **Reliability depends on the model** — analyses and charts are meant for Claude; small local models answer simple questions well and often get analyses wrong.
 - **You set how far it goes** — read only, analyses and charts, or changes to the data. Each change is confirmed first and can be undone.
 - **Nothing is sent before you agree** — and with a local Ollama nothing leaves the computer. The API key is kept in the system's keychain, not in your project or settings.
 

@@ -37,7 +37,7 @@ class ChartCanvas(FigureCanvasQTAgg):
         """True while a burst of resizes waits for its final size."""
         return self._settle_timer.isActive()
 
-    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+    def resizeEvent(self, event: QResizeEvent) -> None:
         now = time.monotonic()
         in_burst = (now - self._last_resize) * 1000.0 < BURST_MS
         self._last_resize = now
@@ -54,7 +54,7 @@ class ChartCanvas(FigureCanvasQTAgg):
         super().resizeEvent(QResizeEvent(self.size(), self.size()))
         self.resize_settled.emit()
 
-    def paintEvent(self, event: QPaintEvent) -> None:  # noqa: N802
+    def paintEvent(self, event: QPaintEvent) -> None:
         if not self.resize_deferred:
             super().paintEvent(event)
             return

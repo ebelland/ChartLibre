@@ -4,12 +4,12 @@ from __future__ import annotations
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
-import numpy as np  # noqa: E402
-from matplotlib.ticker import MultipleLocator  # noqa: E402
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.ticker import MultipleLocator
 
-from app.plugin_api.charts import axis_options  # noqa: E402
-from app.plugin_api.charts.render_figure import _apply_intervals  # noqa: E402
+from app.plugin_api.charts import axis_options
+from app.plugin_api.charts.render_figure import _apply_intervals
 
 
 def test_the_interval_is_read_as_a_positive_step() -> None:

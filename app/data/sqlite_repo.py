@@ -31,7 +31,7 @@ from collections import OrderedDict
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import closing, contextmanager
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from typing import Any, ClassVar
 
@@ -40,7 +40,7 @@ import app.data.descriptors
 # Re-exported, not just imported: "from app.data.sqlite_repo import
 # DatabaseReport" is what the rest of the application writes, and the split
 # of its helpers into app/data/repo/ is meant to be invisible from outside (todo.txt N-5).
-from app.data.repo._common import (  # noqa: F401 - re-export
+from app.data.repo._common import (
     _RETURNS_ROWS_RE,
     READ_FAILURES,
     ROW_ID,
@@ -62,7 +62,12 @@ from app.data.repo._common import (  # noqa: F401 - re-export
     sql_guard_enabled,
 )
 from app.data.repo.function_sql import register as register_function_sql
-from app.data.repo.project import PROJECT_INFO_TABLE, PROJECT_PREVIEW_TABLE, ProjectMixin, file_created_at
+from app.data.repo.project import (
+    PROJECT_INFO_TABLE,
+    PROJECT_PREVIEW_TABLE,
+    ProjectMixin,
+    file_created_at,
+)
 from app.data.repo.tables import TablesMixin
 from app.data.select_sql import (
     has_projection_alias,
@@ -642,7 +647,7 @@ class SqliteRepo(TablesMixin, ProjectMixin):
                 added_dates = added_dates or column != "note"
         if added_dates:
             born = file_created_at(Path(str(self.db_path))) if self.db_path else None
-            stamp = (born or datetime.now(timezone.utc)).isoformat(timespec="seconds")
+            stamp = (born or datetime.now(UTC)).isoformat(timespec="seconds")
             self._con.execute(
                 "UPDATE __figure_descriptors__ SET created = COALESCE(created, ?), "
                 "last_modified = COALESCE(last_modified, ?)",
@@ -846,7 +851,7 @@ class SqliteRepo(TablesMixin, ProjectMixin):
                 self._con.execute("BEGIN IMMEDIATE")  # pyright: ignore[reportOptionalMemberAccess]
                 try:
                     yield
-                except Exception:  # noqa: BLE001 - roll back, then re-raise whatever it was
+                except Exception:
                     self._con.rollback()  # pyright: ignore[reportOptionalMemberAccess]
                     raise
                 else:
@@ -861,7 +866,7 @@ class SqliteRepo(TablesMixin, ProjectMixin):
         self._con.execute(f"SAVEPOINT {sp}")  # pyright: ignore[reportOptionalMemberAccess]
         try:
             yield
-        except Exception:  # noqa: BLE001 - roll back, then re-raise whatever it was
+        except Exception:
             self._con.execute(f"ROLLBACK TO {sp}")  # pyright: ignore[reportOptionalMemberAccess]
             self._con.execute(f"RELEASE {sp}")  # pyright: ignore[reportOptionalMemberAccess]
             raise
@@ -1386,7 +1391,7 @@ class SqliteRepo(TablesMixin, ProjectMixin):
             Primary key id of created figure (or 0 on error)
         """
         assert self._con is not None
-        now = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        now = datetime.now(UTC).isoformat(timespec="seconds")
         cur = self._con.execute(
             "INSERT INTO __figure_descriptors__ "
             "(name, nrows, ncols, options_json, created, last_modified) "

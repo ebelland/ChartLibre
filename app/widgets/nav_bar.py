@@ -48,7 +48,13 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.styles.style import CardFrame, TitledCard, action_presentation, create_action_button, stdSizeAndlayout
+from app.styles.style import (
+    CardFrame,
+    TitledCard,
+    action_presentation,
+    create_action_button,
+    stdSizeAndlayout,
+)
 from app.utils.i18n import _
 
 #: Qt's "no maximum" width.

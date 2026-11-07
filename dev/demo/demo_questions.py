@@ -104,7 +104,7 @@ def build_questions_demo(directory: Path = DEMO_DIR) -> Path:
     """Write the quick-answers demo into *directory* and return its path."""
     from PySide6.QtWidgets import QApplication
 
-    import app.utils.config as config
+    from app.utils import config
     from dev.demo.build_demos import TABLE_SOURCES
 
     app = QApplication.instance() or QApplication([])

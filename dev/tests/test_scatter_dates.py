@@ -4,13 +4,13 @@ from __future__ import annotations
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib.dates as mdates  # noqa: E402
-import numpy as np  # noqa: E402
-from matplotlib.figure import Figure  # noqa: E402
+import matplotlib.dates as mdates
+import numpy as np
+from matplotlib.figure import Figure
 
-from app.charts.scatter import ScatterAxisRenderer  # noqa: E402
-from app.data.series_frame import SeriesFrame  # noqa: E402
-from app.plugin_api.charts.base import SeriesData  # noqa: E402
+from app.charts.scatter import ScatterAxisRenderer
+from app.data.series_frame import SeriesFrame
+from app.plugin_api.charts.base import SeriesData
 
 
 def test_dates_as_text_are_drawn_as_dates() -> None:

@@ -1,0 +1,63 @@
+Small models: the application decides, the model fills in a form (2026-11-07)
+=============================================================================
+
+Measured so far (6 requests on the Palmer penguins, level Analyses)
+-------------------------------------------------------------------
+ llama3.2   about 1 of 6, with the tables named in the prompt: columns taken for tables, arguments missing, and after
+            an error the corrected call written as text instead of being made.
+ Apple      1 of 6 before names were made tolerant. Not measured since: "CriticalMemoryPressure" with 67 % of memory
+            free, then SensitiveContentAnalysisML error 15. Both are unexplained, and block F.
+Choosing the tool, its arguments and the next step is too much for these models. Claude keeps the tool loop as it is.
+
+Plan
+----
+A. The measure first: dev/tools/assistant_eval.py and about 20 cases (request, expected tool, expected columns, and
+   what must follow: a figure, a table, a number). Run by hand, on a copy of a demo, one provider at a time,
+   sequentially: real models never run in the suite. It prints a score per provider and each failure, and records
+   duration and memory free. Baseline with today's code, before B.
+
+B. Recover without asking (Ollama). A tool call written as text is recognised and run; an argument left out is filled
+   when there is only one choice (the only table). Measure.
+
+C. A form instead of tools (SMALL_MODEL providers). One request becomes three steps:
+   1. the model fills one schema: action (answer, compare_groups, find_impact, create_chart, run_analysis), table,
+      columns by role, chart type. Tables, columns, actions and chart types are enums taken from the project, so
+      it cannot invent a name;
+   2. the application checks and runs it, with no model involved; a wrong combination is said to the user, with the
+      form's values, or asked once more;
+   3. the model writes the answer from the short result.
+   ChatSession gains an optional fill(schema, text) -> dict: Ollama's "format" option, Apple's guided generation
+   with a DynamicGenerationSchema. The permission level limits the actions offered. Measure.
+
+D. Examples, if C leaves errors: 3-5 request -> form pairs in the prompt, fewer on Apple (4096 tokens). Measure.
+
+E. Another model: qwen2.5:3b, and any other that fits 8 GB. Only a download and a measure; the default changes if it
+   wins, and llama3.1 stops being the default on a small computer either way.
+
+F. Apple. First find why it refuses (is modelmanagerd's state sticky? does a restart clear it? does the helper's
+   footprint matter?). Then measure; READ_ONLY goes at 5 of 6 or better on the penguin requests and 80 % on the cases.
+   Otherwise it stays read-only, and Settings says so.
+
+G. Settings says what to expect: this provider is reliable for questions and direct requests; for longer analyses, use
+   a larger model or Claude.
+
+What counts
+-----------
+An improvement stays only if the measure shows it: a step that does not raise the score is taken out. Target: 80 % on
+llama3.2 or its replacement. Below that after E, analyses on small models stay marked as unreliable.
+
+Tests
+-----
+The form's check and execution, text-call recovery and the schema built from a project, on a real repo with a fake
+model; no real model in the suite.
+
+Risks
+-----
+- A schema with many columns or chart types takes tokens: for Apple, the enums may have to be cut to the relevant
+  table first.
+- A form covers direct requests, not multi-step ones. Those stay with Claude.
+- Live measures on 8 GB are slow and can stress the Mac: they run only when asked, and never beside the test suite.
+
+Not in this plan: fine-tuning. A later plan could use A's cases as its first data, if C-E fall short.
+
+Order: A - B - C - D - E - F - G, one commit each. Strings are listed for translation, not translated.

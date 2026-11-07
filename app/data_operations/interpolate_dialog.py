@@ -59,7 +59,13 @@ from app.plugin_api.data_operations.dialog_base import (
     ResultSeriesSpec,
     generated_table_name,
 )
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam, TextParam
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    ChoiceParam,
+    FloatParam,
+    IntParam,
+    TextParam,
+)
 from app.plugin_api.data_operations.results import TableResult
 from app.utils.i18n import _
 

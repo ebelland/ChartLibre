@@ -10,7 +10,7 @@ from __future__ import annotations
 import pytest
 from PySide6.QtWidgets import QApplication, QToolButton
 
-import app.styles.style as style
+from app.styles import style
 from app.widgets.catalog_search import CatalogSearch
 
 

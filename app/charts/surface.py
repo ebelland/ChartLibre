@@ -447,7 +447,7 @@ class Scatter3DAxisRenderer(BaseAxisRenderer):
                 tags.follow(("color", "marker"))  # sized by the column
             try:
                 ax.scatter(x, y, z, **kwargs)
-            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+            except Exception:
                 applogger.exception(
                     "Scatter Plot (3D) failed to draw series '%s'.", sd.name
                 )
@@ -574,7 +574,7 @@ class Line3DAxisRenderer(BaseAxisRenderer):
 
             try:
                 ax.plot(x, y, z, **kwargs)
-            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+            except Exception:
                 applogger.exception(
                     "3D Line Plot failed to draw series '%s'.", sd.name
                 )

@@ -150,7 +150,7 @@ class DatabaseInfoPanel(QWidget):
         """
         try:
             info = self._repo.database_pragma_info()
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             applogger.exception("Could not read database PRAGMA info.")
             return
 

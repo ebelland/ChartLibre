@@ -24,7 +24,11 @@ from PySide6.QtWidgets import (
 )
 
 from app.data.sqlite_repo import SqliteRepo
-from app.styles.style import apply_fusion_for_item_view_styling, mark_editor_panel, stdSizeAndlayout
+from app.styles.style import (
+    apply_fusion_for_item_view_styling,
+    mark_editor_panel,
+    stdSizeAndlayout,
+)
 from app.utils.i18n import _
 from app.widgets.table_list import GENERATED_TABLE_PREFIX
 

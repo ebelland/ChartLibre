@@ -21,7 +21,12 @@ import numpy as np
 from matplotlib.lines import Line2D
 
 from app.logs.logger import applogger
-from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
+from app.plugin_api.charts.base import (
+    LEGEND_OPTIONS,
+    BaseAxisRenderer,
+    SeriesData,
+    merge,
+)
 from app.utils.coercion import column_of, to_numbers
 
 #: The variable slots the role panel offers.

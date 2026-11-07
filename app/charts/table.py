@@ -154,7 +154,7 @@ class TableAxisRenderer(BaseAxisRenderer):
         self._draw_table(ax, df, headers, merged)
         ax.axis("off")
         # Kept off after the axis options run (see render_figure).
-        ax._chartlibre_axis_off = True  # noqa: SLF001
+        ax._chartlibre_axis_off = True
         self.apply_annotations(ax, axis_options)
 
     def _columns_to_draw(self, sd: SeriesData) -> tuple[Any, list[str]]:

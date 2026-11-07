@@ -24,6 +24,6 @@ APP_ICON: str = (
 
 # Plugins written before the shared modules moved to app.plugin_api import them
 # by their old paths; these keep working (see app/plugin_api/__init__.py).
-from app.plugin_api import install_old_path_aliases  # noqa: E402
+from app.plugin_api import install_old_path_aliases
 
 install_old_path_aliases()

@@ -41,7 +41,7 @@ import sqlite3
 from collections.abc import Iterable, Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 
 from app.data.data_source import quote_identifier as _quote
@@ -191,7 +191,7 @@ class UndoStore:
     ) -> int:
         cursor = connection.execute(
             f"INSERT INTO {_UNDO_SCHEMA}.{_ENTRIES_TABLE} (label, created) VALUES (?, ?)",
-            (label, datetime.now(timezone.utc).isoformat(timespec="seconds")),
+            (label, datetime.now(UTC).isoformat(timespec="seconds")),
         )
         entry_id = int(cursor.lastrowid or 0)
         self._append_tables(connection, entry_id, tables)

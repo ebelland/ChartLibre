@@ -21,7 +21,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from app.plugin_api.importers.base import ALL_DATASETS, FileImporter, ImportedData, combine
+from app.plugin_api.importers.base import (
+    ALL_DATASETS,
+    FileImporter,
+    ImportedData,
+    combine,
+)
 
 # ----------------------------------------------------------------------
 # Touchstone

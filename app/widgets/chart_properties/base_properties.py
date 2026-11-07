@@ -201,7 +201,7 @@ class BaseProperties(QWidget):
         self._auto_apply_timer.stop()
         self._auto_apply_callback()
 
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if watched in self._commit_on_focus_out and isinstance(watched, QPlainTextEdit):
             if event.type() == QEvent.Type.FocusOut:
                 self._commit_text_edit(watched)

@@ -18,7 +18,16 @@ from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
-from app.plugin_api.ai.provider import ACCURATE, FAST, AIProvider, ChatSession, ToolCall, ToolResult, ToolSpec, Turn
+from app.plugin_api.ai.provider import (
+    ACCURATE,
+    FAST,
+    AIProvider,
+    ChatSession,
+    ToolCall,
+    ToolResult,
+    ToolSpec,
+    Turn,
+)
 
 MODEL = "apple-on-device"
 _SOURCE = Path(__file__).with_name("foundation_models_helper.swift")

@@ -495,7 +495,7 @@ def list_postgres_databases(conn: DatabaseConnection) -> list[str]:
                 user=conn.username,
                 password=conn.password,
             )
-        except Exception as exc:  # noqa: BLE001 - try the next candidate
+        except Exception as exc:
             last_error = exc
             continue
 
@@ -603,7 +603,7 @@ def _server_session_read_only(connection, statement: str) -> None:
         cursor = connection.cursor()
         cursor.execute(statement)
         cursor.close()
-    except Exception:  # noqa: BLE001 - any driver's error class
+    except Exception:
         applogger.debug("Could not make the server session read-only.", exc_info=True)
 
 
@@ -996,7 +996,7 @@ def read_web_url(
         url, headers={"User-Agent": f"{APP_NAME}/{APP_VERSION}"}
     )
     try:
-        response = urllib.request.urlopen(  # noqa: S310
+        response = urllib.request.urlopen(
             request, timeout=timeout, context=_web_fetch_ssl_context()
         )
     except urllib.error.URLError as exc:

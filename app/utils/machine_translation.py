@@ -113,7 +113,7 @@ _TOKEN_RE = re.compile(r"\{\s*(\d+)\s*\}")
 def available() -> bool:
     """True when ``deep_translator`` is installed (Google and MyMemory)."""
     try:
-        import deep_translator  # noqa: F401  # pyright: ignore[reportMissingImports]
+        import deep_translator  # pyright: ignore[reportMissingImports]
     except ImportError:
         return False
     return True
@@ -122,8 +122,8 @@ def available() -> bool:
 def argos_available() -> bool:
     """True when Argos Translate's engine (``ctranslate2``, ``sentencepiece``) is installed."""
     try:
-        import ctranslate2  # noqa: F401  # pyright: ignore[reportMissingImports]
-        import sentencepiece  # noqa: F401  # pyright: ignore[reportMissingImports]
+        import ctranslate2  # pyright: ignore[reportMissingImports]
+        import sentencepiece  # pyright: ignore[reportMissingImports]
     except ImportError:
         return False
     return True
@@ -529,7 +529,7 @@ def _translate_with(
                 # translation; it must never reach the catalogue.
                 if answer.lstrip().upper().startswith("MYMEMORY WARNING"):
                     raise RuntimeError("Too many requests: " + answer.strip()[:120])
-            except Exception as exc:  # noqa: BLE001 - the service's problem, reported
+            except Exception as exc:
                 run.error = str(exc).split(".")[0][:160] or type(exc).__name__
                 if _is_rate_limit(exc) and name not in run.limited:
                     # deep_translator words every 429 as Google's limit,

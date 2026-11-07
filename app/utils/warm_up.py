@@ -49,7 +49,7 @@ def _import_all() -> None:
     for name in MODULES:
         try:
             importlib.import_module(name)
-        except Exception as exc:  # noqa: BLE001 - reported, then left to the operation that needs it
+        except Exception as exc:
             applogger.debug("Warm-up: %s could not be imported: %s", name, exc)
 
 

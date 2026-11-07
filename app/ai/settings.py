@@ -99,7 +99,7 @@ def api_key(key_name: str) -> str:
     if keyring is not None:
         try:
             stored = keyring.get_password(KEYRING_SERVICE, key_name)
-        except Exception:  # noqa: BLE001 - a keychain that cannot be read is no key
+        except Exception:
             applogger.exception("Could not read the assistant's key from the system keychain")
             stored = None
         if stored:
@@ -120,7 +120,7 @@ def set_api_key(key_name: str, key: str) -> bool:
                 keyring.delete_password(KEYRING_SERVICE, key_name)
             except keyring.errors.PasswordDeleteError:
                 pass
-    except Exception:  # noqa: BLE001 - reported, the setting is not kept
+    except Exception:
         applogger.exception("Could not keep the assistant's key in the system keychain")
         return False
     return True

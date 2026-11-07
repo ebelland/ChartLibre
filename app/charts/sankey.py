@@ -88,7 +88,7 @@ class SankeyAxisRenderer(BaseAxisRenderer):
     }
 
     def render_axis(self, ax: Any, series: list[SeriesData], options: dict) -> None:
-        import matplotlib  # noqa: PLC0415 - only for the colormap
+        import matplotlib
 
         options = options or {}
         sd = self.single_series(series, reason="two diagrams on one axis would overlap")

@@ -91,6 +91,16 @@ Evaluates a function from the same library as Fit over a range and draws it, wit
 
 Your own functions, a SymPy *Expression* or a Python *Code*, are on the *Function* tab - the stored ones chosen at its top (*New*, *Save*, *Import*, *Export*), each in one form: its kind, its *Parameters* with their values (`a=1, b=2` - a parameter with no value is an error, said under the field), the expression or code, and the x range (and y, for a function of x and y) under it - the library's Parameters and the ranges in Charts are hidden there - and kept in the project with their parameter values and range; Fit offers them under *Stored functions*, and New Chart as a data source. Function draws one as a live series: no table is written, the chart is evaluated from the function each time it is drawn, so saving it with a new formula redraws it. *Preview* and *OK* save the function as it is in the editor; *Cancel* takes that back too. The window opens on a new function, named *Function1* (or the first such name free), ready to type into; left empty or not valid, it is not kept. An expression or a code that uses y is a surface, z = f(x, y), drawn over the x and y ranges of *Charts* as a *Surface Plot*, a *3D Scatter* or a (filled) *Contour*, on a new axis or a new figure - a curve can also go on the current axis. Past 100,000 points (x by y) Preview and OK ask first: a live series is computed again each time it is drawn. They run code on this computer when drawn or fitted, so the functions of a project made on another computer run only once trusted: their code is shown first, and the answer is remembered on this computer until the code changes. Functions saved on this computer are trusted already.
 
+A *Code* function is a Python function named like the stored function. Its arguments are the parameters only: `x` (and `y`, which makes it a surface) are given, not passed. It puts its result in `f_numeric` and returns it; `np` (NumPy) and `sp` (SymPy) are ready to use:
+
+```python
+def Gaussian(A, mu, s):
+    f_numeric = A * np.exp(-(x - mu)**2 / (2 * s**2))
+    return f_numeric
+```
+
+The range is typed as *xmin* and *xmax* (and *ymin* and *ymax* for a surface). If the code cannot be used, the report says how to write it. Tables, saved queries and stored functions share one set of names; the Tables list renames any of them, and renaming a function updates the charts that draw it. Deleting a function names the charts it would leave empty.
+
 #use[Seeing the shape of a model before choosing it, drawing a theoretical or reference curve beside measurements, checking starting values before a fit, generating synthetic test data.]
 
 // ======================================================================

@@ -23,8 +23,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from app.utils.config import get_constant
 from app.utils.coercion import column_of, to_numbers
+from app.utils.config import get_constant
 
 CONTINUOUS = "continuous"
 NOMINAL = "nominal"

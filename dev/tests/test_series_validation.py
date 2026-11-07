@@ -9,7 +9,15 @@ from __future__ import annotations
 
 import numpy as np
 
-from app.utils.series_validation import DUPLICATE_X, EMPTY, LENGTH_MISMATCH, UNSORTED_X, clean_xy, errors, validate_xy
+from app.utils.series_validation import (
+    DUPLICATE_X,
+    EMPTY,
+    LENGTH_MISMATCH,
+    UNSORTED_X,
+    clean_xy,
+    errors,
+    validate_xy,
+)
 from dev.tests._cases import check_all
 
 

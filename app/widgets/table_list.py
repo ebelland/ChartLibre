@@ -123,7 +123,7 @@ class _LinkDelegate(QStyledItemDelegate):
                              self._DOT_RADIUS * 2, self._DOT_RADIUS * 2)
         painter.restore()
 
-    def sizeHint(self, option: QStyleOptionViewItem, index: PySide6.QtCore.QModelIndex | PySide6.QtCore.QPersistentModelIndex) -> PySide6.QtCore.QSize:  # noqa: N802 - Qt's name
+    def sizeHint(self, option: QStyleOptionViewItem, index: PySide6.QtCore.QModelIndex | PySide6.QtCore.QPersistentModelIndex) -> PySide6.QtCore.QSize:
         return PySide6.QtCore.QSize(36, 32)
 
 
@@ -137,7 +137,7 @@ class _TableListModel(QStandardItemModel):
         super().__init__(panel)
         self._panel = panel
 
-    def setData(  # noqa: N802 - Qt's name
+    def setData(
         self,
         index: PySide6.QtCore.QModelIndex | PySide6.QtCore.QPersistentModelIndex,
         value: object,
@@ -312,7 +312,7 @@ class TableListPanel(QWidget):
             if self._model.rowCount() > 0:
                 selected_to_emit = self._reselect(selected_before, current_before[0] if current_before else None)
 
-        except Exception as exc:  # noqa: BLE001 - surfaced via logger, not re-raised
+        except Exception as exc:
             applogger.exception("Table list failed: %s", exc)
 
         finally:
@@ -870,7 +870,7 @@ class TableListPanel(QWidget):
         except ValueError as exc:
             QMessageBox.warning(self, _("Rename"), str(exc))
             return
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the list stays usable
+        except Exception as exc:
             applogger.exception("Rename failed: %s", exc)
             return
         self.reload()
@@ -901,7 +901,7 @@ class TableListPanel(QWidget):
                 frame.to_excel(target, index=False, engine="openpyxl")
             else:
                 frame.to_csv(target, index=False)
-        except Exception as exc:  # noqa: BLE001 - told to the user, not raised into Qt
+        except Exception as exc:
             applogger.exception("Export failed: %s", exc)
             QMessageBox.warning(self, _("Could not do that"), str(exc))
             return
@@ -941,7 +941,7 @@ class TableListPanel(QWidget):
         try:
             refresh_link(self._repo, link_id=int(link["id"]), password=password)
             self.changed.emit()
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception(f"Link refresh failed: {exc}")
 
     def _delete_selected(self) -> None:
@@ -980,7 +980,7 @@ class TableListPanel(QWidget):
             # Ensure dependent previews/listeners are notified after delete.
             current_table = self.current
             self.tableSelected.emit(current_table or "")
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception(f"Delete failed: {exc}")
 
     def _confirm_delete(self, sources: list[tuple[str, str]]) -> bool:

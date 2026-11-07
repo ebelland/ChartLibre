@@ -41,7 +41,11 @@ from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
 )
-from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam, IntParam
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    FloatParam,
+    IntParam,
+)
 from app.plugin_api.data_operations.results import TableResult
 
 BASELINE_ASLS = "Asymmetric Least Squares (AsLS)"

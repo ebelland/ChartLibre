@@ -508,7 +508,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
             table_name = sql.strip().strip('"')
             if table_name:
                 return self._repo.table_frame(table_name)
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             applogger.debug("Failed to read series data for statistics.", exc_info=True)
         return pd.DataFrame()
 
@@ -1065,7 +1065,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
                 self.record_applied([], formatted or "")
                 self.applied.emit()
             return True
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.error("Statistics failed: %s", exc)
             return False
 
@@ -1266,7 +1266,7 @@ class SeriesStatisticsDialog(DataOperationDialogBase):
                 self._repo.delete_figure(int(figure_id))
             for axis_id in ([] if figure_id is not None else axis_ids):
                 self._repo.delete_axis(axis_id)
-        except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
+        except Exception:
             applogger.exception("Failed to remove the statistics charts %s", axis_ids)
 
     def discard_operation_artifacts(self) -> None:

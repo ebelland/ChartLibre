@@ -16,7 +16,12 @@ import pytest
 
 from app.data.demos import DEMO_PROJECTS
 from app.data.sqlite_repo import SqliteRepo
-from dev.demo.build_demos import _figure_specs, _multi_axis_figure_specs, build_demo_project, build_demo_projects
+from dev.demo.build_demos import (
+    _figure_specs,
+    _multi_axis_figure_specs,
+    build_demo_project,
+    build_demo_projects,
+)
 
 
 def _all_specs():
@@ -137,7 +142,7 @@ def test_loading_a_demo_again_gives_the_pristine_copy(
     """
     import sqlite3
 
-    import app.data.demos as demos
+    from app.data import demos
 
     source_dir = tmp_path / "built"
     source_dir.mkdir()

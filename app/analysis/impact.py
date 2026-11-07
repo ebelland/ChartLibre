@@ -124,7 +124,7 @@ def _linear_pvalues(data: pd.DataFrame, response: str, factors: list[str],
             pvalues[name] = float(table.loc[term, "PR(>F)"]) if term in table.index else float("nan")
             if numeric[name]:
                 slopes[name] = float(model.params.get(alias, float("nan")))
-    except Exception:  # noqa: BLE001 - collinear or too few rows: the forest still ranks
+    except Exception:
         pass
     return pvalues, slopes
 

@@ -13,15 +13,22 @@ import pytest
 import shiboken6
 from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QApplication, QHBoxLayout, QMainWindow, QToolButton, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QMainWindow,
+    QToolButton,
+    QVBoxLayout,
+    QWidget,
+)
 
-import app.styles.style as style
 from app.main_window.custom_title_bar import (
     CAPTION_BUTTON_WIDTH,
     CUSTOM_TITLE_BAR_HEIGHT,
     CustomTitleBar,
     caption_icon,
 )
+from app.styles import style
 from app.widgets.nav_bar import NavBarItem, NavigationBar
 
 

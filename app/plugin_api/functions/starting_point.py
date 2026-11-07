@@ -78,7 +78,7 @@ def ask_the_function(
 
     try:
         guess = estimator(np.asarray(x, dtype=float), np.asarray(y, dtype=float))
-    except Exception:  # noqa: BLE001 - user-written code: any failure is its own
+    except Exception:
         # An estimator that raises is a bug in one function, not a reason to
         # refuse the fit: the search below still produces a starting point.
         # Logged, so the person who wrote it can see why it was not used.

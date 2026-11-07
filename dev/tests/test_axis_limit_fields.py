@@ -3,7 +3,10 @@ from __future__ import annotations
 
 import pytest
 
-from app.widgets.chart_properties.axis_properties import AxisPropertiesWidget, parse_limit
+from app.widgets.chart_properties.axis_properties import (
+    AxisPropertiesWidget,
+    parse_limit,
+)
 
 
 def test_typed_limits_are_read_as_numbers() -> None:

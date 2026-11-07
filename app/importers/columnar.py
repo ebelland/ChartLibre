@@ -3,7 +3,12 @@ from __future__ import annotations
 
 import pandas as pd
 
-from app.plugin_api.importers.base import ALL_DATASETS, FileImporter, ImportedData, combine
+from app.plugin_api.importers.base import (
+    ALL_DATASETS,
+    FileImporter,
+    ImportedData,
+    combine,
+)
 
 
 class ParquetImporter(FileImporter):

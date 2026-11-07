@@ -29,7 +29,11 @@ from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
     OperationModel,
 )
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    ChoiceParam,
+    IntParam,
+)
 from app.plugin_api.data_operations.results import XYResult
 from app.utils import report_html
 

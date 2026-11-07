@@ -44,7 +44,7 @@ class _Runner(QRunnable):
         task = self._task
         try:
             result = task.function(task.cancel_event)
-        except BaseException as exc:  # noqa: BLE001 - reported to the GUI thread
+        except BaseException as exc:
             task.failed.emit(exc)
         else:
             task.finished.emit(result)

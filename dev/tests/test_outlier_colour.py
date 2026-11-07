@@ -12,26 +12,26 @@ from typing import Any, cast
 import matplotlib
 
 matplotlib.use("Agg")
-import numpy as np  # noqa: E402
-import pandas as pd  # noqa: E402
-import pytest  # noqa: E402
-from matplotlib.colors import to_rgba as _to_rgba  # noqa: E402
-from matplotlib.figure import Figure  # noqa: E402
+import numpy as np
+import pandas as pd
+import pytest
+from matplotlib.colors import to_rgba as _to_rgba
+from matplotlib.figure import Figure
 
-import app.data_operations.outlier_dialog as outlier_module  # noqa: E402
-from app.charts.scatter import ScatterAxisRenderer  # noqa: E402
-from app.data.select_sql import has_projection_alias, sql_insert_select_expression  # noqa: E402
-from app.data.series_frame import SeriesFrame  # noqa: E402
-from app.data.sqlite_repo import SqliteRepo  # noqa: E402
-from app.data_operations.outlier_dialog import (  # noqa: E402
+import app.data_operations.outlier_dialog as outlier_module
+from app.charts.scatter import ScatterAxisRenderer
+from app.data.select_sql import has_projection_alias, sql_insert_select_expression
+from app.data.series_frame import SeriesFrame
+from app.data.sqlite_repo import SqliteRepo
+from app.data_operations.outlier_dialog import (
     ACTION_COLOUR,
     ACTION_HIDE,
     COLOUR_COLUMN,
     SeriesOutlierDialog,
 )
-from app.plugin_api.charts.base import SeriesData  # noqa: E402
-from app.plugin_api.data_operations.parameter_form import ParameterForm  # noqa: E402
-from app.plugin_api.data_operations.parameter_spec import ColorParam  # noqa: E402
+from app.plugin_api.charts.base import SeriesData
+from app.plugin_api.data_operations.parameter_form import ParameterForm
+from app.plugin_api.data_operations.parameter_spec import ColorParam
 
 RED = "#d62728"
 

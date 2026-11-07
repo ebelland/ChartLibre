@@ -526,7 +526,7 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
                 points["y"].to_numpy(dtype=float),
                 **kwargs,
             )
-        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+        except Exception:
             applogger.exception("Failed to draw colored time-series markers.")
 
     def _draw_color_segments(
@@ -600,7 +600,7 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
                     if artist.get_visible():
                         legend_handle_found = True
                 remaining_label = "_nolegend_"
-            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+            except Exception:
                 applogger.exception("Failed to draw colored time-series segment.")
 
             start = max(end, start + 1)
@@ -652,7 +652,7 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
                 label="_nolegend_",
                 **error_kwargs,
             )
-        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+        except Exception:
             applogger.exception(
                 "Failed to draw error bars for series '%s'.", sd.name
             )

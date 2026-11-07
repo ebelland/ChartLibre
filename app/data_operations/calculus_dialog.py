@@ -45,7 +45,11 @@ from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
 )
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    ChoiceParam,
+    IntParam,
+)
 from app.plugin_api.data_operations.results import TableResult
 from app.utils import report_html
 from app.utils.i18n import _

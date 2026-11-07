@@ -5,7 +5,15 @@ import weakref
 from typing import TYPE_CHECKING, Any
 
 from PySide6.QtCore import QByteArray, QPoint, QSize, Qt
-from PySide6.QtGui import QIcon, QImage, QMouseEvent, QMoveEvent, QPainter, QPixmap, QShowEvent
+from PySide6.QtGui import (
+    QIcon,
+    QImage,
+    QMouseEvent,
+    QMoveEvent,
+    QPainter,
+    QPixmap,
+    QShowEvent,
+)
 from PySide6.QtSvg import QSvgRenderer
 from PySide6.QtWidgets import (
     QFrame,
@@ -225,11 +233,11 @@ class CustomTitleBar(QFrame):
         if layout is not None:
             layout.invalidate()
 
-    def moveEvent(self, event: QMoveEvent) -> None:  # noqa: N802
+    def moveEvent(self, event: QMoveEvent) -> None:
         super().moveEvent(event)
         self.refresh_lights_inset()
 
-    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+    def showEvent(self, event: QShowEvent) -> None:
         super().showEvent(event)
         self.refresh_lights_inset()
 
@@ -279,7 +287,7 @@ class CustomTitleBar(QFrame):
         kind = "restore" if self._window.isMaximized() else "maximize"
         self.maximize_button.setIcon(caption_icon(kind, self._caption_ink))
 
-    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+    def mousePressEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
             handle = self._window.windowHandle()
             if handle is not None:
@@ -288,7 +296,7 @@ class CustomTitleBar(QFrame):
             return
         super().mousePressEvent(event)
 
-    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+    def mouseDoubleClickEvent(self, event: QMouseEvent) -> None:
         if event.button() == Qt.MouseButton.LeftButton:
             self._toggle_maximized()
             event.accept()

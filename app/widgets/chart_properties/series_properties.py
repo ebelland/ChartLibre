@@ -40,7 +40,10 @@ from app.utils.config import get_constant
 from app.utils.i18n import _
 from app.utils.messages import ask
 from app.widgets.chart_properties.base_properties import BaseProperties
-from app.widgets.drop_down_controls.color_combo import DEFAULT_COLOR_LABEL, MatplotlibColorCombo
+from app.widgets.drop_down_controls.color_combo import (
+    DEFAULT_COLOR_LABEL,
+    MatplotlibColorCombo,
+)
 from app.widgets.drop_down_controls.line_combo import LineStyleCombo
 from app.widgets.drop_down_controls.marker_combo import MarkerStyleCombo
 
@@ -677,7 +680,7 @@ class SeriesPropertiesWidget(BaseProperties):
                     if int(axis_id) == self._current_axis_id:
                         name = str(title or "").strip()
                         break
-            except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+            except Exception:
                 applogger.debug("Could not resolve the series axis title.", exc_info=True)
         name = name or _("Axis {id}").format(id=self._current_axis_id)
         self._series_title.setText(_("Axis: {name}").format(name=name))

@@ -29,7 +29,10 @@ from app.data.data_source import quote_identifier
 from app.data.repo.function_sql import function_names
 from app.data.sqlite_repo import ROW_ID, DatabaseError
 from app.logs.logger import applogger
-from app.plugin_api.charts.descriptor_grid import descriptor_axis_count, descriptor_prepared_for_render
+from app.plugin_api.charts.descriptor_grid import (
+    descriptor_axis_count,
+    descriptor_prepared_for_render,
+)
 from app.plugin_api.data_operations.dialog_base import generated_table_name
 from app.utils.coercion import coerce_axis
 from app.utils.config import get_section, get_value
@@ -292,7 +295,7 @@ class ChartToolsMixin(_Host):
                 continue
             try:
                 hit, _details = artist.contains(event)
-            except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+            except Exception:
                 continue
             if hit:
                 return int(index), artist
@@ -372,7 +375,7 @@ class ChartToolsMixin(_Host):
             annotations[index] = entry
             options["annotations"] = annotations
             self._repo.set_axis_options(int(axis_id), options)
-        except Exception:  # noqa: BLE001
+        except Exception:
             applogger.exception("Could not move the annotation.")
             self.reload()
             return
@@ -692,7 +695,9 @@ class ChartToolsMixin(_Host):
         used = self.drawn_functions()
         if not used:
             return []
-        from app.data_operations import sympy_store  # SymPy: loaded only for a chart of a function
+        from app.data_operations import (
+            sympy_store,  # SymPy: loaded only for a chart of a function
+        )
 
         return sorted(used & {row["function_name"] for row in sympy_store.untrusted(self._repo)})
 
@@ -742,7 +747,7 @@ class ChartToolsMixin(_Host):
         """
         try:
             self._draw_selected_row_rings()
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             applogger.exception("Could not ring the selected rows.")
 
     def _draw_selected_row_rings(self) -> None:
@@ -809,7 +814,7 @@ class ChartToolsMixin(_Host):
                 )
                 self._repo.update_series_sql_query(int(info["series_id"]), new_sql)
                 hid_any = True
-        except Exception:  # noqa: BLE001
+        except Exception:
             applogger.exception("Could not hide the selected points.")
             return
 
@@ -863,7 +868,7 @@ class ChartToolsMixin(_Host):
                 )
                 next_index += 1
                 created_any = True
-        except Exception:  # noqa: BLE001
+        except Exception:
             applogger.exception("Could not create a series from the selection.")
             return
 
@@ -953,7 +958,7 @@ class ChartToolsMixin(_Host):
         for artist in self._ruler_artists:
             try:
                 artist.remove()
-            except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
+            except Exception:
                 pass
         self._ruler_artists = []
         self._ruler_start = None
@@ -1016,7 +1021,7 @@ class ChartToolsMixin(_Host):
             )
             options["measurements"] = measurements
             self._repo.set_axis_options(int(axis_id), options)
-        except Exception:  # noqa: BLE001
+        except Exception:
             applogger.exception("Could not add a measurement.")
             return
 
@@ -1033,15 +1038,15 @@ class ChartToolsMixin(_Host):
     # ------------------------------------------------------------------
     # Resize / zoom / background helpers
     # ------------------------------------------------------------------
-    def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt's name
+    def minimumSizeHint(self) -> QSize:
         """Keep parent layouts from using the chart content as minimum size."""
         return QSize(80, 60)
 
-    def sizeHint(self) -> QSize:  # noqa: N802 - Qt's name
+    def sizeHint(self) -> QSize:
         """Return a moderate preferred size, independent from canvas content."""
         return QSize(800, 450)
 
-    def showEvent(self, event: PySide6.QtGui.QShowEvent) -> None:  # noqa: N802 - Qt's name
+    def showEvent(self, event: PySide6.QtGui.QShowEvent) -> None:
         """Refresh geometry when a hidden chart tab becomes visible.
 
         Also a backstop for the deferred first render (see __init__'s
@@ -1058,7 +1063,7 @@ class ChartToolsMixin(_Host):
         handled = super().event(event)
         try:
             event_type = event.type()
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             return handled
         if event_type == QEvent.Type.Show:
             self._schedule_canvas_geometry_sync(redraw=True, late=True)
@@ -1071,7 +1076,7 @@ class ChartToolsMixin(_Host):
             self._schedule_canvas_geometry_sync(redraw=False, late=True)
         return handled
 
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 - Qt's name
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         """Re-sync the canvas geometry after resize events.
 
         Paint events are deliberately *not* handled here.
@@ -1092,7 +1097,7 @@ class ChartToolsMixin(_Host):
         """
         try:
             event_type = event.type()
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             return False
 
         if event_type != QEvent.Type.Resize:
@@ -1129,7 +1134,7 @@ class ChartToolsMixin(_Host):
         finally:
             painter.end()
 
-    def paintEvent(self, event: PySide6.QtGui.QPaintEvent) -> None:  # noqa: N802 - Qt's name
+    def paintEvent(self, event: PySide6.QtGui.QPaintEvent) -> None:
         """Paint the panel background before the frame and children.
 
         Why this is not left to the stylesheet: in FIT_PROPORTIONAL the canvas
@@ -1142,7 +1147,7 @@ class ChartToolsMixin(_Host):
         self._fill_background(self)
         super().paintEvent(event)
 
-    def resizeEvent(self, event: PySide6.QtGui.QResizeEvent) -> None:  # noqa: N802 - Qt's name
+    def resizeEvent(self, event: PySide6.QtGui.QResizeEvent) -> None:
         """Update canvas geometry when ChartPanel is resized."""
         super().resizeEvent(event)
         # The strip the canvas vacates belongs to the panel; ask for a repaint
@@ -1655,7 +1660,7 @@ class ChartToolsMixin(_Host):
             # descriptor was drawn. Which is exactly how they "were ignored".
             self._fixed_figure_size_inches = (width_in, height_in)
             self._fixed_figure_dpi = float(dpi)
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             applogger.exception(
                 "Failed to apply figure metrics (figure_id=%s)", self._figure_id
             )
@@ -1679,7 +1684,7 @@ class ChartToolsMixin(_Host):
                 # drawing at it scaled the text with it - a 200 dpi figure in
                 # a FIT panel came out with letters twice the size.
                 self._set_configured_dpi(FIXED_MODE_SCREEN_DPI)
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             applogger.exception(
                 "Failed to reset figure metrics from rcParams (figure_id=%s)",
                 self._figure_id,
@@ -1728,7 +1733,7 @@ class ChartToolsMixin(_Host):
             # rcParams holds the dpi the user configured, with neither factor
             # in it.  That is the only stable baseline.
             self._fixed_figure_dpi = float(rcParams.get("figure.dpi", 100.0) or 100.0)
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             applogger.exception(
                 "Failed to capture rendered figure metrics (figure_id=%s)",
                 self._figure_id,
@@ -1765,7 +1770,7 @@ class ChartToolsMixin(_Host):
             # figure's own dpi stays in _fixed_figure_dpi, for saving.
             self._set_configured_dpi(FIXED_MODE_SCREEN_DPI)
             self._figure.set_size_inches(width_in, height_in, forward=False)
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             applogger.exception(
                 "Failed to restore unzoomed figure metrics (figure_id=%s)",
                 self._figure_id,
@@ -1805,7 +1810,7 @@ class ChartToolsMixin(_Host):
                 logical_to_inches(pixels.height(), self._figure, self._canvas),
                 forward=False,
             )
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             applogger.exception(
                 "Failed to apply fixed-mode pixel size (figure_id=%s)",
                 self._figure_id,
@@ -1850,7 +1855,7 @@ class ChartToolsMixin(_Host):
                 return
             PySide6.QtGui.QGuiApplication.clipboard().setImage(image)
             applogger.info("Chart copied to clipboard (figure_id=%s)", self._figure_id)
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             applogger.exception(
                 "Failed to copy chart to clipboard (figure_id=%s)",
                 self._figure_id,
@@ -1896,7 +1901,7 @@ class ChartToolsMixin(_Host):
                 file_path,
                 selected_filter,
             )
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             applogger.exception("Failed to save chart (figure_id=%s)", self._figure_id)
             show_message(self, "chart.save_failed")
 

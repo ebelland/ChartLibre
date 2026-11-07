@@ -89,7 +89,9 @@ def _run(qapp, dialog) -> None:
 def test_ok_writes_the_tables_and_draws_the_charts(qapp, tmp_path, frame: pd.DataFrame) -> None:
     from app.data.sqlite_repo import SqliteRepo
     from app.data_operations.multivariate_dialog import MultivariateDialog
-    from app.data_operations.principal_components_dialog import PrincipalComponentsDialog
+    from app.data_operations.principal_components_dialog import (
+        PrincipalComponentsDialog,
+    )
 
     repo = SqliteRepo(db_path=tmp_path / "m.dhub")
     repo.import_dataframe(frame, table_name="m", normalize_columns=False)
@@ -132,7 +134,9 @@ def test_ok_writes_the_tables_and_draws_the_charts(qapp, tmp_path, frame: pd.Dat
 def test_principal_components_draws_the_charts_ticked(qapp, tmp_path, frame: pd.DataFrame) -> None:
     """Its four charts are all scatter plots: a box per chart type could not tell them apart, and none showed."""
     from app.data.sqlite_repo import SqliteRepo
-    from app.data_operations.principal_components_dialog import PrincipalComponentsDialog
+    from app.data_operations.principal_components_dialog import (
+        PrincipalComponentsDialog,
+    )
 
     repo = SqliteRepo(db_path=tmp_path / "c.dhub")
     repo.import_dataframe(frame, table_name="m", normalize_columns=False)

@@ -85,7 +85,13 @@ from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     ResultSeriesSpec,
 )
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam, TextParam
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    ChoiceParam,
+    FloatParam,
+    IntParam,
+    TextParam,
+)
 from app.plugin_api.data_operations.results import TableResult
 from app.utils import report_html
 from app.utils.coercion import to_numbers
@@ -527,7 +533,7 @@ class SeriesControlChartDialog(DataOperationDialogBase):
             return None
         try:
             return self._repo.series_frame(query)
-        except Exception:  # noqa: BLE001 - a bad query is reported at compute time
+        except Exception:
             return None
 
     @staticmethod

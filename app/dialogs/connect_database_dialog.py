@@ -365,7 +365,7 @@ class ConnectDatabaseDialog(SettingsTableDialog):
 
         try:
             databases = list_databases(conn)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception("Could not list the databases: %s", exc)
             show_message(self, "import.database_failed", error=exc)
             return False
@@ -391,7 +391,7 @@ class ConnectDatabaseDialog(SettingsTableDialog):
                 tables = list_postgres_tables(conn)
             else:
                 tables = list_mysql_tables(conn)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception("Could not connect to database: %s", exc)
             show_message(self, "import.database_failed", error=exc)
             return
@@ -495,7 +495,7 @@ class ConnectDatabaseDialog(SettingsTableDialog):
         }
         try:
             set_connect_database_config(payload)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             # A settings file that cannot be written is not a reason to lose
             # the connection the user just made.
             applogger.warning(

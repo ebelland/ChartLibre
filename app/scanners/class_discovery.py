@@ -48,7 +48,7 @@ def _load_class(file_path: str, class_name: str, mtime_ns: int, module_prefix: s
 
     try:
         spec.loader.exec_module(module)
-    except Exception as exc:  # noqa: BLE001 - a plugin file: any failure is its own, and reported
+    except Exception as exc:
         applogger.error(
             "Class %s failed to load from %s (%s: %s).",
             class_name,

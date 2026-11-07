@@ -14,8 +14,8 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from app.utils.i18n import _
 from app.utils.coercion import to_numbers
+from app.utils.i18n import _
 
 
 def numeric_values(values: Any) -> np.ndarray:
@@ -36,7 +36,9 @@ def summary_html(column: str, values: Any) -> str:
     """An HTML table of *column*'s count, location, spread and shape."""
     total = len(values)
     numbers = numeric_values(values)
-    from app.analysis.statistics import describe  # here, not at import: SciPy's stats at startup
+    from app.analysis.statistics import (
+        describe,  # here, not at import: SciPy's stats at startup
+    )
 
     stats = describe(numbers)
     rows: list[tuple[str, str]] = [

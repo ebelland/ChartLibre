@@ -771,7 +771,7 @@ class MainWindow(QMainWindow):
                 self._show_table(table_name)
             else:
                 self._table_panel.reload()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception("Failed to create a table from DOE: %s", exc)
             QMessageBox.warning(self, _("DOE table"), str(exc))
 
@@ -828,7 +828,7 @@ class MainWindow(QMainWindow):
                 normalize_columns=False,
             )
             self._show_table(name)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception("Failed to create blank table: %s", exc)
             QMessageBox.warning(self, _("New Blank Table"), str(exc))
 
@@ -1480,7 +1480,7 @@ class MainWindow(QMainWindow):
             guided = getattr(self, "_guided_panel", None)
             if guided is not None:
                 guided.set_table(self._table_panel.current)
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             applogger.exception("Failed to refresh the data panes.")
         self._update_properties_for_current_chart()
         self._refresh_undo_item()
@@ -1534,7 +1534,7 @@ class MainWindow(QMainWindow):
         if step is not None:
             self._open_next_step(step)
 
-    def _open_next_step(self, step) -> None:  # noqa: ANN001 - a next_steps.NextStep
+    def _open_next_step(self, step) -> None:
         """Open the analysis a "What next?" link asks for, on its table, the columns cast (G-02).
 
         A data operation's step (it names a figure) opens on that figure instead.
@@ -1834,7 +1834,7 @@ class MainWindow(QMainWindow):
     # ------------------------------------------------------------------
     # Qt events
     # ------------------------------------------------------------------
-    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802
+    def closeEvent(self, event: QCloseEvent) -> None:
         """Persist the window layout, then collect resources and close."""
         applogger.info("Closing main window")
         try:
@@ -2362,7 +2362,7 @@ class MainWindow(QMainWindow):
                 bare_text = self._MACOS_APP_MENU_SELECTORS.get(selector)
                 if bare_text is not None:
                     item.setTitle_(_(bare_text))
-        except Exception:  # noqa: BLE001 - an optional platform feature: absent or refusing is not an error
+        except Exception:
             applogger.exception("Failed to rename the native macOS app menu items.")
 
     # ==================================================================
@@ -2830,7 +2830,7 @@ class MainWindow(QMainWindow):
                 name=name,
                 options=descriptor.options or {},
             )
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             applogger.exception("Failed to rename figure_id=%s", figure_id)
             return
 
@@ -3220,7 +3220,7 @@ class MainWindow(QMainWindow):
             figures_and_axes = [self._repo.query_df(f'SELECT * FROM "{table}" ORDER BY id').to_dict("records")
                                 for table in ("__figure_descriptors__", "__axis_descriptors__")]
             series = self._repo.query_df('SELECT * FROM "__series_descriptors__"').to_dict("records")
-        except Exception:  # noqa: BLE001 - no state: the Undo shows everything again, as before
+        except Exception:
             return None
         return [*figures_and_axes[0], *figures_and_axes[1]], {int(row["id"]): row for row in series}
 
@@ -3275,7 +3275,7 @@ class MainWindow(QMainWindow):
         applogger.info("Opening recent database: %s", db_path)
         try:
             self._switch_database(db_path)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception("Failed to open database: %s", exc)
             show_message(self, "database.open_failed", error=exc)
 
@@ -3295,7 +3295,7 @@ class MainWindow(QMainWindow):
         """
         try:
             found = self._repo.scan_user_sql()
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             applogger.exception("The project SQL check failed.")
             return
         if not found:
@@ -3317,7 +3317,7 @@ class MainWindow(QMainWindow):
         """
         try:
             used = function_names(str(row.get("sql_query") or "") for row in self._repo.list_series_dict())
-        except Exception:  # noqa: BLE001 - a check at opening: never stops the project from opening
+        except Exception:
             applogger.exception("The project's function check failed.")
             return
         if used:
@@ -3330,7 +3330,7 @@ class MainWindow(QMainWindow):
         try:
             if not sympy_store.untrusted(self._repo):
                 return
-        except Exception:  # noqa: BLE001 - the project may have been closed meanwhile
+        except Exception:
             return
         if ask_to_trust(self, self._repo):
             self._reload_function_charts()
@@ -3367,7 +3367,7 @@ class MainWindow(QMainWindow):
             if prepare is not None:
                 try:
                     prepare()
-                except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+                except Exception:
                     self._repo = SqliteRepo(db_path=self._db_path)
                     self._table_panel.set_repo(self._repo)
                     self._database_info_panel.set_repo(self._repo)
@@ -3441,7 +3441,7 @@ class MainWindow(QMainWindow):
             self._table_panel.reload()
             self._reload_tabs()
             self._select_navigation("tables")
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception("Failed to create database: %s", exc)
             show_message(self, "database.create_failed", error=exc)
             return
@@ -3473,7 +3473,7 @@ class MainWindow(QMainWindow):
         # connection's pending changes to be replayed onto the fresh copy.
         try:
             self._switch_database(target, prepare=lambda: copy_demo_project(demo, target))
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception("Failed to load demo project: %s", exc)
             show_message(self, "demo.build_failed", error=exc)
 
@@ -3494,7 +3494,7 @@ class MainWindow(QMainWindow):
 
         try:
             self._switch_database(db_path)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception("Failed to open database: %s", exc)
             show_message(self, "database.open_failed", error=exc)
 
@@ -3514,7 +3514,7 @@ class MainWindow(QMainWindow):
         try:
             self._repo.checkpoint()
             self.statusBar().showMessage(_("Database saved."), 4_000)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception("Checkpoint failed: %s", exc)
 
     def _ask_for_missing_project_info(self) -> None:
@@ -3542,7 +3542,7 @@ class MainWindow(QMainWindow):
             from app.utils.project_preview import write_project_preview
 
             write_project_preview(self._repo)
-        except Exception as exc:  # noqa: BLE001 - a preview must never stop a save
+        except Exception as exc:
             applogger.warning("Could not draw the project preview: %s", exc)
 
     def _on_save_as(self) -> None:
@@ -3572,7 +3572,7 @@ class MainWindow(QMainWindow):
         try:
             saved_path = self._repo.save_as(target)
             self._switch_database(saved_path)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception("Failed to save database as: %s", exc)
             show_message(self, "database.save_as_failed", error=exc)
             return
@@ -3628,7 +3628,7 @@ class MainWindow(QMainWindow):
                 settings["table"] = picker.table
                 _list_tables, read_table = SERVER_DATABASE_READERS[connection.kind]
                 frame = read_table(connection, picker.table, skiprows=0, skipfooter=0)
-        except Exception as exc:  # noqa: BLE001 - any driver's error, told to the user
+        except Exception as exc:
             applogger.exception("Database import failed")
             show_message(cast(QWidget, self), "import.database_failed", error=exc)
             return
@@ -3823,7 +3823,7 @@ class MainWindow(QMainWindow):
             return resize_edges(pos, self._central_host.size(), self._RESIZE_MARGIN, bottom=False)
         return resize_edges(pos, self._central_host.size(), self._RESIZE_MARGIN)
 
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         """Give the frameless Windows window edge-drag resizing.
 
         FramelessWindowHint (see __init__) leaves the OS with no resize
@@ -3897,7 +3897,7 @@ class MainWindow(QMainWindow):
 
         return "", []
 
-    def dragEnterEvent(self, event: QDragEnterEvent) -> None:  # noqa: N802 - Qt's name
+    def dragEnterEvent(self, event: QDragEnterEvent) -> None:
         """Accept a drag only when the drop would actually do something."""
         kind, _paths = self.accepted_drop(self.dropped_paths(event))
         if kind:
@@ -3905,11 +3905,11 @@ class MainWindow(QMainWindow):
         else:
             event.ignore()
 
-    def dragMoveEvent(self, event: QDragMoveEvent) -> None:  # noqa: N802 - Qt's name
+    def dragMoveEvent(self, event: QDragMoveEvent) -> None:
         """Keep the acceptance while the cursor moves over the window."""
         self.dragEnterEvent(event)
 
-    def dropEvent(self, event: QDropEvent) -> None:  # noqa: N802 - Qt's name
+    def dropEvent(self, event: QDropEvent) -> None:
         """Open a dropped project, or import dropped data files.
 
         Several data files are handled one dialog at a time, in the order they
@@ -3928,7 +3928,7 @@ class MainWindow(QMainWindow):
             applogger.info("Opening dropped database: %s", paths[0])
             try:
                 self._switch_database(paths[0])
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 applogger.exception("Failed to open the dropped database: %s", exc)
                 show_message(self, "database.open_failed", error=exc)
             return

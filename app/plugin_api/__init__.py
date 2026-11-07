@@ -57,17 +57,17 @@ class _Alias(importlib.abc.Loader):
     def __init__(self, new_name: str) -> None:
         self._new_name = new_name
 
-    def create_module(self, spec):  # noqa: ANN001
+    def create_module(self, spec):
         return importlib.import_module(self._new_name)
 
-    def exec_module(self, module) -> None:  # noqa: ANN001
+    def exec_module(self, module) -> None:
         """Nothing to run: the module is the real one."""
 
 
 class _OldPathFinder(importlib.abc.MetaPathFinder):
     """Resolves ``app.charts.base`` and the like to their new place."""
 
-    def find_spec(self, fullname, path=None, target=None):  # noqa: ANN001
+    def find_spec(self, fullname, path=None, target=None):
         new_name = OLD_TO_NEW.get(fullname)
         if new_name is None:
             # A submodule of a moved package (app.table_operations.<module>): the longest old name wins.

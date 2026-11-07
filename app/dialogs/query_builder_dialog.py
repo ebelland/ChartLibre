@@ -186,7 +186,7 @@ class QueryBuilderDialog(SettingsTableDialog):
         layout.addLayout(row)
         self._on_operation_changed(0)
 
-    def showEvent(self, event) -> None:  # noqa: N802
+    def showEvent(self, event) -> None:
         super().showEvent(event)
         # Styled and with its fonts now: the shown form's height is its real one.
         self._on_operation_changed(self._operation_combo.currentIndex())
@@ -226,7 +226,7 @@ class QueryBuilderDialog(SettingsTableDialog):
             return False
         try:
             created = self._repo.create_table_from_query(name.strip(), self.sql)
-        except Exception as exc:  # noqa: BLE001 - shown, the dialog stays open
+        except Exception as exc:
             applogger.exception("Failed to save the query as a table")
             self._status.setText(f"Error - {exc}")
             return False
@@ -379,7 +379,7 @@ class QueryBuilderDialog(SettingsTableDialog):
                 f"SELECT * FROM ({self.sql.rstrip(';')}) AS _preview "
                 f"LIMIT {PREVIEW_ROW_LIMIT}"
             )
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("Query preview failed")
             self._status.setText(f"Error - {exc}")
             return False
@@ -408,7 +408,7 @@ class QueryBuilderDialog(SettingsTableDialog):
 
         try:
             self._repo.save_query(clean, self.sql)
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("Failed to save query '%s'", clean)
             show_message(self, "query.save_failed", error=exc)
             return False
@@ -453,18 +453,18 @@ class QueryBuilderDialog(SettingsTableDialog):
             return None
         return clean
 
-    def accept(self) -> None:  # noqa: D102 - Qt override
+    def accept(self) -> None:
         """Save, and close only if it was saved: a statement that does not
         run, or a name prompt cancelled, leaves the dialog open to fix it."""
         self._remember_state()
         if self.save():
             super().accept()
 
-    def reject(self) -> None:  # noqa: D102 - Qt override
+    def reject(self) -> None:
         self._remember_state()
         super().reject()
 
-    def closeEvent(self, event) -> None:  # noqa: N802, D102 - Qt override
+    def closeEvent(self, event) -> None:
         self._remember_state()
         super().closeEvent(event)
 

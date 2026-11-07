@@ -167,7 +167,7 @@ class FishboneAxisRenderer(BaseAxisRenderer):
         ax.set_xlim(-0.2 * width, spine_end + 1.2 + self._HEAD_WIDTH)
         ax.set_ylim(-self._BONE_HEIGHT - 1.4, self._BONE_HEIGHT + 1.4)
         ax.set_axis_off()
-        ax._chartlibre_axis_off = True  # noqa: SLF001 - read by render_figure
+        ax._chartlibre_axis_off = True
 
     @staticmethod
     def _groups(df: Any) -> list[tuple[str, list[tuple[str, list[str]]]]]:

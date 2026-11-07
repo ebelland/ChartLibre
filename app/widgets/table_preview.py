@@ -11,7 +11,16 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 import pandas as pd
-from PySide6.QtCore import QAbstractTableModel, QEvent, QModelIndex, QObject, QPersistentModelIndex, QPoint, Qt, Signal
+from PySide6.QtCore import (
+    QAbstractTableModel,
+    QEvent,
+    QModelIndex,
+    QObject,
+    QPersistentModelIndex,
+    QPoint,
+    Qt,
+    Signal,
+)
 from PySide6.QtGui import QColor, QKeySequence, QShortcut
 from PySide6.QtWidgets import (
     QApplication,
@@ -54,7 +63,7 @@ class _BestFormatDelegate(QStyledItemDelegate):
 
     PADDING = 10
 
-    def initStyleOption(self, option, index) -> None:  # noqa: N802 - Qt's name
+    def initStyleOption(self, option, index) -> None:
         super().initStyleOption(option, index)
         model = index.model()
         if not getattr(model, "shows_best", lambda _c: False)(index.column()):
@@ -132,10 +141,10 @@ class DataFrameTableModel(QAbstractTableModel):
         """Return the underlying DataFrame."""
         return self._frame
 
-    def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: N802, B008 - Qt's name and signature
+    def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else int(len(self._frame))
 
-    def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: N802, B008 - Qt's name and signature
+    def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self._columns)
 
     def column_name(self, index: int) -> str | None:
@@ -152,7 +161,7 @@ class DataFrameTableModel(QAbstractTableModel):
             return None
         return "" if value is None else str(value)
 
-    def headerData(self, section: int, orientation, role: int = Qt.ItemDataRole.DisplayRole):  # noqa: N802 - Qt's name and signature
+    def headerData(self, section: int, orientation, role: int = Qt.ItemDataRole.DisplayRole):
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         if orientation == Qt.Orientation.Horizontal:
@@ -208,7 +217,7 @@ class TablePreviewPanel(QWidget):
         copy.setContext(Qt.ShortcutContext.WidgetWithChildrenShortcut)
         copy.activated.connect(self._copy_selection)
 
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 - Qt's name and signature
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if watched in (self.view, self.view.viewport()):
             event_type = event.type()
             if event_type == QEvent.Type.ContextMenu:
@@ -281,7 +290,7 @@ class TablePreviewPanel(QWidget):
 
             self.view.setModel(LazyTableModel(self._repo, self._table, parent=self.view))
             self.view.resizeColumnsToContents()
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("Preview model init failed for source=%s: %s", self._table, exc)
             self.view.setModel(None)
 
@@ -521,7 +530,7 @@ class TablePreviewPanel(QWidget):
             return
         try:
             stats = self._repo.column_stats(self._table, column)
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("Column statistics failed: %s", exc)
             QMessageBox.warning(self, _("Could not do that"), str(exc))
             return
@@ -565,7 +574,7 @@ class TablePreviewPanel(QWidget):
             return
         try:
             name = self._repo.duplicate_table(self._table)
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("Duplicate table failed: %s", exc)
             QMessageBox.warning(self, _("Could not do that"), str(exc))
             return
@@ -595,7 +604,7 @@ class TablePreviewPanel(QWidget):
             else:
                 assert self._repo is not None
                 frame = self._repo.visible_rows(self._table)
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("Export rows failed: %s", exc)
             QMessageBox.warning(self, _("Could not do that"), str(exc))
             return
@@ -616,7 +625,7 @@ class TablePreviewPanel(QWidget):
                 frame.to_excel(target, index=False, engine="openpyxl")
             else:
                 frame.to_csv(target, index=False)
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("Export rows failed: %s", exc)
             QMessageBox.warning(self, _("Could not do that"), str(exc))
             return
@@ -694,7 +703,7 @@ class TablePreviewPanel(QWidget):
         ids = [row_id for row in self._selected_block()[0] if (row_id := model.row_id(row)) is not None]
         try:
             changed = self._repo.set_rows_hidden(self._table, ids, hidden)
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("%s rows failed: %s", "Hide" if hidden else "Show", exc)
             show_message(self, "preview.hide_rows_failed", error=exc)
             return
@@ -722,7 +731,7 @@ class TablePreviewPanel(QWidget):
             return
         try:
             self._flag_done(flag, self._repo.flag_rows_by_value(self._table, flag, column, operator, value))
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("%s rows failed: %s", flag, exc)
             show_message(self, "preview.hide_rows_failed", error=exc)
 
@@ -731,7 +740,7 @@ class TablePreviewPanel(QWidget):
             return
         try:
             self._flag_done(flag, self._repo.flag_rows_special(self._table, flag, column, mode))
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("%s rows failed: %s", flag, exc)
             show_message(self, "preview.hide_rows_failed", error=exc)
 
@@ -743,7 +752,7 @@ class TablePreviewPanel(QWidget):
         value = index.data(Qt.ItemDataRole.EditRole)  # the value stored, not its format
         try:
             self._flag_done(flag, self._repo.flag_rows_by_value(self._table, flag, column, "=", value))
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("%s selected value failed: %s", flag, exc)
             show_message(self, "preview.hide_rows_failed", error=exc)
 
@@ -795,13 +804,13 @@ class LazyTableModel(QAbstractTableModel):
         return (0 <= index < len(self._columns) and self._codes[index] in ("F", "I", "?")
                 and self._formats[index] is None)
 
-    def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: N802, B008 - Qt's name and signature
+    def rowCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else self._row_count
 
-    def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:  # noqa: N802, B008 - Qt's name and signature
+    def columnCount(self, parent: QModelIndex | QPersistentModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self._columns)
 
-    def headerData(self, section, orientation, role: int = Qt.ItemDataRole.DisplayRole):  # noqa: N802 - Qt's name and signature
+    def headerData(self, section, orientation, role: int = Qt.ItemDataRole.DisplayRole):
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         if orientation == Qt.Orientation.Horizontal:

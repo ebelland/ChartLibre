@@ -45,7 +45,11 @@ from app.plugin_api.data_operations.dialog_base import (
     OperationModel,
     generated_table_name,
 )
-from app.plugin_api.data_operations.parameter_spec import ChoiceParam, FloatParam, IntParam
+from app.plugin_api.data_operations.parameter_spec import (
+    ChoiceParam,
+    FloatParam,
+    IntParam,
+)
 from app.plugin_api.data_operations.results import XYResult
 from app.utils.i18n import _
 

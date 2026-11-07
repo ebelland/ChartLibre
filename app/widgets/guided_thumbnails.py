@@ -114,7 +114,7 @@ def thumbnail(idea: ChartIdea, frame: pd.DataFrame) -> QPixmap:
     ax = figure.add_axes((0.04, 0.06, 0.92, 0.9))
     try:
         _draw(ax, idea, frame)
-    except Exception:  # noqa: BLE001 - a sketch of the user's data: an empty picture, never an error
+    except Exception:
         applogger.exception("Guided wizard: no thumbnail for %s", idea.chart_type)
         ax.clear()
         ax.set_xticks([])

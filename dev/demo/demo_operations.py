@@ -290,7 +290,7 @@ def build_operations_demo(directory: Path = DEMO_DIR) -> Path:
     """Write the Data Operations demo into *directory* and return its path."""
     from PySide6.QtWidgets import QApplication, QMessageBox
 
-    import app.utils.config as config
+    from app.utils import config
 
     app = QApplication.instance() or QApplication([])
     # No one is there to click: a message box is logged instead of waited on.

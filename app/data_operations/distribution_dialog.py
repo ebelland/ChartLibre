@@ -17,13 +17,16 @@ import pandas as pd
 from app.analysis import distribution as dist
 from app.data.data_source import row_value
 from app.plugin_api import reading_guide
-from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase, xy_columns
+from app.plugin_api.data_operations.dialog_base import (
+    DataOperationDialogBase,
+    xy_columns,
+)
 from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam
 from app.plugin_api.data_operations.results import OperationResult
 from app.utils import report_html
+from app.utils.coercion import column_of, to_numbers
 from app.utils.distribution_fit import DistributionFit, fit_distributions
 from app.utils.i18n import _
-from app.utils.coercion import column_of, to_numbers
 
 #: The distributions offered, scipy names: the fitted one is drawn and reported.
 FITTED = (("Normal", "norm"), ("Lognormal", "lognorm"), ("Weibull", "weibull_min"), ("Gamma", "gamma"),

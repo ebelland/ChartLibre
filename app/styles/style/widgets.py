@@ -209,7 +209,7 @@ class TitledCard(QWidget):
         self.disclosure.setIcon(_chevron_icon(down=not collapsed, color=self.title_label.palette().color(
             QtGui.QPalette.ColorRole.WindowText)))
 
-    def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:  # noqa: N802
+    def eventFilter(self, watched: QtCore.QObject, event: QtCore.QEvent) -> bool:
         if (
             watched is self.title_label
             and self.disclosure is not None
@@ -750,7 +750,7 @@ def keep_check_box_whole(box: QCheckBox) -> QCheckBox:
     return box
 
 
-def stdSizeAndlayout(  # noqa: N802 - the helper's established name
+def stdSizeAndlayout(
     obj: QWidget | QBoxLayout | QFormLayout | QScrollArea | QPlainTextEdit,
     minimum_contents_length: int = 0,
     visible_lines:int = 5,
@@ -847,7 +847,7 @@ def stdSizeAndlayout(  # noqa: N802 - the helper's established name
     )
 
 
-def stdPlainTextEdit(  # noqa: N802 - the helper's established name
+def stdPlainTextEdit(
     editor: QPlainTextEdit,
     *,
     visible_lines: int = 5,

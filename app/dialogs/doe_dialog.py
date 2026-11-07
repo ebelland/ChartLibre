@@ -483,7 +483,7 @@ class DOEExperimentDialog(SettingsTableDialog):
         try:
             request = self._read_request()
             frame = self.generate_matrix(request)
-        except Exception as exc:  # noqa: BLE001 - Validation is displayed in the preview.
+        except Exception as exc:
             self.ok_button.setEnabled(False)
             self.preview.setHtml(
                 f"<h3>{html.escape(_('Preview unavailable'))}</h3>"
@@ -565,7 +565,7 @@ class DOEExperimentDialog(SettingsTableDialog):
             # factors (their kind and their low/high, for the coding), the
             # responses and the model it was built for.
             self._repo.set_table_info(table_name, "doe", self.design_record(request))
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.error("DOE table creation failed: %s", exc)
             QMessageBox.warning(self, _(self.Name), str(exc))
             return

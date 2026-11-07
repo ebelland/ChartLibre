@@ -13,7 +13,13 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
-from PySide6.QtCore import QAbstractTableModel, QModelIndex, QPersistentModelIndex, Qt, QTimer
+from PySide6.QtCore import (
+    QAbstractTableModel,
+    QModelIndex,
+    QPersistentModelIndex,
+    Qt,
+    QTimer,
+)
 from PySide6.QtWidgets import (
     QApplication,
     QBoxLayout,
@@ -62,7 +68,10 @@ from app.styles.style import (
 )
 from app.utils import import_cleaning
 from app.utils.coercion import to_numbers
-from app.utils.config import get_import_data_dialog_config, set_import_data_dialog_config
+from app.utils.config import (
+    get_import_data_dialog_config,
+    set_import_data_dialog_config,
+)
 from app.utils.data_sources import (
     CLIPBOARD_SOURCE_NAME,
     IMPORT_FILE_FILTER,
@@ -119,20 +128,20 @@ class DataFramePreviewModel(QAbstractTableModel):
         self._cols = list(df.columns)[:max_cols]
         self._nrows = min(len(df), max_rows)
 
-    def rowCount(self, parent: QModelIndex|QPersistentModelIndex = QModelIndex()) -> int:  # noqa: N802
+    def rowCount(self, parent: QModelIndex|QPersistentModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else self._nrows
 
-    def columnCount(self, parent: QModelIndex|QPersistentModelIndex = QModelIndex()) -> int:  # noqa: N802
+    def columnCount(self, parent: QModelIndex|QPersistentModelIndex = QModelIndex()) -> int:
         return 0 if parent.isValid() else len(self._cols)
 
-    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole):  # noqa: N802
+    def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole):
         if role != Qt.ItemDataRole.DisplayRole:
             return None
         if orientation == Qt.Orientation.Horizontal:
             return str(self._cols[section]) if 0 <= section < len(self._cols) else None
         return str(section + 1)
 
-    def data(self, index: QModelIndex|QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole):  # noqa: N802
+    def data(self, index: QModelIndex|QPersistentModelIndex, role: int = Qt.ItemDataRole.DisplayRole):
         if not index.isValid() or role != Qt.ItemDataRole.DisplayRole:
             return None
         r = index.row()
@@ -637,7 +646,7 @@ class ImportDataDialog(SettingsTableDialog):
         if path and (importer is not None or self._is_excel_path(path)):
             try:
                 sheets = file_datasets(path)
-            except Exception as exc:  # noqa: BLE001 - the preview says why it cannot read the file
+            except Exception as exc:
                 applogger.warning("Cannot list the sheets or datasets of %s: %s", path, exc)
         if self._sheet_label is not None:
             self._sheet_label.setText(_("Dataset") if importer is not None else _("Sheet"))
@@ -732,7 +741,7 @@ class ImportDataDialog(SettingsTableDialog):
 
             return None
 
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception("Preview failed: %s", exc)
             self._df = None
             self._preview.clear()
@@ -814,7 +823,7 @@ class ImportDataDialog(SettingsTableDialog):
                 ss = s.astype(str).str.strip().replace("nan", "")
                 if ss.eq("").all():
                     empties.append(str(col))
-            except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+            except Exception:
                 pass
         return empties
 
@@ -894,7 +903,7 @@ class ImportDataDialog(SettingsTableDialog):
                 return "INTEGER"
             if pd.api.types.is_datetime64_any_dtype(s):
                 return "DATETIME"
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             pass
         return "TEXT"
 
@@ -1009,7 +1018,7 @@ class ImportDataDialog(SettingsTableDialog):
         # the dialog exactly as it was, not clear it and then say why.
         try:
             probe = self._parse_clipboard(text, transposed)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception("Clipboard preview failed: %s", exc)
             show_message(self, "import.clipboard_failed", error=exc)
             return
@@ -1125,7 +1134,7 @@ class ImportDataDialog(SettingsTableDialog):
                 delim=self._current_delim(),
                 encoding=self._current_encoding(),
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception("Web import failed: %s", exc)
             show_message(self, "import.web_failed", error=exc)
             return
@@ -1223,7 +1232,7 @@ class ImportDataDialog(SettingsTableDialog):
                     settings=link_settings,
                 ):
                     applogger.warning("Failed to create link for imported table '%s'", table_name)
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception("Import failed: %s", exc)
             show_message(self, "import.failed", error=exc)
             return

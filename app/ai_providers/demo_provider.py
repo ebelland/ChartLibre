@@ -17,7 +17,16 @@ import time
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
 
-from app.plugin_api.ai.provider import ACCURATE, FAST, AIProvider, ChatSession, ToolCall, ToolResult, ToolSpec, Turn
+from app.plugin_api.ai.provider import (
+    ACCURATE,
+    FAST,
+    AIProvider,
+    ChatSession,
+    ToolCall,
+    ToolResult,
+    ToolSpec,
+    Turn,
+)
 from app.utils.i18n import _
 
 #: A column of describe_table's answer: "- mass (REAL, continuous): 0 missing; min 7.6, max 14.1, mean 11, sd 1.4".

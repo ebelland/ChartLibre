@@ -77,7 +77,7 @@ def apply_secondary_axes(ax: Any, options: dict[str, Any]) -> None:
             old.remove()
         except (ValueError, NotImplementedError, AttributeError):
             pass
-    ax._chartlibre_secondary_axes = []  # noqa: SLF001 - our own attribute
+    ax._chartlibre_secondary_axes = []
     if getattr(ax, "name", "rectilinear") != "rectilinear":
         return  # polar and 3D axes have no top or right edge to hang a scale on
     for axis, make, location in (("x", "secondary_xaxis", "top"), ("y", "secondary_yaxis", "right")):
@@ -92,7 +92,7 @@ def apply_secondary_axes(ax: Any, options: dict[str, Any]) -> None:
         try:
             secondary = getattr(ax, make)(location, functions=(forward, inverse))
             (secondary.set_xlabel if axis == "x" else secondary.set_ylabel)(caption)
-        except Exception:  # noqa: BLE001 - an axes that cannot: the setting is stored and ignored there
+        except Exception:
             applogger.info("The %s axis cannot take a secondary axis (%s).", axis, key)
             continue
-        ax._chartlibre_secondary_axes.append(secondary)  # noqa: SLF001
+        ax._chartlibre_secondary_axes.append(secondary)

@@ -11,7 +11,10 @@ import pandas as pd
 import pytest
 
 from app.data.sqlite_repo import SqliteRepo
-from app.data_operations.decomposition_dialog import DECOMP_PCA, SeriesDecompositionDialog
+from app.data_operations.decomposition_dialog import (
+    DECOMP_PCA,
+    SeriesDecompositionDialog,
+)
 
 
 def _dialog(repo: SqliteRepo, figure_id: int, *, select_all: bool = True):

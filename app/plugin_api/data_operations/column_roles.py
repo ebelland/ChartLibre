@@ -36,8 +36,8 @@ from PySide6.QtWidgets import (
 )
 
 from app.styles.style import TitledCard
-from app.utils.i18n import _
 from app.utils.coercion import to_numbers
+from app.utils.i18n import _
 
 CONTINUOUS = "continuous"
 ORDINAL = "ordinal"

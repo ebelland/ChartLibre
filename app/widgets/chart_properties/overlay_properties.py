@@ -497,7 +497,7 @@ class OverlayPropertiesWidget(BaseProperties):
             return None
         try:
             options = self._repo.get_axis_options(int(self._current_axis_id))
-        except Exception:  # noqa: BLE001 - a deleted axis is not an error here
+        except Exception:
             applogger.exception("Could not read the axis options for the overlays.")
             return None
         return dict(options or {})
@@ -512,7 +512,7 @@ class OverlayPropertiesWidget(BaseProperties):
         ):
             try:
                 axes = self._repo.list_axes_for_figure(int(self._figure_id))
-            except Exception:  # noqa: BLE001 - the label is not worth raising for
+            except Exception:
                 axes = []
             for axis_id, _index, axis_title in axes:
                 if int(axis_id) == int(self._current_axis_id):

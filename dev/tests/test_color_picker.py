@@ -6,7 +6,11 @@ from PySide6.QtCore import QSize
 from PySide6.QtGui import QColor
 
 from app.widgets.drop_down_controls.color_combo import color_preview_icon
-from app.widgets.drop_down_controls.color_picker import ColorPickerButton, matplotlib_hex, qcolor_from_matplotlib
+from app.widgets.drop_down_controls.color_picker import (
+    ColorPickerButton,
+    matplotlib_hex,
+    qcolor_from_matplotlib,
+)
 
 
 def _centre(value: str) -> QColor:

@@ -280,7 +280,11 @@ def test_the_contingency_report_adds_effect_measures_and_the_stratified_analysis
 
 def test_three_paired_series_get_friedman_and_page_in_the_report() -> None:
     """ID15: with three or more series, the paired section ends with the repeated-measures tests."""
-    from app.data_operations.statistics_dialog import SeriesStatisticsDialog, SeriesStatsResult, SeriesStatsSample
+    from app.data_operations.statistics_dialog import (
+        SeriesStatisticsDialog,
+        SeriesStatsResult,
+        SeriesStatsSample,
+    )
 
     x = np.arange(8.0)
     samples = [SeriesStatsSample(f"s{i}", x, x * (i + 1) + np.sin(x * i), np.arange(8)) for i in range(3)]

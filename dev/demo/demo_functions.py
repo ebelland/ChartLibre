@@ -153,7 +153,7 @@ def build_functions_demo(directory: Path = DEMO_DIR) -> Path:
             figure_id = _create_source_figure(repo, demo)
             try:
                 _store_report(repo, figure_id, _run_operation(repo, figure_id, demo))
-            except Exception:  # noqa: BLE001 - one figure failing leaves the others
+            except Exception:
                 applogger.exception("Demo: %s failed.", demo.name)
         _family(repo)
         _saddle(repo)

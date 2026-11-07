@@ -53,19 +53,23 @@ from app.plugin_api.data_operations.column_roles import (
     ColumnRole,
     ColumnRolesWidget,
 )
-from app.plugin_api.data_operations.dialog_base import GENERATED_TABLE_PREFIX, DataOperationDialogBase, OperationModel
+from app.plugin_api.data_operations.dialog_base import (
+    GENERATED_TABLE_PREFIX,
+    DataOperationDialogBase,
+    OperationModel,
+)
 from app.plugin_api.data_operations.parameter_form import ParameterForm, merged_values
 from app.plugin_api.data_operations.parameter_spec import BoolParam, Param
 from app.styles.style import (
     stdSizeAndlayout,
 )
 from app.utils import report_html
+from app.utils.coercion import column_of, to_numbers
 from app.utils.config import get_section, set_section
 from app.utils.dialog_state import (
     dialog_entries,
 )
 from app.utils.i18n import _
-from app.utils.coercion import column_of, to_numbers
 
 #: Columns the application keeps on every table for itself: never offered.
 APPLICATION_COLUMNS: frozenset[str] = frozenset({"Hide", "Selected"})
@@ -169,7 +173,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
         if reading_guide.enabled():
             try:
                 box = report_html.reading_guide(_("How to read this"), self.how_to_read(result))
-            except Exception:  # noqa: BLE001 - the explanation is never the reason a report is not shown
+            except Exception:
                 applogger.exception("%s: could not explain the report.", type(self).__name__)
         what_next = next_steps.section_html(self.next_steps(result)) if next_steps.enabled() else ""
         return report_html.document(_(self.Name), self.report_subtitle(result),
@@ -535,7 +539,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
             self.created_figure_ids = []
             self._write_chart_source()
             self.apply_results(result)
-        except Exception as exc:  # noqa: BLE001 - shown like a failed run; the preview is undone
+        except Exception as exc:
             self._previewing = False
             self._preview_active = True
             self._discard_preview()
@@ -568,7 +572,7 @@ class RolesOperationDialogBase(DataOperationDialogBase):
             self._undo_entry = None
             self._write_chart_source()
             written = self.apply_results(result)
-        except Exception as exc:  # noqa: BLE001 - reported, the dialog stays open
+        except Exception as exc:
             applogger.exception("%s could not be written", self.Name)
             self.show_failure(exc, headline=_("Nothing was written."))
             return False

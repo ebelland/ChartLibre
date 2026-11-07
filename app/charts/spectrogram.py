@@ -149,7 +149,7 @@ class SpectrogramAxisRenderer(BaseAxisRenderer):
 
         try:
             _spectrum, _freqs, _bins, image = ax.specgram(values, **kwargs)
-        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+        except Exception:
             applogger.exception("Spectrogram failed to draw series '%s'.", sd.name)
             return
         ax.set_aspect("auto")

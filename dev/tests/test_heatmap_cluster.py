@@ -30,7 +30,7 @@ def test_both_ways_the_alike_rows_and_columns_are_neighbours_and_two_trees_are_d
     ax = figure.axes[0]
     rows = [label.get_text() for label in ax.get_yticklabels()]
     columns = [label.get_text() for label in ax.get_xticklabels()]
-    parity = lambda labels: [int(float(text)) % 2 for text in labels]  # noqa: E731
+    parity = lambda labels: [int(float(text)) % 2 for text in labels]
     assert parity(rows) in ([0, 0, 0, 1, 1, 1], [1, 1, 1, 0, 0, 0])
     assert parity(columns) in ([0, 0, 1, 1], [1, 1, 0, 0])
     assert len(ax.child_axes) == 2

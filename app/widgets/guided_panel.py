@@ -133,7 +133,7 @@ class GuidedAnalysisPanel(NavPanel):
             self._read_table()
         return self._profile
 
-    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802
+    def showEvent(self, event: QShowEvent) -> None:
         super().showEvent(event)
         if self._stale:
             self._read_table()
@@ -145,7 +145,7 @@ class GuidedAnalysisPanel(NavPanel):
             try:
                 frame, declared = self._loader(self._table)
                 self._profile = table_profile.profile(self._table, frame, declared)
-            except Exception:  # noqa: BLE001 - a table that cannot be read: general answers only
+            except Exception:
                 applogger.exception("Guided analysis: could not read table %s", self._table)
         self._show_table()
 

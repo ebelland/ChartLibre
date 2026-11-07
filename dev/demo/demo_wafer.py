@@ -155,7 +155,7 @@ def build_wafer_demo(directory: Path = DEMO_DIR) -> Path:
             figure_id = _create_source_figure(repo, demo)
             try:
                 _store_report(repo, figure_id, _run_operation(repo, figure_id, demo))
-            except Exception:  # noqa: BLE001 - one wafer failing leaves the others
+            except Exception:
                 applogger.exception("Demo: %s failed.", demo.name)
         repo.close()
         Path(f"{path}.undo.db").unlink(missing_ok=True)

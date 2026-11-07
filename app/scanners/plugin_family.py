@@ -13,7 +13,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from app.scanners.class_discovery import discover_classes_merged, import_class_from_discovery_entry
+from app.scanners.class_discovery import (
+    discover_classes_merged,
+    import_class_from_discovery_entry,
+)
 
 
 @dataclass(frozen=True, slots=True)

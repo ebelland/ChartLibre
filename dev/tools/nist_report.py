@@ -16,14 +16,18 @@ from pathlib import Path
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_DIR))
 
-import numpy as np  # noqa: E402
+import numpy as np
 
-from app.analysis.fit import fit_curve  # noqa: E402
-from app.analysis.interpolation import MODEL_POLYNOMIAL, InterpolationSettings, interpolate  # noqa: E402
-from app.analysis.statistics import describe, group_tests  # noqa: E402
-from app.plugin_api.functions.optimizers import DOGBOX, LEVENBERG, TRUST_REGION  # noqa: E402
-from dev.tests import _nist_strd as nist  # noqa: E402
-from dev.tests._nist_models import LOG_RESPONSE, MODELS  # noqa: E402
+from app.analysis.fit import fit_curve
+from app.analysis.interpolation import (
+    MODEL_POLYNOMIAL,
+    InterpolationSettings,
+    interpolate,
+)
+from app.analysis.statistics import describe, group_tests
+from app.plugin_api.functions.optimizers import DOGBOX, LEVENBERG, TRUST_REGION
+from dev.tests import _nist_strd as nist
+from dev.tests._nist_models import LOG_RESPONSE, MODELS
 
 #: The local least-squares methods; the global ones finish with trust region.
 LEAST_SQUARES = [TRUST_REGION, DOGBOX, LEVENBERG]

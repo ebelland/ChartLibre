@@ -30,7 +30,12 @@ from app.data.descriptors import AxisDescriptor, FigureDescriptor, SeriesDescrip
 from app.data.series_frame import SeriesFrame
 from app.data.sqlite_repo import ROW_ID, SqliteRepo
 from app.logs.logger import applogger
-from app.plugin_api.charts import axis_options, broken_axis, panel_labels, secondary_axis
+from app.plugin_api.charts import (
+    axis_options,
+    broken_axis,
+    panel_labels,
+    secondary_axis,
+)
 from app.plugin_api.charts.base import SeriesData
 from app.plugin_api.charts.text_lines import display_text, multialignment
 from app.scanners.axis_renderer_scanner import get_renderer, import_class_from_file
@@ -183,7 +188,7 @@ def render_figure_from_descriptor(
             # back to their descriptor by id - it cannot rely on the two
             # lists sharing an order once axes are created out of order
             # for one (base axes, then their twins).
-            ax._chartlibre_axis_id = int(axis_desc.id)  # noqa: SLF001 - our own attribute, not matplotlib's
+            ax._chartlibre_axis_id = int(axis_desc.id)
 
             chart_type = str(axis_desc.name or "").strip()
             series_list = _build_series_data_list(
@@ -222,7 +227,7 @@ def render_figure_from_descriptor(
                     series=series_list,
                     options=axis_desc.options if isinstance(axis_desc.options, dict) else {},
                 )
-            except Exception:  # noqa: BLE001 - a plugin's own code
+            except Exception:
                 applogger.exception(
                     "Renderer failed for axis id=%r chart_type=%r.",
                     axis_desc.id,
@@ -678,7 +683,7 @@ def _apply_shared_z_ranges(
         return
     try:
         shared_limits = source.get_zlim()
-    except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+    except Exception:
         applogger.exception("Failed to read the shared Z range")
         return
     for desc in axes:
@@ -687,7 +692,7 @@ def _apply_shared_z_ranges(
             continue
         try:
             ax.set_zlim(*shared_limits)
-        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+        except Exception:
             applogger.exception("Failed to share the Z range for axis id=%r", desc.id)
 
 
@@ -881,7 +886,7 @@ def _load_series_df(
                     series_desc.name, total, downsample_threshold, -(-total // downsample_threshold))
             return repo.downsampled_series_frame(sql, threshold=downsample_threshold)
         return repo.series_frame(sql)
-    except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+    except Exception:
         applogger.exception(
             "Failed to load SQL data for series id=%r name=%r.",
             series_desc.id,
@@ -915,12 +920,12 @@ def _apply_figure_options(figure: Figure, fig_desc: FigureDescriptor) -> None:
     try:
         figure.set_facecolor(plt.rcParams["figure.facecolor"])
         figure.set_edgecolor(plt.rcParams["figure.edgecolor"])
-    except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+    except Exception:
         applogger.exception("Failed to apply figure colours from rcParams")
 
     try:
         figure.set_frameon(bool(options.get("frameon", True)))
-    except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+    except Exception:
         applogger.exception("Failed to apply figure frameon")
 
     # Border (Figure properties): a line round the whole figure, in the axes' edge colour.
@@ -996,7 +1001,7 @@ def _apply_font_scale(
         if abs(factor - 1.0) > 1e-9:
             try:
                 _scale_axes_text(ax, factor)
-            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+            except Exception:
                 applogger.exception("Failed to scale the fonts of axis id=%r", axis_desc.id)
     if abs(figure_factor - 1.0) <= 1e-9:
         return
@@ -1044,7 +1049,7 @@ def _apply_column_labels(ax: Any, axis_desc: AxisDescriptor, repo: SqliteRepo) -
                 label = column_metadata.axis_label_of(column, infos[table].get(column)) if column else ""
                 if label:
                     wanted[role] = label
-    except Exception:  # noqa: BLE001 - a label is a convenience: a failure costs it, not the chart
+    except Exception:
         applogger.exception("Could not read the column labels of axis id=%r", axis_desc.id)
         return
     if wanted.get("x"):
@@ -1167,7 +1172,7 @@ def _apply_scales(ax: Any, options: dict[str, Any]) -> None:
                 setter("function", functions=(_reciprocal, _reciprocal))
             else:
                 setter(scale, **kwargs)
-        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+        except Exception:
             applogger.exception("Failed to set %s scale to %r", axis_name, scale)
 
 
@@ -1191,7 +1196,7 @@ def _apply_inversion(ax: Any, options: dict[str, Any]) -> None:
         try:
             if bool(axis_object.get_inverted()) != wanted:
                 axis_object.set_inverted(wanted)
-        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+        except Exception:
             applogger.exception("Failed to set %s axis direction", axis_name)
 
 
@@ -1226,7 +1231,7 @@ def _apply_minor_ticks(ax: Any, options: dict[str, Any]) -> None:
     if any(state is True for state in wanted.values()):
         try:
             ax.minorticks_on()
-        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+        except Exception:
             applogger.exception("Failed to enable minor ticks")
 
     for axis, state in wanted.items():
@@ -1235,7 +1240,7 @@ def _apply_minor_ticks(ax: Any, options: dict[str, Any]) -> None:
         axis_object = ax.xaxis if axis == "x" else ax.yaxis
         try:
             axis_object.set_minor_locator(NullLocator())
-        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+        except Exception:
             applogger.exception("Failed to remove minor ticks from %s", axis)
 
 
@@ -1272,7 +1277,7 @@ def _apply_intervals(ax: Any, options: dict[str, Any]) -> None:
             continue
         try:
             coordinate.set_major_locator(MultipleLocator(step))
-        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+        except Exception:
             applogger.exception("Failed to set the %s tick interval", axis)
 
 
@@ -1430,18 +1435,18 @@ def _fit_x_tick_labels(figure: Figure, ax: Any, options: dict[str, Any]) -> None
         return
     if any(label.get_rotation() for label in ax.get_xticklabels() if label.get_text()):
         return  # turned by the renderer already
-    ax._chartlibre_fit_x = ax.xaxis.get_major_formatter()  # noqa: SLF001 - our own attribute: the labels' own formatter
+    ax._chartlibre_fit_x = ax.xaxis.get_major_formatter()
     _refit_x_tick_labels(figure, ax)
     canvas = getattr(figure, "canvas", None)
     if canvas is not None and not getattr(figure, "_chartlibre_fit_x_connected", False):
-        figure._chartlibre_fit_x_connected = True  # noqa: SLF001
+        figure._chartlibre_fit_x_connected = True
         canvas.mpl_connect("resize_event", lambda _event, fig=figure: [
             _refit_x_tick_labels(fig, each) for each in fig.axes if getattr(each, "_chartlibre_fit_x", None) is not None])
 
 
 def _refit_x_tick_labels(figure: Figure, ax: Any) -> None:
     """Back to level, unwrapped labels; then wrapped or turned if they overlap at the size now."""
-    formatter = ax._chartlibre_fit_x  # noqa: SLF001
+    formatter = ax._chartlibre_fit_x
     try:
         import textwrap
 
@@ -1452,7 +1457,7 @@ def _refit_x_tick_labels(figure: Figure, ax: Any) -> None:
             label.set_rotation(0.0)
             label.set_horizontalalignment("center")
             label.set_rotation_mode("default")
-        renderer = figure._get_renderer()  # noqa: SLF001 - Matplotlib's own way to measure text before a draw
+        renderer = figure._get_renderer()
         if not _x_labels_overlap(ax, renderer):
             return
         labels = [label for label in ax.get_xticklabels() if label.get_text()]
@@ -1476,7 +1481,7 @@ def _refit_x_tick_labels(figure: Figure, ax: Any) -> None:
                 label.set_rotation_mode("anchor" if angle != 90.0 else "default")
             if not _x_labels_overlap(ax, renderer, angle):
                 return
-    except Exception:  # noqa: BLE001 - a nicety: the labels stay as they were
+    except Exception:
         applogger.exception("Could not fit the x tick labels")
 
 
@@ -1484,7 +1489,7 @@ def _tick_params(ax: Any, **kwargs: Any) -> None:
     """Call ``tick_params`` and report a failure rather than raising."""
     try:
         ax.tick_params(**kwargs)
-    except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+    except Exception:
         applogger.exception("Failed to apply tick parameters: %r", kwargs)
 
 
@@ -1517,7 +1522,7 @@ def _apply_grid(ax: Any, options: dict[str, Any]) -> None:
                     ax.grid(True, which=which, axis=axis)
                 else:
                     ax.grid(True, which=which, axis=axis, linestyle=setting)
-            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+            except Exception:
                 applogger.exception(
                     "Failed to apply the %s %s grid", axis, which
                 )
@@ -1554,7 +1559,7 @@ def _apply_grid_3d(ax: Any, options: dict[str, Any]) -> None:
     visible = decided != axis_options.OFF
     try:
         ax.grid(visible)
-    except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+    except Exception:
         applogger.exception("Failed to apply the 3D grid")
         return
 
@@ -1578,7 +1583,7 @@ def _apply_spines(ax: Any, options: dict[str, Any]) -> None:
             continue
         try:
             spines[name].set_visible(not bool(options.get(key)))
-        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+        except Exception:
             applogger.exception("Failed to set visibility of the %s spine", name)
 
 
@@ -1640,7 +1645,7 @@ def _apply_limits(ax: Any, options: dict[str, Any]) -> None:
 
         try:
             setter(low, high)
-        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+        except Exception:
             applogger.exception("Failed to set the manual %s limits", axis)
 
 
@@ -1734,7 +1739,7 @@ def _apply_subplot_margins(figure: Figure, options: dict[str, Any]) -> None:
             wspace=wspace,
             hspace=hspace,
         )
-    except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+    except Exception:
         applogger.exception("Failed to apply subplot margins")
 
 
@@ -1766,7 +1771,7 @@ def _normalize_axes_fill_policy(figure: Figure, fig_desc: FigureDescriptor) -> N
                 ax.set_adjustable("datalim")
 
             ax.set_anchor("C")
-        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+        except Exception:
             applogger.exception("Failed to normalize axes fill policy")
 
 
@@ -1786,7 +1791,7 @@ def _set_layout_engine_safely(figure: Figure, mode: LayoutMode) -> None:
     """
     try:
         figure.set_layout_engine(None if mode == "none" else mode)  # pyright: ignore[reportArgumentType]
-    except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+    except Exception:
         applogger.exception("Failed to set Matplotlib layout engine: %s", mode)
 
 

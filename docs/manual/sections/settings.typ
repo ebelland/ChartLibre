@@ -35,6 +35,22 @@ The *Log viewer* (on the *Project* page) shows what ChartLibre has done and what
 
 *Clear log* (in red) empties the log after asking for confirmation.
 
+== The assistant <assistant>
+
+The *Assistant* panel answers questions about the project in a conversation. The model asks for what it needs - a table's columns, a query, an analysis, a chart - and ChartLibre runs each step itself, then hands back the result. The status bar turns blue while it works, and *Stop* ends it. It is optional: everything else works without it.
+
+*Settings > Assistant* chooses the provider and how far it may go: read only; analyses and charts; or changes to the data, each confirmed first and undoable. A provider that sends data asks your consent before anything is sent. A key is kept in the system's keychain, not in the project or the settings.
+
+#table(
+  columns: (auto, 1fr),
+  [*Claude*], [Anthropic's models, with your API key. The data leave the computer. Meant for analyses and charts.],
+  [*GitHub Models*], [With your GitHub token. The data leave the computer.],
+  [*Ollama*], [A model on your computer, or on another one if you give its address (the data then go there, and consent is asked). *Context* sets how much of the conversation it holds: more takes more memory. On 8 GB use a small model such as `llama3.2`: a larger one can slow the whole computer, and *Try* warns about it.],
+  [*Apple Foundation Models*], [The model built into macOS 26 or newer, on an Apple chip with Apple Intelligence on: no key, and nothing leaves the Mac. It needs Apple's command line tools the first time (`xcode-select --install`), and only reads the project: its 4096 tokens do not leave room for analyses.],
+)
+
+Small local models answer simple questions about the data well, but often choose the wrong step for an analysis or a chart. Check what they report against the tables and the figures they name.
+
 == Credits
 
 *Credits* (in the ChartLibre menu on macOS, the *Menu* button elsewhere) names the application and its version, and the open-source libraries it is built on — Qt and PySide6, Matplotlib, NumPy, pandas, SciPy, statsmodels, scikit-learn and others, each with its installed version and licence. It also credits the work of others that ships with ChartLibre or that it draws on — the SciencePlots styles by John D. Garrett, the system icon sets — and the sources of the demo data: the Palmer penguins, NOAA's Mauna Loa CO₂ record, WDC-SILSO's sunspot number, NASA's GISTEMP, the USGS earthquake catalogue, the UCI Yeast dataset, Anscombe's quartet, Will Burtin's antibiotic data, the NIST StRD reference data sets and others. Each name links to its source.

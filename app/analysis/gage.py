@@ -28,6 +28,7 @@ from typing import Any, cast
 
 import numpy as np
 import pandas as pd
+
 from app.utils.coercion import column_of, to_numbers
 
 #: AIAG: the interaction is pooled into the error when its p-value is above this.

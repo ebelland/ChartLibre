@@ -22,7 +22,7 @@ from app.utils.i18n import _
 MEASURE_ROLES = ("y", "value", "values", "z")
 
 
-def chart_axes(repo, figure_id: int | None) -> list[tuple[str, tuple[str, AxisDescriptor]]]:  # noqa: ANN001
+def chart_axes(repo, figure_id: int | None) -> list[tuple[str, tuple[str, AxisDescriptor]]]:
     """The axes of *figure_id* - the figure the analysis was opened on - that draw a series, as the "Chart:"
     list shows them: (label, (figure, axis)), the label "Figure · axis". Another figure's axes are not
     offered: an analysis reads the chart it was opened from (todo ID48)."""
@@ -37,7 +37,7 @@ def chart_axes(repo, figure_id: int | None) -> list[tuple[str, tuple[str, AxisDe
             for axis in (descriptor.axes if descriptor else []) if axis.series]
 
 
-def axis_frame(repo, axis: AxisDescriptor) -> pd.DataFrame:  # noqa: ANN001 - a SqliteRepo
+def axis_frame(repo, axis: AxisDescriptor) -> pd.DataFrame:
     """*axis*'s series as one frame: see the module's description."""
     per_series: list[tuple[str, dict[str, pd.Series]]] = []
     for series in axis.series:

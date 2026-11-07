@@ -29,7 +29,7 @@ class _Guard(sp.Function):
     """A guard: computed as the classes' numpy helper did (NUMPY_MODULES), differentiated as fdiff says."""
 
 
-class pos(_Guard):  # noqa: N801 - the expressions' own names
+class pos(_Guard):
     """pos(s): |s|, and EPS where it would be 0 - a width, a rate, a shape that must stay positive."""
 
     def fdiff(self, argindex: int = 1) -> sp.Expr:
@@ -37,7 +37,7 @@ class pos(_Guard):  # noqa: N801 - the expressions' own names
         return sp.sign(self.args[0])
 
 
-class nz(_Guard):  # noqa: N801
+class nz(_Guard):
     """nz(d): d, and EPS where it would be 0 - a denominator."""
 
     def fdiff(self, argindex: int = 1) -> sp.Expr:
@@ -45,7 +45,7 @@ class nz(_Guard):  # noqa: N801
         return sp.Integer(1)
 
 
-class safe(_Guard):  # noqa: N801
+class safe(_Guard):
     """safe(x): x, kept EPS away from 0 on its own side."""
 
     def fdiff(self, argindex: int = 1) -> sp.Expr:
@@ -53,7 +53,7 @@ class safe(_Guard):  # noqa: N801
         return sp.Integer(1)
 
 
-class finite(_Guard):  # noqa: N801
+class finite(_Guard):
     """finite(v): v, and 0 where it is not finite (numpy's nan_to_num) - a density's infinity at its edge."""
 
     def fdiff(self, argindex: int = 1) -> sp.Expr:
@@ -206,7 +206,7 @@ def _code_function(entry: Mapping[str, Any]) -> Callable[..., np.ndarray]:
     body = "".join(f"    {line}\n" for line in str(entry["code"]).splitlines())
     namespace: dict[str, Any] = {"np": np, "spsp": spsp, **{name: getattr(base, name) for name in
                                                             ("_pos", "_eps", "_safe_x", "_positive_x")}}
-    exec(compile(head + body, f"<library {entry['name']}>", "exec"), namespace)  # noqa: S102 - the app's own source
+    exec(compile(head + body, f"<library {entry['name']}>", "exec"), namespace)
     return namespace["execute"]
 
 

@@ -83,7 +83,11 @@ def test_a_report_leaves_out_a_chart_type_that_is_not_installed(qapp, tmp_path: 
 def test_a_loaded_operation_marks_its_series_with_keys_from_its_file(qapp) -> None:
     """The scanner loads a plugin under a module name that changes every session; the
     generated-series keys must not: they are stored in projects and matched on re-apply."""
-    from app.scanners.data_operation_scanner import data_operations, import_class_from_file, reads_roles
+    from app.scanners.data_operation_scanner import (
+        data_operations,
+        import_class_from_file,
+        reads_roles,
+    )
 
     # The operations on a chart's series mark what they draw; those on a table's columns draw a report figure.
     for operation in (op for op in data_operations if not reads_roles(op)):

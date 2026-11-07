@@ -75,7 +75,7 @@ class IconComboBox(QComboBox):
     # ------------------------------------------------------------------
     # Auto-width dropdown
     # ------------------------------------------------------------------
-    def showPopup(self) -> None:  # noqa: N802 - Qt override signature
+    def showPopup(self) -> None:
         self._size_popup_to_contents()
         super().showPopup()
 

@@ -44,7 +44,11 @@ def readings() -> np.ndarray:
 def _chart(repo, dates: list[str], values: np.ndarray, shuffle: bool = False) -> tuple[int, str]:
     import re
 
-    from dev.demo.demo_operations import OperationDemo, _create_source_figure, _run_operation
+    from dev.demo.demo_operations import (
+        OperationDemo,
+        _create_source_figure,
+        _run_operation,
+    )
 
     frame = pd.DataFrame({"d": dates, "v": values})
     if shuffle:

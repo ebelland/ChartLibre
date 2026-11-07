@@ -63,8 +63,17 @@ from app.plugin_api.data_operations.dialog_base import (
     ResultSeriesSpec,
     generated_table_name,
 )
-from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam, IntParam
-from app.plugin_api.functions.optimizers import BY_KEY, DEFAULT_OPTIMIZER, LOSSES, OPTIMIZERS
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    FloatParam,
+    IntParam,
+)
+from app.plugin_api.functions.optimizers import (
+    BY_KEY,
+    DEFAULT_OPTIMIZER,
+    LOSSES,
+    OPTIMIZERS,
+)
 from app.plugin_api.functions.starting_point import (
     FROM_DECLARED,
     FROM_FUNCTION,
@@ -74,7 +83,13 @@ from app.plugin_api.functions.starting_point import (
     clip_into_bounds,
 )
 from app.scanners.functions_scanner import FunctionScanner, SurfaceFunctionScanner
-from app.styles.style import CardFrame, TitledCard, create_action_button, mark_editor_panel, stdSizeAndlayout
+from app.styles.style import (
+    CardFrame,
+    TitledCard,
+    create_action_button,
+    mark_editor_panel,
+    stdSizeAndlayout,
+)
 from app.utils import report_html
 from app.utils.i18n import _
 from app.utils.messages import show_message
@@ -572,7 +587,7 @@ class SeriesFitDialog(DataOperationDialogBase):
         setattr(self, axis_id_attr, None)
         try:
             self._repo.delete_axis(int(axis_id))
-        except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
+        except Exception:
             applogger.exception("Failed to remove accessory axis (%s)", axis_id_attr)
 
     def _sync_accessory_charts(self, results: Sequence[SeriesFitResult]) -> None:
@@ -645,7 +660,7 @@ class SeriesFitDialog(DataOperationDialogBase):
         for table_name in table_names:
             try:
                 self._repo.delete_table(table_name)
-            except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
+            except Exception:
                 applogger.exception(
                     "Failed to remove the accessory result table %s", table_name
                 )
@@ -673,7 +688,7 @@ class SeriesFitDialog(DataOperationDialogBase):
                 left = len(descriptor.axes) - len(doomed)
                 columns = max(1, min(int(descriptor.ncols or 1), left))
                 self._repo.set_figure_grid(self._figure_id, nrows=max(1, -(-left // columns)), ncols=columns)
-        except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
+        except Exception:
             applogger.exception("Failed to remove the accessory axes left on the figure")
 
     def on_use_fit_results_as_initial(self) -> None:
@@ -978,7 +993,7 @@ class SeriesFitDialog(DataOperationDialogBase):
         parts = self._split_global(job, outcome) if job.global_parts is not None else [(job, outcome)]
         try:
             results = [self._result_from(part_job, part, optimise=job.optimise) for part_job, part in parts]
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             self._last_result = None
             raise
         self._last_result = results[0]
@@ -1077,7 +1092,7 @@ class SeriesFitDialog(DataOperationDialogBase):
         dense = np.linspace(low, high, max(count, 2) if count > 0 else 50)
         try:
             fitted = np.asarray(job.model(dense, np.asarray(params, dtype=float)), dtype=float)
-        except Exception:  # noqa: BLE001 - a model that cannot be evaluated there: the curve stays at the data
+        except Exception:
             applogger.warning("The fitted curve could not be drawn between the data: drawn at the data only.")
             return frame
         extra = pd.DataFrame({"x": dense, "fit": fitted, "y_fit": fitted})
@@ -1390,7 +1405,7 @@ class SeriesFitDialog(DataOperationDialogBase):
             merged[category].sort(key=lambda item: str(item.get("name", "")).lower())
         try:
             stored = stored_sympy_catalog(self._repo)
-        except Exception:  # noqa: BLE001 - keep the built-in catalogue usable
+        except Exception:
             applogger.exception("Could not load stored SymPy functions")
             stored = []
         if stored:
@@ -1809,7 +1824,7 @@ class SeriesFitDialog(DataOperationDialogBase):
                 return None
             try:
                 return make_stored_sympy_model(self._selected_model, functions_by_name(self._repo)), p0
-            except Exception:  # noqa: BLE001 - user-provided stored function
+            except Exception:
                 applogger.exception(
                     "Failed to build stored SymPy function: %s",
                     self._selected_model.get("name", ""),
@@ -1818,7 +1833,7 @@ class SeriesFitDialog(DataOperationDialogBase):
         scanner = self._surface_scanner if self._is_2d_fit() else self._function_scanner
         try:
             return scanner.make_model(self._selected_model), p0
-        except Exception:  # noqa: BLE001 - a plugin's own code
+        except Exception:
             applogger.exception(
                 "Failed to build scanned fit function: %s",
                 self._selected_model.get("name", ""),
@@ -1897,7 +1912,7 @@ class SeriesFitDialog(DataOperationDialogBase):
         scanner = self._surface_scanner if self._is_2d_fit() else self._function_scanner
         try:
             cls = scanner.load_class(self._selected_model)
-        except Exception:  # noqa: BLE001 - a plugin's own code
+        except Exception:
             applogger.exception(
                 "Could not load the class for %s", self._selected_model.get("name", "")
             )
@@ -1932,7 +1947,7 @@ class SeriesFitDialog(DataOperationDialogBase):
             return self._fill_global_initial_from_estimator(function_class)
         try:
             x_data, target_data, _clean = self._load_fit_data()
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             # A query that does not run, or a series with no numeric columns.
             # The declared defaults stay, and nothing is reported.
             return False
@@ -1978,7 +1993,7 @@ class SeriesFitDialog(DataOperationDialogBase):
                 function_class=self._selected_function_class(),
                 fixed=fixed,
             )
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception("Could not estimate initial values")
             show_message(
                 self, "series.estimate_failed", series=self._current_table(), error=exc
@@ -1993,7 +2008,7 @@ class SeriesFitDialog(DataOperationDialogBase):
         """The function's own estimate, series by series (a global fit)."""
         try:
             series = self._per_series_xy()
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             return False
         n_params = len(self._param_defaults)
         estimates = [ask_the_function(function_class, x, y, expected=n_params) for x, y in series]
@@ -2026,7 +2041,7 @@ class SeriesFitDialog(DataOperationDialogBase):
                 )
                 for number, (x, y) in enumerate(series)
             ]
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:
             applogger.exception("Could not estimate initial values")
             show_message(self, "series.estimate_failed", series=self._current_table(), error=exc)
             return

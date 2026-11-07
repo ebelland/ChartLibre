@@ -193,7 +193,9 @@ class TablesMixin(_Host):
 
         stored = self.get_sympy_function(clean)
         if stored is not None:
-            from app.data_operations.sympy_store import source_sql  # SymPy: loaded when a function is used
+            from app.data_operations.sympy_store import (
+                source_sql,  # SymPy: loaded when a function is used
+            )
 
             try:
                 return DataSource.function(stored.name, source_sql(stored.to_dict()))
@@ -1787,7 +1789,7 @@ class TablesMixin(_Host):
             self._con.execute(f"UPDATE {table_sql} SET {column_sql} = ? WHERE rowid = ?", (colour, int(rowid)))
         self._commit()
 
-    def set_ClusterId(self,source_table,source_x_column, x_values,cluster_values) -> None:  # noqa: N802 - the column's name
+    def set_ClusterId(self,source_table,source_x_column, x_values,cluster_values) -> None:
         assert self._con is not None
         quoted_table = _quote_ident(source_table)
         quoted_x = _quote_ident(source_x_column)

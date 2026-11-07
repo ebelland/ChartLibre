@@ -26,8 +26,8 @@ import pandas as pd
 from scipy import stats
 
 from app.analysis.answers import ALPHA, NO, YES
-from app.utils.config import get_constant
 from app.utils.coercion import column_of, to_numbers
+from app.utils.config import get_constant
 
 #: Above this many values the O(n²) trend statistics run on an even subsample.
 MAX_PAIRS_N = get_constant("change_max_pairs", 4000)

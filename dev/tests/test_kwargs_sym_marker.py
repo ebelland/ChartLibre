@@ -52,7 +52,10 @@ def test_cmap_is_picked_from_the_colormaps_with_their_gradients(qapp) -> None:
 
     from app.dialogs.edit_mpl_styles_dialog import MplStyleEditorDialog
     from app.widgets.dictionary_editor import DictEditorPanel, DictValueDelegate
-    from app.widgets.drop_down_controls.colormap_combo import ColormapCombo, colormap_names
+    from app.widgets.drop_down_controls.colormap_combo import (
+        ColormapCombo,
+        colormap_names,
+    )
 
     names = colormap_names()
     assert names[:5] == ["viridis", "plasma", "inferno", "magma", "cividis"]

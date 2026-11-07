@@ -54,7 +54,7 @@ def test_every_module_imports(qapp) -> None:
     for module_name in MODULES:
         try:
             importlib.import_module(module_name)
-        except Exception as exc:  # noqa: BLE001 - collected, reported together
+        except Exception as exc:
             failures[module_name] = f"{type(exc).__name__}: {exc}"
     assert failures == {}
 

@@ -54,7 +54,7 @@ _TEXT_LINES = (3, 12)
 class _NumberBox(QDoubleSpinBox):
     """A number as it is written - 2, 0.25, 1e-06 - not 2.000000."""
 
-    def textFromValue(self, value: float) -> str:  # noqa: N802 - Qt's name
+    def textFromValue(self, value: float) -> str:
         return self.locale().toString(float(value), "g", 10)
 
 
@@ -87,7 +87,7 @@ class _GrowingText(QPlainTextEdit):
         frame = int(self.document().documentMargin() * 2) + margins.top() + margins.bottom()
         self.setFixedHeight(shown * self.fontMetrics().lineSpacing() + frame + 2)
 
-    def resizeEvent(self, event: Any) -> None:  # noqa: N802 - Qt's name
+    def resizeEvent(self, event: Any) -> None:
         super().resizeEvent(event)
         self._fit()  # wrapped lines change with the width
 

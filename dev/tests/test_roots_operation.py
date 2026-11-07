@@ -17,7 +17,12 @@ from __future__ import annotations
 
 import numpy as np
 
-from app.data_operations.roots_dialog import INTERP_LINEAR, ROOT_BRENT, ROOT_MODELS, SeriesRootsDialog
+from app.data_operations.roots_dialog import (
+    INTERP_LINEAR,
+    ROOT_BRENT,
+    ROOT_MODELS,
+    SeriesRootsDialog,
+)
 from dev.tests._cases import check_all
 
 

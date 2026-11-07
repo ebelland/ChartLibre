@@ -15,7 +15,16 @@ import threading
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
-from app.plugin_api.ai.provider import ACCURATE, FAST, AIProvider, ChatSession, ToolCall, ToolResult, ToolSpec, Turn
+from app.plugin_api.ai.provider import (
+    ACCURATE,
+    FAST,
+    AIProvider,
+    ChatSession,
+    ToolCall,
+    ToolResult,
+    ToolSpec,
+    Turn,
+)
 
 OPUS = "claude-opus-5-5"
 HAIKU = "claude-haiku-5-5"

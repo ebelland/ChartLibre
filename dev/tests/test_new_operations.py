@@ -25,7 +25,11 @@ from app.data_operations.calculus_dialog import (
     INTEGRAL_DEFINITE,
     SeriesCalculusDialog,
 )
-from app.data_operations.control_chart_dialog import CHART_INDIVIDUALS, CHART_XBAR_R, SeriesControlChartDialog
+from app.data_operations.control_chart_dialog import (
+    CHART_INDIVIDUALS,
+    CHART_XBAR_R,
+    SeriesControlChartDialog,
+)
 from app.data_operations.peaks_dialog import PEAKS_MAXIMA, SeriesPeaksDialog
 from dev.tests._cases import check_all
 

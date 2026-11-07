@@ -130,7 +130,7 @@ def test_a_robust_loss_survives_outliers_that_drag_least_squares() -> None:
     y = library.linear.execute(X, truth)
     spoiled = y.copy()
     spoiled[[10, 60, 130]] += 60.0
-    residual = lambda p: spoiled - library.linear.execute(X, p)  # noqa: E731
+    residual = lambda p: spoiled - library.linear.execute(X, p)
 
     ordinary = run_optimizer(TRUST_REGION, residual, [0.0, 0.0],
                              [-np.inf] * 2, [np.inf] * 2, max_nfev=400)
@@ -171,7 +171,7 @@ def test_every_discovered_function_evaluates() -> None:
             p0 = np.asarray(payload.get("p0") or [1.0], dtype=float)
             try:
                 values = np.asarray(model(X, p0), dtype=float)
-            except Exception as exc:  # noqa: BLE001
+            except Exception as exc:
                 broken.append(f"{payload['name']}: {type(exc).__name__}: {exc}")
                 continue
             if values.shape != X.shape:

@@ -151,7 +151,7 @@ class OllamaProvider(AIProvider):
         return address if "://" in address else f"http://{address}"
 
     @property
-    def SENDS_DATA(self) -> bool:  # noqa: N802 - named as the constant it stands for
+    def SENDS_DATA(self) -> bool:
         return (urllib.parse.urlparse(self.address).hostname or "") not in _LOCAL_HOSTS
 
     def unavailable(self) -> str:

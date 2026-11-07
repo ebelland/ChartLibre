@@ -41,15 +41,22 @@ from PySide6.QtWidgets import (
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.plugin_api.charts.render_figure import render_figure_from_descriptor
-from app.styles.style import SPLITTER_HANDLE_WIDTH, MenuItem, create_menu, create_menu_item, create_toolbar_button
+from app.styles.style import (
+    SPLITTER_HANDLE_WIDTH,
+    MenuItem,
+    action_presentation,
+    create_menu,
+    create_menu_item,
+    create_toolbar_button,
+    theme_is_dark,
+)
 from app.styles.style import action as catalogue_action
-from app.styles.style import action_presentation, theme_is_dark
 from app.utils.config import get_section, update_section
 from app.utils.i18n import _
 from app.widgets.chart_panel.canvas import ChartCanvas
 from app.widgets.chart_panel.constants import (
-    CHART_AREA_MIN_HEIGHT,
     BACKGROUND_AUTO,
+    CHART_AREA_MIN_HEIGHT,
     CONFIG_BACKGROUND_COLOR,
     CONFIG_INITIAL_ZOOM,
     CONFIG_MAX_ZOOM,
@@ -775,7 +782,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
             self._repo.delete_figure(figure_id=self._figure_id)
             self._deleted = True
             self.delete_requested.emit(self._figure_id)
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             applogger.exception(
                 "Failed to delete figure (figure_id=%s)",
                 self._figure_id,
@@ -784,7 +791,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
 
         return super().close()
 
-    def closeEvent(self, event: PySide6.QtGui.QCloseEvent) -> None:  # noqa: N802 - Qt's name
+    def closeEvent(self, event: PySide6.QtGui.QCloseEvent) -> None:
         """Keep default Qt close handling explicit for strict typing tools."""
         super().closeEvent(event)
 
@@ -828,7 +835,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
             # source for real chart-axis count, and it has already been
             # normalized before rendering. Re-normalizing from rendered axes is
             # what kept a 2x1 layout after a preview axis was deleted.
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             applogger.exception("Failed to render figure_id=%s", self._figure_id)
             self._figure.clear()
 
@@ -857,7 +864,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
         """Restore this figure's own resize mode and zoom when present."""
         try:
             options = self._repo.get_figure_options(self._figure_id)
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             applogger.exception(
                 "Failed to read view state for figure_id=%s", self._figure_id
             )
@@ -907,7 +914,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
                 return
             options[FIGURE_VIEW_OPTIONS_KEY] = new_view
             self._repo.set_figure_options(self._figure_id, options)
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             applogger.exception(
                 "Failed to persist view state for figure_id=%s", self._figure_id
             )
@@ -1118,7 +1125,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
         for artist in (*axes.lines, *axes.collections, *axes.patches):
             try:
                 hit = artist.get_visible() and artist.contains(event)[0]
-            except Exception:  # noqa: BLE001 - an artist that cannot hit-test is simply not it
+            except Exception:
                 hit = False
             name = named(artist.get_label()) if hit else None
             if name:
@@ -1390,7 +1397,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
             for location, label in zip(locations, labels):
                 if abs(float(location) - position) < 0.5 and label:
                     return str(label)
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             pass
         return axis_text(axis, position)
 
@@ -1449,7 +1456,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
         say (a colour alone on a marker would need the cycle), or a chart
         without the tagged artists.
         """
-        from matplotlib.axes._base import _process_plot_format  # noqa: PLC0415 - the parser ax.stem itself uses
+        from matplotlib.axes._base import _process_plot_format
 
         axes = next((a for a in self._canvas.figure.axes if getattr(a, "_chartlibre_axis_id", None) == int(axis_id)), None)
         if axes is None:
@@ -1518,7 +1525,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
                 if text.get_text() in labelled:
                     if not isinstance(handle, (Line2D, PathCollection, Patch)):
                         return False
-                    handle._chartlibre_follows = _follows(labelled[text.get_text()])  # noqa: SLF001
+                    handle._chartlibre_follows = _follows(labelled[text.get_text()])
                     handles.append(handle)
         has_points = any("marker" in _follows(a) for a in points)
         try:
@@ -1724,7 +1731,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
                     continue
 
                 pixels = axes.transData.transform(np.column_stack([xs, ys]))
-            except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+            except Exception:
                 continue
 
             offsets = pixels - np.array([event.x, event.y], dtype=float)
@@ -1752,7 +1759,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
         if self._hover_annotation is not None:
             try:
                 self._hover_annotation.remove()
-            except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
+            except Exception:
                 pass
             # The annotation was part of the old axes' contents, so the cached
             # background no longer matches what is on screen.
@@ -1796,7 +1803,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
             canvas.restore_region(self._hover_background)
             axes.draw_artist(annotation)
             canvas.blit(self._figure.bbox)  # pyright: ignore[reportAttributeAccessIssue]
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             # Any backend that cannot blit still gets a correct, slower chart.
             self._hover_background = None
             canvas.draw_idle()
@@ -1813,7 +1820,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
                 self._canvas.restore_region(self._hover_background)
                 self._canvas.blit(self._figure.bbox)  # pyright: ignore[reportAttributeAccessIssue]
                 return
-        except Exception:  # noqa: BLE001 - a chart interaction or layout pass: never breaks the window
+        except Exception:
             self._hover_background = None
         self._canvas.draw_idle()
 
@@ -2066,7 +2073,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
         """
         try:
             x_pixels, y_pixels = self._canvas.mouseEventCoords(pos)
-        except Exception:  # noqa: BLE001 - a backend without the helper
+        except Exception:
             return None
 
         # Last first: a twin axes is created after the axes it overlays and
@@ -2079,7 +2086,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
                 x_value, y_value = axes.transData.inverted().transform(
                     (x_pixels, y_pixels)
                 )
-            except Exception:  # noqa: BLE001 - a 3D or polar axes may refuse
+            except Exception:
                 return None
             return int(axis_id), axes, float(x_value), float(y_value)
         return None
@@ -2107,7 +2114,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
             )
             options["lines"] = lines
             self._repo.set_axis_options(int(axis_id), options)
-        except Exception:  # noqa: BLE001
+        except Exception:
             applogger.exception("Could not add a reference line.")
             return
 
@@ -2149,7 +2156,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
             )
             options["annotations"] = annotations
             self._repo.set_axis_options(int(axis_id), options)
-        except Exception:  # noqa: BLE001
+        except Exception:
             applogger.exception("Could not add an annotation.")
             return
 

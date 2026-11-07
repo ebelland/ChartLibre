@@ -96,7 +96,10 @@ def test_no_tab_is_empty(qapp, repo: SqliteRepo, operation) -> None:
 
 def test_every_scanned_operation_runs_on_the_one_engine() -> None:
     """ID48: one base - every operation the Analysis panel offers is a DataOperationDialogBase, roles or not."""
-    from app.scanners.data_operation_scanner import data_operations, import_class_from_file
+    from app.scanners.data_operation_scanner import (
+        data_operations,
+        import_class_from_file,
+    )
 
     loaded = [(operation.get("name"), import_class_from_file(operation)) for operation in data_operations]
     assert loaded and not [name for name, cls in loaded if cls is None or not issubclass(cls, DataOperationDialogBase)]

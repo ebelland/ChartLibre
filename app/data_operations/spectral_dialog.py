@@ -343,7 +343,7 @@ class SeriesSpectralDialog(DataOperationDialogBase):
         for row in selected:
             try:
                 signals.append(self._series_signal(row))
-            except Exception as exc:  # noqa: BLE001 - collected per series, reported with the others
+            except Exception as exc:
                 errors.append(str(exc))
 
         if errors:
@@ -382,7 +382,7 @@ class SeriesSpectralDialog(DataOperationDialogBase):
 
         try:
             spectrum = estimate(method, y_values, self._spectral_params(fs))
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("Spectral estimate failed for '%s'", name)
             show_message(
                 self,
@@ -421,7 +421,7 @@ class SeriesSpectralDialog(DataOperationDialogBase):
             spectrum = estimate_pair(
                 method, reference_y, other_y, self._spectral_params(fs)
             )
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("Spectral estimate failed for '%s'", pair_label)
             show_message(
                 self,
@@ -521,7 +521,7 @@ class SeriesSpectralDialog(DataOperationDialogBase):
         try:
             self._repo.delete_axis(axis_id)
             applogger.info("Discarded the unapplied spectral axis %s.", axis_id)
-        except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
+        except Exception:
             applogger.exception("Failed to discard spectral axis %s", axis_id)
 
     def result_series_spec(

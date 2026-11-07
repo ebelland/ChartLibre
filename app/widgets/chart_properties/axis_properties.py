@@ -974,7 +974,7 @@ class AxisPropertiesWidget(BaseProperties):
             if renderer_class is None:
                 raise RuntimeError("Renderer class not found")
             renderer_instance = renderer_class()
-        except Exception:  # noqa: BLE001 - a plugin's own code
+        except Exception:
             applogger.exception("Failed to load renderer kwargs schema")
             self._abandon_kwargs_editor()
             self.set_kwargs_widget(
@@ -1489,7 +1489,7 @@ class AxisPropertiesWidget(BaseProperties):
     # ------------------------------------------------------------------
     # Kwargs editor host helpers
     # ------------------------------------------------------------------
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 - Qt's name
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         """Default event filter retained for compatibility."""
         return super().eventFilter(watched, event)
 

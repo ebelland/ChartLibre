@@ -20,7 +20,7 @@ from typing import Any
 import numpy as np
 from scipy import signal as scipy_signal
 
-from app.analysis.sampling import sampling_frequency  # noqa: F401  (re-exported: spectral's callers use it)
+from app.analysis.sampling import sampling_frequency
 
 METHOD_PSD = "Power spectral density (Welch)"
 METHOD_CSD = "Cross spectral density (Welch)"

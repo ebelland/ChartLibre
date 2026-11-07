@@ -34,8 +34,8 @@ from app.plugin_api.data_operations.parameter_spec import (
 from app.plugin_api.data_operations.roles_base import RolesOperationDialogBase
 from app.styles.style import TitledCard
 from app.utils import report_html
-from app.utils.i18n import _
 from app.utils.coercion import to_numbers
+from app.utils.i18n import _
 
 #: The charts OK can draw: (key, check box label, ticked by default).
 #: The charts Partition can draw: key, label, ticked at first, and the Y it needs ("" for any).

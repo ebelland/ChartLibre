@@ -327,7 +327,7 @@ class ColumnInfoDialog(ColumnsDialog):
                 repo.rename_table_column(table, column, name)
                 cm.rename_column_info(repo, table, column, name)
             cm.set_column_info(repo, table, name, self.info())
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the dialog stays open
+        except Exception as exc:
             applogger.exception("Column Info of %s.%s could not be saved", table, column)
             show_message(self, "column_info.failed", error=exc)
             return False

@@ -146,7 +146,7 @@ class CatalogSearch(QWidget):
     def _open_current(self) -> None:
         self._open_item(self.results.currentItem() or self.results.item(0))
 
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if event.type() == QEvent.Type.KeyPress:
             key = event.key()  # type: ignore[attr-defined]
             if watched is self.field and key in (Qt.Key.Key_Down, Qt.Key.Key_Up) and self.results.count():

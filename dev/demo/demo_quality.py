@@ -88,7 +88,7 @@ def build_quality_demo(directory: Path = DEMO_DIR) -> Path:
     """Write the quality demo into *directory* and return its path."""
     from PySide6.QtWidgets import QApplication
 
-    import app.utils.config as config
+    from app.utils import config
 
     app = QApplication.instance() or QApplication([])
     real_user_config = config.USER_CONFIG_PATH

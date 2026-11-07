@@ -63,7 +63,7 @@ def fit_to_screen(window: QWidget, *, assumed_frame: tuple[int, int] = (0, 0)) -
 class _FitOnShow(QObject):
     """Watches one window - and only it - and fits it each time it is shown."""
 
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if event.type() == QEvent.Type.Show and isinstance(watched, QWidget) and watched.isWindow():
             # Now, before the window is on screen: fitted afterwards, it
             # appeared at one size and place and jumped to another - the

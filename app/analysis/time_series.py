@@ -154,7 +154,7 @@ def search_arima(y: np.ndarray, d: int, season: int, seasonal_d: int,
                     try:
                         fitted = ArimaModel(y, exog=exog, order=(p, d, q), seasonal_order=(*seasonal, season)
                                             if season >= 2 else (0, 0, 0, 0)).fit()
-                    except Exception:  # noqa: BLE001 - statsmodels' own failures: a model left out of the search
+                    except Exception:
                         continue
                 if np.isfinite(fitted.aic):
                     rows.append({"Model": _arima_label((p, d, q), seasonal, season), "AIC": float(fitted.aic),
@@ -268,7 +268,7 @@ def rolling_origin(y: np.ndarray, model: str, *, order: tuple[int, int, int], se
             try:
                 fitted = _fit(model, train, order=order, seasonal=seasonal, season=season)
                 predicted.append(float(np.asarray(fitted.forecast(1), float)[0]))
-            except Exception:  # noqa: BLE001 - an origin the model cannot fit is left out, not the whole check
+            except Exception:
                 predicted.append(np.nan)
             actual.append(y[end])
             naive.append(train[-1])
@@ -516,7 +516,7 @@ def _residual_diagnostics(residual_values: np.ndarray, summary: dict[str, Any], 
             if ljung_p < 0.05:
                 notes.append("The residuals are still autocorrelated (Ljung-Box p < 0.05): the model leaves "
                              "a pattern behind - try another order, or a season.")
-    except Exception as exc:  # noqa: BLE001 - the fitted model remains usable
+    except Exception as exc:
         applogger.error(f"Residual randomness diagnostics failed: {exc}")
         notes.append(f"Residual randomness diagnostics could not be computed: {exc}")
     return residual_diagnostics

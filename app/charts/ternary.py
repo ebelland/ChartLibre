@@ -13,7 +13,12 @@ from typing import Any, ClassVar
 
 import numpy as np
 
-from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
+from app.plugin_api.charts.base import (
+    LEGEND_OPTIONS,
+    BaseAxisRenderer,
+    SeriesData,
+    merge,
+)
 from app.utils.coercion import column_of, to_numbers
 
 _HEIGHT = np.sqrt(3.0) / 2.0

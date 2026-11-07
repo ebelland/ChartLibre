@@ -5,7 +5,11 @@ from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QWidget
 
 from app.plugin_api.data_operations.parameter_form import ParameterForm
-from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, IntParam
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    ChoiceParam,
+    IntParam,
+)
 
 
 def test_advanced_rows_are_in_a_closed_frame_shown_while_one_is_visible(qapp) -> None:

@@ -54,7 +54,7 @@ if str(PROJECT_ROOT) not in sys.path:
 # already what the screen does - and a second factor on top of it would
 # double it again, shrinking the window to half the screen and the text to
 # twice its size - so only the other hosts are scaled.
-import os  # noqa: E402
+import os
 
 if sys.platform != "darwin":
     os.environ.setdefault("QT_SCALE_FACTOR", "2")
@@ -62,18 +62,18 @@ if sys.platform != "darwin":
 # Before *anything* imports these names: the macOS branches are chosen by
 # module-level constants read at import time, so flipping them afterwards
 # would leave half the window built the other way.
-import app.styles.style as style  # noqa: E402
+from app.styles import style
 
 style._IS_MACOS = True
 style.IS_MACOS = True
 
-from PySide6.QtCore import QCoreApplication, QTimer  # noqa: E402
-from PySide6.QtWidgets import QApplication, QWidget  # noqa: E402
+from PySide6.QtCore import QCoreApplication, QTimer
+from PySide6.QtWidgets import QApplication, QWidget
 
-import app.main_window.main_window as main_window_module  # noqa: E402
-from app.data.demos import DEMO_PROJECTS, copy_demo_project  # noqa: E402
-from app.data.sqlite_repo import SqliteRepo  # noqa: E402
-from app.logs.logger import applogger  # noqa: E402
+import app.main_window.main_window as main_window_module
+from app.data.demos import DEMO_PROJECTS, copy_demo_project
+from app.data.sqlite_repo import SqliteRepo
+from app.logs.logger import applogger
 
 main_window_module.IS_MACOS = True
 

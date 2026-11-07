@@ -12,10 +12,10 @@ import pytest
 from PySide6.QtCore import QPoint
 from PySide6.QtWidgets import QApplication, QFrame, QScrollArea, QWidget
 
-import app.styles.style as style
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.main_window.main_window import MainWindow
+from app.styles import style
 from app.widgets.nav_bar import NavigationBar
 
 

@@ -156,7 +156,7 @@ def register(con: sqlite3.Connection) -> None:
     def value(name: Any, parameters: Any, x: Any, y: Any = None) -> float | None:
         try:
             return _value(con, models, str(name), str(parameters or ""), x, y)
-        except Exception:  # noqa: BLE001 - a user's formula: an error at a point is no value there
+        except Exception:
             if str(name) not in failed:
                 failed.add(str(name))
                 applogger.exception("The stored function '%s' could not be evaluated", name)

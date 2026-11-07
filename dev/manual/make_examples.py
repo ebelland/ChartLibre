@@ -25,9 +25,9 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
 
-import numpy as np  # noqa: E402
-import pandas as pd  # noqa: E402
-from matplotlib.figure import Figure  # noqa: E402
+import numpy as np
+import pandas as pd
+from matplotlib.figure import Figure
 
 OUTPUT_DIR = PROJECT_ROOT / "docs" / "manual" / "examples"
 DPI = 110
@@ -152,7 +152,7 @@ def analyses(scratch: Path) -> None:
     rng = np.random.default_rng(0)
     wavelengths = np.linspace(900, 1700, 120)
     conc, other = rng.uniform(0, 1, 60), rng.uniform(0, 1, 60)
-    band = lambda centre, width: np.exp(-((wavelengths - centre) / width) ** 2)  # noqa: E731
+    band = lambda centre, width: np.exp(-((wavelengths - centre) / width) ** 2)
     spectra = np.outer(conc, band(1200, 30)) + np.outer(other, band(1450, 60)) + 0.3 + rng.normal(0, 0.01, (60, 120))
     frame = pd.DataFrame(spectra, columns=[f"nm{int(w)}" for w in wavelengths])
     frame["concentration"] = conc
@@ -164,8 +164,8 @@ def analyses(scratch: Path) -> None:
 
 
 def main() -> int:
-    import app.utils.config as config
     from app.data.demos import DEMO_DIR
+    from app.utils import config
 
     scratch = Path(tempfile.mkdtemp(prefix="chartlibre-examples-"))
     config.USER_CONFIG_PATH = scratch / "user.json"

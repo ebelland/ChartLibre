@@ -21,7 +21,14 @@ from html import unescape
 
 from PySide6.QtCore import QEvent, QObject, QSize, Qt, Signal
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QAbstractItemView, QFrame, QListWidget, QListWidgetItem, QSizePolicy, QWidget
+from PySide6.QtWidgets import (
+    QAbstractItemView,
+    QFrame,
+    QListWidget,
+    QListWidgetItem,
+    QSizePolicy,
+    QWidget,
+)
 
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.scanners.data_operation_scanner import data_operations, reads_roles
@@ -203,7 +210,7 @@ class AnalysisPanel(NavPanel):
         else:
             self.data_operation_requested.emit(entry)
 
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if (isinstance(watched, QListWidget) and event.type() == QEvent.Type.KeyPress
                 and event.key() in (Qt.Key.Key_Return, Qt.Key.Key_Enter)):  # type: ignore[attr-defined]
             self._open_item(watched.currentItem())

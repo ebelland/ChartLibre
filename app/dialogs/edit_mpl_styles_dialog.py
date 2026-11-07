@@ -51,7 +51,11 @@ from app.styles.style import (
     stdSizeAndlayout,
 )
 from app.utils.messages import show_message
-from app.utils.mpl_latex import is_latex_rcparam, latex_available, latex_unavailable_reason
+from app.utils.mpl_latex import (
+    is_latex_rcparam,
+    latex_available,
+    latex_unavailable_reason,
+)
 
 mpl.use("QtAgg")
 from matplotlib import image as _mimage
@@ -60,10 +64,18 @@ from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg as FigureCanvas
 from matplotlib.colors import is_color_like, to_rgba
 from matplotlib.figure import Figure
 from PySide6.QtCore import QTimer, Signal
-from PySide6.QtWidgets import QComboBox, QFileDialog, QHBoxLayout, QLabel, QSizePolicy, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QComboBox,
+    QFileDialog,
+    QHBoxLayout,
+    QLabel,
+    QSizePolicy,
+    QVBoxLayout,
+    QWidget,
+)
 
 from app.utils.i18n import _
-from app.widgets import mpl_cursors  # noqa: F401 - native cursors on macOS
+from app.widgets import mpl_cursors
 
 # ---------------------------------------------------------------------------
 # Optional external helpers (graceful fallbacks)
@@ -186,7 +198,7 @@ def _rc_enum_choices(key: str) -> tuple[list[str], bool] | None:
         if lower == "savefig.format":
             try:
                 choices = sorted(plt.gcf().canvas.get_supported_filetypes().keys()) or choices
-            except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+            except Exception:
                 pass
         return choices, False
     if lower in _KEY_CHOICES:
@@ -270,7 +282,7 @@ def _font_choices(*, generic: bool) -> list[str]:
             {entry.name for entry in font_manager.fontManager.ttflist if not entry.name.startswith(".")},
             key=str.lower,
         )
-    except Exception:  # noqa: BLE001 - an optional platform feature: absent or refusing is not an error
+    except Exception:
         installed = []
     return [*(_GENERIC_FONT_FAMILIES if generic else ()), *installed]
 
@@ -793,7 +805,7 @@ class MplStyleEditorDialog(SettingsTableDialog):
             try:
                 choices = [str(name) for name in plt.colormaps()]  # pyright: ignore[reportAttributeAccessIssue]
                 choices.sort()
-            except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+            except Exception:
                 choices = []
             meta["type"] = choices
             meta["kind"] = "enum"
@@ -925,7 +937,7 @@ class MplStyleEditorDialog(SettingsTableDialog):
 
                 cast(Any, validator)[key] = val_obj
                 valid[key] = val_obj
-            except Exception as ex:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+            except Exception as ex:
                 invalid.append((key, raw, str(ex)))
 
         # Why here: this is the single funnel every override passes through on
@@ -963,7 +975,7 @@ class MplStyleEditorDialog(SettingsTableDialog):
             else:
                 self.status.setText(_("Preview updated: {count} changed parameters").format(count=len(style_dict)))
                 self.status.setToolTip("")
-        except Exception as ex:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as ex:
             self.status.setText(_("Preview failed — see error dialog."))
             show_message(self, "style.preview_failed", error=ex)
 
@@ -1010,7 +1022,7 @@ class MplStyleEditorDialog(SettingsTableDialog):
             return
         try:
             params = mpl.rc_params_from_file(path, use_default_template=False)
-        except Exception as ex:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as ex:
             show_message(self, "style.load_failed", error=ex)
             return
         self._load_dict_into_table(
@@ -1071,21 +1083,21 @@ class MplStyleEditorDialog(SettingsTableDialog):
         try:
             style_dict: dict[str, object] = self._current_merged_style()
             temp_path: str = self._write_temp_style_file(style_dict)
-        except Exception as ex:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as ex:
             show_message(self, "style.apply_failed", error=ex)
             return
 
         # Emit signal with path
         try:
             self.styleApplied.emit(temp_path)
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             pass
 
         # Call user callback with path
         if callable(self.apply_callback):
             try:
                 self.apply_callback(temp_path)
-            except Exception as ex:  # noqa: BLE001 - a plugin's own code
+            except Exception as ex:
                 show_message(self, "style.apply_callback_failed", error=ex)
                 return
 

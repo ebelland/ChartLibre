@@ -73,7 +73,7 @@ from app.styles.style import CardFrame
 from app.utils import report_html
 from app.utils.config import get_constant
 from app.utils.i18n import _
-from app.widgets import mpl_cursors  # noqa: F401 - native cursors on macOS
+from app.widgets import mpl_cursors
 
 ROTATE = "Rotate"
 TRANSLATE = "Translate"
@@ -1004,7 +1004,7 @@ class SeriesGeometryDialog(DataOperationDialogBase):
         buffer = io.BytesIO()
         try:
             self._plot_view.figure.savefig(buffer, format="png", dpi=80)
-        except Exception:  # noqa: BLE001 - a report without its picture is still a report
+        except Exception:
             applogger.exception("Could not render the geometry picture for the report")
             return ""
         encoded = base64.b64encode(buffer.getvalue()).decode("ascii")

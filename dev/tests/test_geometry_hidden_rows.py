@@ -14,15 +14,15 @@ from pathlib import Path
 import matplotlib
 
 matplotlib.use("Agg")
-import numpy as np  # noqa: E402
-import pandas as pd  # noqa: E402
-import pytest  # noqa: E402
-from matplotlib.figure import Figure  # noqa: E402
+import numpy as np
+import pandas as pd
+import pytest
+from matplotlib.figure import Figure
 
-from app.data.sqlite_repo import SqliteRepo  # noqa: E402
-from app.data_operations.geometry_dialog import ROTATE, SeriesGeometryDialog  # noqa: E402
-from app.plugin_api.charts.render_figure import render_figure_from_descriptor  # noqa: E402
-from app.utils.dialog_state import clear_state  # noqa: E402
+from app.data.sqlite_repo import SqliteRepo
+from app.data_operations.geometry_dialog import ROTATE, SeriesGeometryDialog
+from app.plugin_api.charts.render_figure import render_figure_from_descriptor
+from app.utils.dialog_state import clear_state
 
 SOURCE_SQL = 'SELECT "salary_eur" AS "x", "bonus_eur" AS "y" FROM "pay" WHERE "Hide" = 0'
 

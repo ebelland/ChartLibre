@@ -141,7 +141,7 @@ def run_app() -> int:
 
         return app.exec()
 
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         applogger.exception("Application startup failed: %s", exc)
         QMessageBox.critical(None, APP_NAME, f"Application startup failed:\n{exc}")
         return 1

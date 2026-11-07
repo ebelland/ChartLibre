@@ -27,7 +27,7 @@ from pathlib import Path
 PROJECT_DIR = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(PROJECT_DIR))
 
-from app import APP_ICON, APP_NAME, APP_VERSION  # noqa: E402
+from app import APP_ICON, APP_NAME, APP_VERSION
 
 
 def _render_icon_pngs(sizes: list[int]) -> dict[int, bytes]:

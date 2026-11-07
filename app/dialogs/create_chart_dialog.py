@@ -1404,7 +1404,7 @@ class NewPlotTabDialog(ColumnsDialog):
                 continue
             try:
                 values = self._repo.distinct_values(source, draft.group_by, limit=self.MAX_GROUPS)
-            except Exception as exc:  # noqa: BLE001 - shown, not swallowed
+            except Exception as exc:
                 show_message(self, "chart.group_failed", column=draft.group_by, reason=str(exc))
                 return []
             if len(values) > self.MAX_GROUPS:
@@ -1467,7 +1467,7 @@ class NewPlotTabDialog(ColumnsDialog):
         source = self._current_table_name()
         try:
             values = self._repo.distinct_values(source, column, limit=self.MAX_AXES)
-        except Exception as exc:  # noqa: BLE001 - shown, not swallowed
+        except Exception as exc:
             show_message(self, "chart.group_failed", column=column, reason=str(exc))
             return []
         if len(values) > self.MAX_AXES:

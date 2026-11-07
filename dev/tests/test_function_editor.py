@@ -2,7 +2,12 @@
 source's query read back (parse_function_sql) and rewritten (replace_function_sql)."""
 from __future__ import annotations
 
-from app.data.repo.function_sql import GridRange, function_sql, parse_function_sql, replace_function_sql
+from app.data.repo.function_sql import (
+    GridRange,
+    function_sql,
+    parse_function_sql,
+    replace_function_sql,
+)
 from app.widgets.function_editor import FunctionEditor
 
 LINE = {"function_name": "Line", "source_type": "expression", "symbols": "a, b", "code_string": "a*x + b",

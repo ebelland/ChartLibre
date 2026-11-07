@@ -118,8 +118,8 @@ def venv_problem() -> str:
     pip in the environment; it comes with the python3-venv package.
     """
     try:
-        import ensurepip  # noqa: F401
-        import venv  # noqa: F401
+        import ensurepip
+        import venv
     except ImportError:
         return (
             "This Python cannot create a .venv yet. On Ubuntu or Debian install it with\n\n"

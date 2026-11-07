@@ -36,8 +36,8 @@ import numpy as np
 import pandas as pd
 
 from app.analysis import Stopped
-from app.utils.config import get_constant
 from app.utils.coercion import column_of, to_numbers
+from app.utils.config import get_constant
 
 CONTINUOUS = "continuous"
 NOMINAL = "nominal"
@@ -358,7 +358,7 @@ def _fit_one(frame: pd.DataFrame, spec: ModelSpec, response: str, *,
     _check(should_stop)
     try:
         studentized = pd.Series(model.get_influence().resid_studentized_internal, index=data.index)
-    except Exception:  # noqa: BLE001 - a saturated model has none
+    except Exception:
         studentized = pd.Series(np.nan, index=data.index)
     _check(should_stop)
     profile = _profile(model, data, spec.factors, prep.safe, prep.codes, terms)
@@ -452,7 +452,7 @@ def _diagnostics(model) -> pd.DataFrame:
         try:
             statistic, p_value, extra = run()
             rows.append((name, float(statistic), float(p_value), (extra or note)))
-        except Exception as exc:  # noqa: BLE001 - what the data cannot support is said, not raised
+        except Exception as exc:
             rows.append((name, math.nan, math.nan, str(exc) or "not available"))
 
     spread = float(np.ptp(resid)) if resid.size else 0.0
@@ -709,7 +709,10 @@ def _fit_logistic(frame: pd.DataFrame, spec: ModelSpec, response: str) -> Respon
         return model.fit(method="bfgs", disp=0, maxiter=2000)
 
     columns = list(design.columns)
-    from statsmodels.tools.sm_exceptions import ConvergenceWarning, HessianInversionWarning
+    from statsmodels.tools.sm_exceptions import (
+        ConvergenceWarning,
+        HessianInversionWarning,
+    )
 
     with warnings.catch_warnings():
         # Separation also overflows exp(), logs zeros and leaves the Hessian
@@ -942,7 +945,7 @@ def _effect_tests(model, terms: list[Term], piece) -> pd.DataFrame:
         try:
             test = model.f_test(restriction)
             f_ratio, p_value = float(np.squeeze(test.fvalue)), float(np.squeeze(test.pvalue))
-        except Exception:  # noqa: BLE001 - an aliased term has no test, not an error
+        except Exception:
             f_ratio = p_value = math.nan
         rows.append((term_label(term), width, f_ratio * width * mse, f_ratio, p_value))
     tests = pd.DataFrame(rows, columns=["Term", "DF", "Sum of Squares", "F Ratio", "Prob > F"])

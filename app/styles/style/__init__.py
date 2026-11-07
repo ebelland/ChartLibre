@@ -13,7 +13,7 @@ If a dialog hand-rolls a margin or a button it will drift from the rest of the
 app; route it through here instead.
 """
 # The package's modules, re-exported: every name app.styles.style had, private ones included.
-from app.styles.style.catalogue import (  # noqa: F401
+from app.styles.style.catalogue import (
     ActionSpec,
     _actions_section,
     _cache,
@@ -23,7 +23,7 @@ from app.styles.style.catalogue import (  # noqa: F401
     action,
     action_menu_item,
 )
-from app.styles.style.icons import (  # noqa: F401
+from app.styles.style.icons import (
     _ACTIVE_THEME_IS_DARK,
     _FALLBACK_ICON_THEMES,
     _FLUENT_DEFAULT_COLOR,
@@ -78,7 +78,7 @@ from app.styles.style.icons import (  # noqa: F401
     theme_is_dark,
     ui_font_family,
 )
-from app.styles.style.metrics import (  # noqa: F401
+from app.styles.style.metrics import (
     _APP_DIR,
     _COMBO_CHROME_WIDTH,
     _IS_MACOS,
@@ -104,7 +104,7 @@ from app.styles.style.metrics import (  # noqa: F401
     PlatformStyle,
     ShortcutLike,
 )
-from app.styles.style.themes import (  # noqa: F401
+from app.styles.style.themes import (
     APP_STYLE_AUTOMATIC,
     APP_STYLE_LABELS,
     APP_STYLE_QSS,
@@ -117,7 +117,7 @@ from app.styles.style.themes import (  # noqa: F401
     available_app_styles,
     resolve_app_style,
 )
-from app.styles.style.widgets import (  # noqa: F401
+from app.styles.style.widgets import (
     _PRIMARY_BUTTON_TEXTS,
     CONTEXT_MENU_ICONS,
     KEEP_MINIMUM_WIDTH,

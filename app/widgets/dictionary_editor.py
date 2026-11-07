@@ -34,17 +34,32 @@ from app.styles.style import (
 from app.utils.i18n import _
 from app.widgets.drop_down_controls.color_combo import color_preview_icon
 from app.widgets.drop_down_controls.color_picker import ColorPickerButton
-from app.widgets.drop_down_controls.colormap_combo import ColormapCombo, colormap_preview_icon
+from app.widgets.drop_down_controls.colormap_combo import (
+    ColormapCombo,
+    colormap_preview_icon,
+)
 from app.widgets.drop_down_controls.edge_style_combo import (
     CapStyleCombo,
     JoinStyleCombo,
     cap_style_preview_icon,
     join_style_preview_icon,
 )
-from app.widgets.drop_down_controls.font_combo import MatplotlibFontCombo, font_preview_icon
-from app.widgets.drop_down_controls.hatch_combo import HatchStyleCombo, hatch_preview_icon
-from app.widgets.drop_down_controls.line_combo import LineStyleCombo, line_style_preview_icon
-from app.widgets.drop_down_controls.marker_combo import MarkerStyleCombo, marker_style_preview_icon
+from app.widgets.drop_down_controls.font_combo import (
+    MatplotlibFontCombo,
+    font_preview_icon,
+)
+from app.widgets.drop_down_controls.hatch_combo import (
+    HatchStyleCombo,
+    hatch_preview_icon,
+)
+from app.widgets.drop_down_controls.line_combo import (
+    LineStyleCombo,
+    line_style_preview_icon,
+)
+from app.widgets.drop_down_controls.marker_combo import (
+    MarkerStyleCombo,
+    marker_style_preview_icon,
+)
 
 _KIND_BY_EXACT_KEY: dict[str, str] = {
     # Colour aliases and common artist kwargs.
@@ -240,12 +255,12 @@ class DictValueDelegate(QStyledItemDelegate):
         super().__init__(parent)
         self._panel = panel
 
-    def sizeHint(self, option, index):  # noqa: N802, ANN001, ANN201
+    def sizeHint(self, option, index):
         size = super().sizeHint(option, index)
         size.setHeight(max(size.height(), _MIN_ROW_HEIGHT))
         return size
 
-    def createEditor(self, parent: QWidget, option, index):  # noqa: N802, ANN001, ANN201
+    def createEditor(self, parent: QWidget, option, index):
         if index.column() != 1:
             return None
         key = self._panel.key_from_index(index)
@@ -323,7 +338,7 @@ class DictValueDelegate(QStyledItemDelegate):
         if line_edit is not None:
             line_edit.textEdited.connect(touched)
 
-    def setEditorData(self, editor, index) -> None:  # noqa: N802, ANN001
+    def setEditorData(self, editor, index) -> None:
         key = self._panel.key_from_index(index)
         if key is None:
             return
@@ -389,7 +404,7 @@ class DictValueDelegate(QStyledItemDelegate):
             editor.setText(text)
             editor.selectAll()
 
-    def setModelData(self, editor, model, index) -> None:  # noqa: N802, ANN001
+    def setModelData(self, editor, model, index) -> None:
         key = self._panel.key_from_index(index)
         if key is None:
             return
@@ -575,7 +590,7 @@ class DictEditorPanel(QWidget):
         self.tree.setCurrentItem(item, 1)
         self.tree.scrollToItem(item)
 
-    def key_from_index(self, index) -> str | None:  # noqa: ANN001
+    def key_from_index(self, index) -> str | None:
         key = index.siblingAtColumn(0).data(Qt.ItemDataRole.UserRole)
         return str(key) if key else None
 

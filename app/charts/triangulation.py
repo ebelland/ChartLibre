@@ -160,7 +160,7 @@ class TriplotAxisRenderer(BaseAxisRenderer):
 
             try:
                 ax.triplot(x, y, **kwargs)
-            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+            except Exception:
                 applogger.exception(
                     "Triangular Mesh failed to draw series '%s'.", sd.name
                 )
@@ -286,7 +286,7 @@ class TripcolorAxisRenderer(BaseAxisRenderer):
 
         try:
             mesh = ax.tripcolor(x, y, z, **kwargs)
-        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+        except Exception:
             applogger.exception(
                 "Triangular Color Mesh failed to draw series '%s'.", sd.name
             )

@@ -198,9 +198,9 @@ class SeriesArtistTags:
             if id(artist) not in self._seen:
                 self._seen.add(id(artist))
                 if self._name is not None:
-                    artist._chartlibre_series = self._name  # noqa: SLF001 - our own attributes
+                    artist._chartlibre_series = self._name
                     if self._follows is not None:
-                        artist._chartlibre_follows = self._follows  # noqa: SLF001
+                        artist._chartlibre_follows = self._follows
 
 
 def in_legend(artist: Any) -> bool:
@@ -578,7 +578,7 @@ class BaseAxisRenderer:
         draw = ax.axhline if orientation.startswith("h") else ax.axvline
         try:
             draw(value, **kwargs)
-        except Exception:  # noqa: BLE001 - a bad kwarg costs the line, not the chart
+        except Exception:
             applogger.exception("A reference line could not be drawn: %r", line)
 
     def apply_measurements(self, ax: Any, options: dict[str, Any]) -> None:
@@ -647,7 +647,7 @@ class BaseAxisRenderer:
                     "alpha": 0.95,
                 },
             )
-        except Exception:  # noqa: BLE001 - a bad kwarg costs the ruler, not the chart
+        except Exception:
             applogger.exception("A measurement could not be drawn: %r", measurement)
 
     def apply_annotation(

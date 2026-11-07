@@ -33,7 +33,15 @@ from typing import Any, ClassVar, Protocol, cast
 
 import numpy as np
 import pandas as pd
-from PySide6.QtCore import QEvent, QObject, QRegularExpression, QSize, Qt, QTimer, Signal
+from PySide6.QtCore import (
+    QEvent,
+    QObject,
+    QRegularExpression,
+    QSize,
+    Qt,
+    QTimer,
+    Signal,
+)
 from PySide6.QtGui import QCloseEvent, QRegularExpressionValidator, QShowEvent
 from PySide6.QtWidgets import (
     QBoxLayout,
@@ -67,8 +75,17 @@ from app.logs.logger import applogger
 from app.plugin_api import reading_guide
 from app.plugin_api.charts.grids import pivot_to_grid
 from app.plugin_api.data_operations import next_steps
-from app.plugin_api.data_operations.parameter_form import FIELD_MAX_WIDTH, ParameterForm, merged_values
-from app.plugin_api.data_operations.parameter_spec import BoolParam, FloatParam, Param, defaults
+from app.plugin_api.data_operations.parameter_form import (
+    FIELD_MAX_WIDTH,
+    ParameterForm,
+    merged_values,
+)
+from app.plugin_api.data_operations.parameter_spec import (
+    BoolParam,
+    FloatParam,
+    Param,
+    defaults,
+)
 from app.plugin_api.data_operations.results import OperationResult
 from app.styles.style import (
     MARGIN_TOOLBOX_PAGE,
@@ -228,7 +245,7 @@ class SeriesJob:
                 outcomes.append((name, self.compute(name, data, self.settings)))
             except Stopped:
                 raise
-            except Exception as exc:  # noqa: BLE001 - collected, then reported
+            except Exception as exc:
                 errors.append(f"{name}: {exc}")
             self.progress[:] = [done + 1, total]
         return SeriesOutcome(outcomes, errors)
@@ -256,16 +273,16 @@ class _PageScroll(QScrollArea):
     narrower than the controls, and with widgetResizable they stretch to the panel's width.
     """
 
-    def setWidget(self, widget: QWidget) -> None:  # noqa: N802 - Qt's name
+    def setWidget(self, widget: QWidget) -> None:
         super().setWidget(widget)
         widget.installEventFilter(self)
 
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 - Qt's name
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if watched is self.widget() and event.type() == QEvent.Type.LayoutRequest:
             self.updateGeometry()
         return super().eventFilter(watched, event)
 
-    def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt's name
+    def minimumSizeHint(self) -> QSize:
         hint = super().minimumSizeHint()
         page = self.widget()
         if page is None:
@@ -284,7 +301,7 @@ class _OperationTabs(QTabWidget):
 
     LEFT_MINIMUM = 320
 
-    def minimumSizeHint(self) -> QSize:  # noqa: N802 - Qt's name
+    def minimumSizeHint(self) -> QSize:
         hint = super().minimumSizeHint()
         return QSize(max(self.LEFT_MINIMUM, hint.width()), hint.height())
 
@@ -514,7 +531,7 @@ class DataOperationDialogBase(QDialog):
     # Construction
     # ==================================================================
 
-    def showEvent(self, event: QShowEvent) -> None:  # noqa: N802 - Qt's name
+    def showEvent(self, event: QShowEvent) -> None:
         """Hide a results view no layout adopted.
 
         The base dialog creates its HTML results view as a child of itself and
@@ -951,7 +968,7 @@ class DataOperationDialogBase(QDialog):
                 app_version=str(APP_VERSION),
                 report=report,
             )
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             applogger.exception("Could not record %s in the project's history", operation)
 
     # ------------------------------------------------------------------
@@ -993,7 +1010,7 @@ class DataOperationDialogBase(QDialog):
                 return
             try:
                 on_done(outcome)
-            except Exception as exc:  # noqa: BLE001 - shown like a failed run
+            except Exception as exc:
                 self._job_failed(exc)
 
         task = self._job = run_in_background(work, finished, self._job_failed)
@@ -1086,7 +1103,7 @@ class DataOperationDialogBase(QDialog):
             for form in self.parameter_forms():
                 try:
                     form.set_values(parameters)
-                except Exception:  # noqa: BLE001 - a stale value must not stop the window opening
+                except Exception:
                     applogger.exception("Could not restore %s's parameters", self.state_key())
         self.restore_state_extra(stored)
 
@@ -1119,7 +1136,7 @@ class DataOperationDialogBase(QDialog):
         self._leave()
         super().reject()
 
-    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt's name
+    def closeEvent(self, event: QCloseEvent) -> None:
         """The window's close button: as Cancel."""
         self._leave()
         super().closeEvent(event)
@@ -1152,7 +1169,7 @@ class DataOperationDialogBase(QDialog):
             return False
         try:
             return bool(self._repo.rollback_preview_savepoint())
-        except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
+        except Exception:
             applogger.exception("Failed to roll back the preview savepoint")
             return False
 
@@ -1162,7 +1179,7 @@ class DataOperationDialogBase(QDialog):
             return
         try:
             self._repo.release_preview_savepoint()
-        except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
+        except Exception:
             applogger.exception("Failed to commit the preview savepoint")
 
     def draw_on(self) -> str:
@@ -1757,7 +1774,7 @@ class DataOperationDialogBase(QDialog):
             self._prepare_table_source()
         except ValueError:
             return  # no Y yet: drawn when there is one
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             applogger.exception("Could not draw the table's columns")
             return
         self._refresh_after_preview_state_change()
@@ -1826,7 +1843,7 @@ class DataOperationDialogBase(QDialog):
         if not self._applied:
             try:
                 self._repo.delete_figure(int(figure_id))
-            except Exception:  # noqa: BLE001 - cleanup: must not hide the outcome it follows
+            except Exception:
                 applogger.exception("Failed to discard the figure drawn from a table")
         self._use_figure(self._chart_figure_id)
 
@@ -2009,7 +2026,7 @@ class DataOperationDialogBase(QDialog):
             x, y, z = self.series_xyz(row, name)
             frame = pd.DataFrame({"x": x, "y": y, "z": z})
             grid = pivot_to_grid(frame)
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             # Any failure to read/pivot the data still leaves a true fact
             # standing: there is a z role, so this is 3D of some kind. Which
             # kind is a detail the label can afford to get wrong here - the
@@ -2032,7 +2049,7 @@ class DataOperationDialogBase(QDialog):
             return
         try:
             selector.set_origin_text(self.series_origin(rows[0]))
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             applogger.exception("Failed to describe the selected series' data shape.")
             selector.set_origin_text("")
 
@@ -2262,7 +2279,7 @@ class DataOperationDialogBase(QDialog):
             return report
         try:
             box = report_html.reading_guide(_("How to read this"), self.how_to_read(results))
-        except Exception:  # noqa: BLE001 - the explanation is never the reason a report is not shown
+        except Exception:
             applogger.exception("%s: could not explain the report.", type(self).__name__)
             return report
         return report_html.with_reading_guide(report, box)
@@ -2608,7 +2625,7 @@ class DataOperationDialogBase(QDialog):
             name = str(row_value(row, "name", "series_name", default="Series"))
             try:
                 inputs.append((name, self.read_series(row, name)))
-            except Exception as exc:  # noqa: BLE001 - collected, then reported
+            except Exception as exc:
                 failures.append(f"{name}: {exc}")
         if not inputs and not failures:
             return None
@@ -2734,7 +2751,7 @@ class DataOperationDialogBase(QDialog):
                 int(figure_id) if figure_id is not None else self._figure_id
             )
             axis_ids = {int(axis.id) for axis in (descriptor.axes if descriptor else [])}
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             applogger.exception("Could not check the result target after a rollback")
             axis_ids = set()
         if axis_id is not None and int(axis_id) not in axis_ids:
@@ -2800,7 +2817,7 @@ class DataOperationDialogBase(QDialog):
             elif axis_id is not None:
                 self._repo.delete_axis(int(axis_id))
                 applogger.info("Discarded the unapplied axis %s.", axis_id)
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             applogger.exception("Failed to discard the unapplied result target")
 
     def create_result_figure(
@@ -2980,7 +2997,7 @@ class DataOperationDialogBase(QDialog):
         try:
             self.applied.emit()
             self.sync_preview_figure()
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             applogger.exception("Failed to emit preview refresh signal.")
 
     def sync_preview_figure(self) -> None:
@@ -3022,7 +3039,7 @@ class DataOperationDialogBase(QDialog):
         """
         try:
             return self._figure_grid(self._figure_id)
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             applogger.exception("Failed to capture original figure grid.")
             return None
 
@@ -3034,7 +3051,7 @@ class DataOperationDialogBase(QDialog):
         try:
             if self._figure_grid(self._figure_id) != (rows, cols):
                 self._repo.set_figure_grid(self._figure_id, nrows=rows, ncols=cols)
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             applogger.exception("Failed to restore original figure grid.")
 
     # ------------------------------------------------------------------
@@ -3125,7 +3142,7 @@ class DataOperationDialogBase(QDialog):
                     return finish(False)
                 return True
             results = list(self.compute_results())
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             return finish(self._operation_failed(exc, commit=commit))
         return finish(self._deliver_results(results, int(axis_id_value), commit=commit, inputs=inputs))
 
@@ -3222,7 +3239,7 @@ class DataOperationDialogBase(QDialog):
             )
             return True
 
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             return self._operation_failed(exc, commit=commit)
 
     def operation_inputs(self) -> dict[str, Any]:
@@ -3259,7 +3276,7 @@ class DataOperationDialogBase(QDialog):
                 for result in results
             ]
             report = self.results_report(results) or ""
-        except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception:
             applogger.exception(
                 f"Could not record {self.operation_label} in the project's history",
             )

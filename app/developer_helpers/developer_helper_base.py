@@ -19,7 +19,15 @@ from typing import ClassVar
 
 from PySide6.QtCore import QUrl
 from PySide6.QtGui import QDesktopServices
-from PySide6.QtWidgets import QDialog, QFormLayout, QHBoxLayout, QLabel, QLineEdit, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QDialog,
+    QFormLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 from app.logs.logger import applogger
 from app.scanners.class_discovery import discover_classes_merged
@@ -101,7 +109,7 @@ def import_check(path: Path, expected_class_name: str) -> str:
     sys.modules[module_name] = module
     try:
         spec.loader.exec_module(module)
-    except Exception as exc:  # noqa: BLE001 - reported to the user verbatim
+    except Exception as exc:
         return f"{type(exc).__name__}: {exc}"
     finally:
         sys.modules.pop(module_name, None)

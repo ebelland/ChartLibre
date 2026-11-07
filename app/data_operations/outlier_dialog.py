@@ -39,7 +39,12 @@ from app.plugin_api.data_operations.dialog_base import (
     ResultSeriesSpec,
     generated_table_name,
 )
-from app.plugin_api.data_operations.parameter_spec import ChoiceParam, ColorParam, FloatParam, IntParam
+from app.plugin_api.data_operations.parameter_spec import (
+    ChoiceParam,
+    ColorParam,
+    FloatParam,
+    IntParam,
+)
 from app.plugin_api.data_operations.results import TableResult
 from app.utils.coercion import to_numeric_axis
 
@@ -304,7 +309,7 @@ class SeriesOutlierDialog(DataOperationDialogBase):
         for row in usable:
             try:
                 results.append(self._detect_outliers(row, model, params))
-            except Exception as exc:  # noqa: BLE001 - collected per series, reported with the others
+            except Exception as exc:
                 errors.append(f"{self._series_display_name(row)}: {exc}")
 
         if errors and not results:
@@ -704,7 +709,7 @@ class SeriesOutlierDialog(DataOperationDialogBase):
                     count=len(results), colour=colour)
             self.show_results(self.results_report(results) + report_html.note(message))
             return True
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("Failed to preview outlier hide flags")
             show_message(self, "series.preview_failed", error=exc)
             return False

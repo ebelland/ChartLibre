@@ -103,6 +103,6 @@ class PairGrid(QWidget):
                 self._grid.setColumnStretch(2 * column + 1, 1)
         self.updateGeometry()
 
-    def resizeEvent(self, event: QResizeEvent) -> None:  # noqa: N802
+    def resizeEvent(self, event: QResizeEvent) -> None:
         super().resizeEvent(event)
         self._arrange(self._fitting_arrangement(self.width()))

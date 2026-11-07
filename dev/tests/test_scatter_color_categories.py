@@ -4,11 +4,11 @@ from __future__ import annotations
 import matplotlib
 
 matplotlib.use("Agg")
-from matplotlib.figure import Figure  # noqa: E402
+from matplotlib.figure import Figure
 
-from app.charts.scatter import ScatterAxisRenderer  # noqa: E402
-from app.data.series_frame import SeriesFrame  # noqa: E402
-from app.plugin_api.charts.base import SeriesData  # noqa: E402
+from app.charts.scatter import ScatterAxisRenderer
+from app.data.series_frame import SeriesFrame
+from app.plugin_api.charts.base import SeriesData
 
 
 def _draw(colors: list[str]):

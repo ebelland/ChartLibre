@@ -121,7 +121,7 @@ class EditableTableModel(LazyTableModel):
             | Qt.ItemFlag.ItemIsEditable
         )
 
-    def setData(self, index: QModelIndex | QPersistentModelIndex, value: Any, role: int = Qt.ItemDataRole.EditRole) -> bool:  # noqa: N802 - Qt's name
+    def setData(self, index: QModelIndex | QPersistentModelIndex, value: Any, role: int = Qt.ItemDataRole.EditRole) -> bool:
         if not index.isValid() or role != Qt.ItemDataRole.EditRole:
             return False
         column = self.column_name(index.column())
@@ -137,7 +137,7 @@ class EditableTableModel(LazyTableModel):
                 self._coerce(index, value),
                 undo_entry=self.undo_entry_for(),
             )
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("Could not write the cell: %s", exc)
             return False
 
@@ -784,7 +784,7 @@ class TableEditorDialog(SettingsTableDialog):
                 new_name=dialog.name.text().strip() or None,
                 include_hidden=dialog.include_hidden.isChecked(),
             )
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("Group and aggregate failed: %s", exc)
             QMessageBox.warning(self, _("Could not do that"), str(exc))
             return
@@ -826,7 +826,7 @@ class TableEditorDialog(SettingsTableDialog):
         """
         try:
             action()
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("Table edit failed: %s", exc)
             QMessageBox.warning(self, _("Could not do that"), str(exc))
         finally:
@@ -842,7 +842,7 @@ class TableEditorDialog(SettingsTableDialog):
             return True
         try:
             self._repo.undo_entry(self._undo_entry)
-        except Exception as exc:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+        except Exception as exc:
             applogger.exception("Could not undo the table edits: %s", exc)
             QMessageBox.warning(self, _("Could not do that"), str(exc))
             return False

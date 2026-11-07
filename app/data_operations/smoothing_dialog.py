@@ -601,7 +601,7 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
                     "source_series_id": self._source_series_id(series),
                 }
                 inputs.append((self._series_display_name(row), (series, metadata)))
-            except Exception as exc:  # noqa: BLE001 - collected per series, reported with the others
+            except Exception as exc:
                 errors.append(f"{self._series_display_name(row)}: {exc}")
         if not inputs and not errors:
             return None

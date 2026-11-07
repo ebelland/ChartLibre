@@ -80,7 +80,7 @@ def sum_of_squares(
     """
     try:
         predicted = np.asarray(model(x, params), dtype=float)
-    except Exception:  # noqa: BLE001 - a user's model on a random sample: bad, move on
+    except Exception:
         return np.inf
     if predicted.shape != y.shape:
         return np.inf

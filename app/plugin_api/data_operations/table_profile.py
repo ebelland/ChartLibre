@@ -17,9 +17,15 @@ from dataclasses import dataclass, field
 import pandas as pd
 
 from app.analysis import catalog
-from app.plugin_api.data_operations.column_roles import CONTINUOUS, NOMINAL, ORDINAL, declared_kind, guess_kind
-from app.utils.config import get_constant
+from app.plugin_api.data_operations.column_roles import (
+    CONTINUOUS,
+    NOMINAL,
+    ORDINAL,
+    declared_kind,
+    guess_kind,
+)
 from app.utils.coercion import to_numbers
+from app.utils.config import get_constant
 
 #: A column with at most this many levels groups the rows; an ordinal one with more is a measure.
 MAX_GROUP_LEVELS = get_constant("guided_max_group_levels", 20)

@@ -129,7 +129,7 @@ class StackplotAxisRenderer(BaseAxisRenderer):
 
         try:
             ax.stackplot(x, *columns, labels=labels, **base_kwargs)
-        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+        except Exception:
             applogger.exception("Stack plot failed to draw.")
             return
 
@@ -230,7 +230,7 @@ class StairsAxisRenderer(BaseAxisRenderer):
 
             try:
                 ax.stairs(values, edges, **kwargs)
-            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+            except Exception:
                 applogger.exception("Stairs failed to draw series '%s'.", sd.name)
         tags.done()
         # Draw descriptor annotations after renderer-owned artists.
@@ -342,9 +342,9 @@ class StemAxisRenderer(BaseAxisRenderer):
                     ("markerfmt", container.markerline),
                     ("basefmt", container.baseline),
                 ):
-                    artist._chartlibre_series = sd.name  # noqa: SLF001 - our own attributes
-                    artist._chartlibre_stem = part  # noqa: SLF001
-            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+                    artist._chartlibre_series = sd.name
+                    artist._chartlibre_stem = part
+            except Exception:
                 applogger.exception("Stem Plot failed to draw series '%s'.", sd.name)
 
         self.apply_annotations(ax, axis_options)
@@ -517,7 +517,7 @@ class BarbsAxisRenderer(BaseAxisRenderer):
 
             try:
                 ax.barbs(*(column[mask] for column in columns), **base_kwargs)
-            except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+            except Exception:
                 applogger.exception("Wind barbs failed to draw series '%s'.", sd.name)
         # Draw descriptor annotations after renderer-owned artists.
         self.apply_annotations(ax, options or {})

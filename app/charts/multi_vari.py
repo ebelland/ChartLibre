@@ -21,7 +21,12 @@ from typing import Any, ClassVar
 import numpy as np
 import pandas as pd
 
-from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
+from app.plugin_api.charts.base import (
+    LEGEND_OPTIONS,
+    BaseAxisRenderer,
+    SeriesData,
+    merge,
+)
 from app.utils.coercion import column_of, to_numbers
 
 

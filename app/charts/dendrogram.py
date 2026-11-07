@@ -91,8 +91,8 @@ class DendrogramAxisRenderer(BaseAxisRenderer):
     }
 
     def render_axis(self, ax: Any, series: list[SeriesData], options: dict) -> None:
-        from scipy.cluster import hierarchy  # noqa: PLC0415 - SciPy loads on use
-        from scipy.spatial.distance import pdist  # noqa: PLC0415
+        from scipy.cluster import hierarchy
+        from scipy.spatial.distance import pdist
 
         options = options or {}
         sd = self.single_series(series, reason="two trees on one axis would be drawn over each other")
@@ -135,7 +135,7 @@ class DendrogramAxisRenderer(BaseAxisRenderer):
                 above_threshold_color="0.35",
                 ax=ax,
             )
-        except Exception:  # noqa: BLE001 - SciPy with the user's settings: a bad one costs this element, not the chart
+        except Exception:
             applogger.exception("Dendrogram failed to draw series '%s'.", sd.name)
             return
 

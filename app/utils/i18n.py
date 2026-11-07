@@ -429,7 +429,7 @@ def _platform_language_candidates() -> list[str]:
         system = QLocale.system()
         candidates.extend(str(name) for name in system.uiLanguages())
         candidates.append(str(system.name()))
-    except Exception:  # noqa: BLE001 - pragma: no cover - depends on the Qt build
+    except Exception:
         applogger.warning(
             "Could not read the platform locale from Qt.",
         )
@@ -471,7 +471,7 @@ def _apple_preferred_languages() -> list[str]:
             QSettings.Scope.UserScope,
             "Apple Global Domain",
         ).value("AppleLanguages")
-    except Exception:  # noqa: BLE001 - pragma: no cover - depends on the Qt build
+    except Exception:
         return []
 
     if isinstance(value, str):

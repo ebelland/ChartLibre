@@ -71,7 +71,7 @@ def _field() -> pd.DataFrame:
     return pd.DataFrame({"x": x.ravel(), "y": y.ravel(), "u": -y.ravel(), "v": x.ravel()})
 
 
-def _report(qapp, dialog, casting: dict) -> str:  # noqa: ANN001
+def _report(qapp, dialog, casting: dict) -> str:
     dialog.roles_widget.set_casting(casting)
     if hasattr(dialog, "_add_terms"):  # Fit Model: its effects added, as Add does
         dialog._add_terms([("temp",), ("line",)])

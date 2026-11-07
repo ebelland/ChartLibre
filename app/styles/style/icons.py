@@ -11,7 +11,17 @@ from typing import Any
 
 import numpy as np
 from PySide6.QtCore import QByteArray, QPointF, QRect, QRectF, QSize, Qt
-from PySide6.QtGui import QColor, QFont, QFontDatabase, QGuiApplication, QIcon, QImage, QPainter, QPen, QPixmap
+from PySide6.QtGui import (
+    QColor,
+    QFont,
+    QFontDatabase,
+    QGuiApplication,
+    QIcon,
+    QImage,
+    QPainter,
+    QPen,
+    QPixmap,
+)
 from PySide6.QtSvg import QSvgRenderer
 
 from app.logs.logger import applogger
@@ -392,7 +402,7 @@ def _create_theme_icon(name: str | None) -> QIcon:
             if not QIcon.hasThemeIcon(candidate):
                 continue
             found = QIcon.fromTheme(candidate)
-        except Exception:  # noqa: BLE001 - pragma: no cover - defensive; fromTheme does not raise
+        except Exception:
             applogger.exception("Failed to read theme icon %r", candidate)
             continue
         if not found.isNull():
@@ -611,7 +621,7 @@ def _create_sf_symbol_icon(symbol: str, *, size: int = 20) -> QIcon:
         icon = QIcon(
             _tinted_pixmap(QPixmap.fromImage(qimage), size, tint, ratio=ratio)
         )
-    except Exception as error:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+    except Exception as error:
         applogger.warning(
             "SF Symbol %r could not be rendered (%s); using the SVG icon instead.",
             name,
@@ -732,7 +742,7 @@ def _opaque_bounding_rect(pixmap: QPixmap) -> QRect:
             int(xs.max() - xs.min()) + 1,
             int(ys.max() - ys.min()) + 1,
         )
-    except Exception:  # noqa: BLE001 - a user action's boundary: reported, the window stays open
+    except Exception:
         return pixmap.rect()
 
 

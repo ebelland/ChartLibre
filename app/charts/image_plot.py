@@ -96,11 +96,11 @@ class ImagePlotAxisRenderer(BaseAxisRenderer):
         names: list[str] = []
         rows: list[str] = []
         if path:
-            import matplotlib.image as mpimg  # noqa: PLC0415 - only for a file
+            import matplotlib.image as mpimg
 
             try:
                 data = mpimg.imread(Path(path))
-            except Exception:  # noqa: BLE001 - a missing or unreadable file costs this chart, not the figure
+            except Exception:
                 applogger.exception("Image Plot: cannot read the image file %r.", path)
                 return
             if data.ndim == 3 and data.shape[2] in (3, 4):

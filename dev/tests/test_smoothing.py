@@ -256,7 +256,7 @@ def test_total_variation_denoising_flattens_noise_and_keeps_the_steps_in_every_d
         assert cleaned.shape == shape
         assert np.abs(cleaned - steps).mean() < np.abs(noisy - steps).mean()
         # the total variation fell: that is what the algorithm minimises
-        variation = lambda a: sum(np.abs(np.diff(a, axis=axis)).sum() for axis in range(a.ndim))  # noqa: E731
+        variation = lambda a: sum(np.abs(np.diff(a, axis=axis)).sum() for axis in range(a.ndim))
         assert variation(cleaned) < variation(noisy)
     # a single point, and no weight to speak of, come back as they are
     assert sm._denoise_tv_chambolle(np.array([2.0]), weight=0.1).tolist() == [2.0]

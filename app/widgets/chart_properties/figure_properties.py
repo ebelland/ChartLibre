@@ -29,7 +29,10 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.dialogs.edit_mpl_styles_dialog import MplStyleEditorDialog, _sanitize_mplstyle_text
+from app.dialogs.edit_mpl_styles_dialog import (
+    MplStyleEditorDialog,
+    _sanitize_mplstyle_text,
+)
 from app.logs.logger import applogger
 from app.plugin_api.charts import layout_presets, panel_labels
 from app.plugin_api.charts.render_figure import (
@@ -282,7 +285,7 @@ class FigurePropertiesWidget(BaseProperties):
             return
         try:
             self._repo.set_figure_note(int(figure_id), self._note_edit.toPlainText())
-        except Exception as exc:  # noqa: BLE001 - logged; the text stays in the box
+        except Exception as exc:
             applogger.exception("Could not save the figure's notes: %s", exc)
             return
         if figure_id == self._figure_id:
@@ -1076,7 +1079,9 @@ class FigurePropertiesWidget(BaseProperties):
             editor's own rcParams are what it is drawn with."""
             from dataclasses import replace
 
-            from app.plugin_api.charts.render_figure import render_figure_from_descriptor
+            from app.plugin_api.charts.render_figure import (
+                render_figure_from_descriptor,
+            )
 
             descriptor = repo.load_figure_descriptor(figure_id)
             if descriptor is None:
@@ -1328,7 +1333,7 @@ class FigurePropertiesWidget(BaseProperties):
             dpi = float(rcParams.get("figure.dpi", DEFAULT_FIGURE_DPI))
             apply_configured_dpi(self._figure, self._figure.canvas, dpi)
             self._figure.set_size_inches(float(width_in), float(height_in), forward=False)
-        except Exception:  # noqa: BLE001 - Matplotlib applies the settings: a bad one is skipped
+        except Exception:
             return
         # The chart panel owns how the figure is shown (its FIXED-mode zoom
         # lives in the dpi just overwritten): let it put that back.

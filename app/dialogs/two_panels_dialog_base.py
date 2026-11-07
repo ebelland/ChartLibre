@@ -15,7 +15,14 @@ from dataclasses import dataclass
 from typing import cast
 
 from PySide6.QtCore import Qt
-from PySide6.QtWidgets import QDialog, QHBoxLayout, QSizePolicy, QSplitter, QVBoxLayout, QWidget
+from PySide6.QtWidgets import (
+    QDialog,
+    QHBoxLayout,
+    QSizePolicy,
+    QSplitter,
+    QVBoxLayout,
+    QWidget,
+)
 
 from app.styles.style import (
     CardFrame,

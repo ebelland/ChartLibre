@@ -40,7 +40,11 @@ def test_one_limit_gives_the_one_sided_indices_only() -> None:
 
 
 def test_the_control_chart_gives_capability_with_its_own_sigma(qapp) -> None:
-    from app.data_operations.control_chart_dialog import CHART_INDIVIDUALS, CHART_XBAR_R, SeriesControlChartDialog
+    from app.data_operations.control_chart_dialog import (
+        CHART_INDIVIDUALS,
+        CHART_XBAR_R,
+        SeriesControlChartDialog,
+    )
 
     dialog = SeriesControlChartDialog.__new__(SeriesControlChartDialog)
     rng = np.random.default_rng(6)

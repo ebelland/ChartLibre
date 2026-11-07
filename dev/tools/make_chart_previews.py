@@ -13,16 +13,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 
-import matplotlib  # noqa: E402
+import matplotlib
 
 matplotlib.use("Agg")
 
-from matplotlib.figure import Figure  # noqa: E402
+from matplotlib.figure import Figure
 
-from app.data.sqlite_repo import SqliteRepo  # noqa: E402
-from app.plugin_api.charts.render_figure import render_figure_from_descriptor  # noqa: E402
-from app.widgets.renderer_picker import preview_path  # noqa: E402
-from dev.tests._figure_factory import create_renderer_showcase_db  # noqa: E402
+from app.data.sqlite_repo import SqliteRepo
+from app.plugin_api.charts.render_figure import render_figure_from_descriptor
+from app.widgets.renderer_picker import preview_path
+from dev.tests._figure_factory import create_renderer_showcase_db
 
 
 def main() -> None:

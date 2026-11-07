@@ -8,13 +8,13 @@ from __future__ import annotations
 import matplotlib
 
 matplotlib.use("Agg")
-import matplotlib as mpl  # noqa: E402
-import numpy as np  # noqa: E402
-from matplotlib.figure import Figure  # noqa: E402
+import matplotlib as mpl
+import numpy as np
+from matplotlib.figure import Figure
 
-from app.charts.box import BoxAxisRenderer  # noqa: E402
-from app.data.series_frame import SeriesFrame  # noqa: E402
-from app.plugin_api.charts.base import SeriesData  # noqa: E402
+from app.charts.box import BoxAxisRenderer
+from app.data.series_frame import SeriesFrame
+from app.plugin_api.charts.base import SeriesData
 
 
 def _draw(options: dict, rc: dict):

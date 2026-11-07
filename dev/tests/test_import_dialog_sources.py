@@ -153,7 +153,7 @@ def _isolated_user_web_sources(monkeypatch: pytest.MonkeyPatch) -> dict:
     the real user.json - exactly the "test run rewrote a settings file"
     problem app.utils.config's own docstring warns about.
     """
-    import app.utils.config as config
+    from app.utils import config
 
     stored: list[dict] = []
     monkeypatch.setattr(config, "get_user_web_sources", lambda: list(stored))

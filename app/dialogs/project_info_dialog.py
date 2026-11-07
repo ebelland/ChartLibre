@@ -27,7 +27,12 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from app.data.sqlite_repo import DatabaseError, SqliteRepo, dump_references, parse_references
+from app.data.sqlite_repo import (
+    DatabaseError,
+    SqliteRepo,
+    dump_references,
+    parse_references,
+)
 from app.dialogs.two_panels_dialog_base import PanelDialog
 from app.logs.logger import applogger
 from app.styles.style import create_action_button, load_icon, stdSizeAndlayout

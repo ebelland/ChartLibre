@@ -14,7 +14,7 @@ class _FakeSignal:
     def __init__(self) -> None:
         self.slots: list = []
 
-    def connect(self, slot) -> None:  # noqa: ANN001
+    def connect(self, slot) -> None:
         self.slots.append(slot)
 
 
@@ -22,13 +22,13 @@ def _dialog_class(draws: bool):
     class Dialog:
         opened_on: list[int] = []
 
-        def __init__(self, repo, figure_id, parent=None) -> None:  # noqa: ANN001
+        def __init__(self, repo, figure_id, parent=None) -> None:
             self.repo, self.figure_id = repo, figure_id
             type(self).opened_on.append(figure_id)
             self.applied = _FakeSignal()
             self.results_published = _FakeSignal()
 
-        def setWindowIcon(self, _icon) -> None:  # noqa: ANN001, N802
+        def setWindowIcon(self, _icon) -> None:
             pass
 
         def exec(self) -> None:

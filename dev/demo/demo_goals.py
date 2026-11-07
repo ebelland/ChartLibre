@@ -37,7 +37,12 @@ from typing import Any
 from app.data.demos import DEMO_DIR, DEMO_PROJECTS, DemoProject
 from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
-from dev.demo.demo_operations import OperationDemo, _create_source_figure, _run_operation, _store_report
+from dev.demo.demo_operations import (
+    OperationDemo,
+    _create_source_figure,
+    _run_operation,
+    _store_report,
+)
 from dev.demo.demo_questions import _ask
 
 PENGUIN_MEASURES = ["bill_length_mm", "bill_depth_mm", "flipper_length_mm", "body_mass_g"]
@@ -211,7 +216,7 @@ def _chart(repo: SqliteRepo, table: str, columns: list[str], index: int) -> None
 def _build(builder: str, directory: Path) -> Path:
     from PySide6.QtWidgets import QApplication, QMessageBox
 
-    import app.utils.config as config
+    from app.utils import config
     from dev.demo.build_demos import TABLE_SOURCES
 
     app = QApplication.instance() or QApplication([])

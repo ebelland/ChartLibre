@@ -12,7 +12,14 @@ from collections.abc import Sequence
 
 from PySide6.QtCore import QSize, Qt, Signal
 from PySide6.QtGui import QMouseEvent
-from PySide6.QtWidgets import QFrame, QHBoxLayout, QMenu, QSizePolicy, QToolButton, QWidget
+from PySide6.QtWidgets import (
+    QFrame,
+    QHBoxLayout,
+    QMenu,
+    QSizePolicy,
+    QToolButton,
+    QWidget,
+)
 
 from app.styles.style import IS_MACOS, action_presentation
 
@@ -90,7 +97,7 @@ class ChartJumpBar(QFrame):
         self._previous.setEnabled(has_current and current > 0)
         self._next.setEnabled(has_current and current < len(names) - 1)
 
-    def mousePressEvent(self, event: QMouseEvent) -> None:  # noqa: N802
+    def mousePressEvent(self, event: QMouseEvent) -> None:
         if IS_MACOS and event.button() == Qt.MouseButton.LeftButton:
             handle = self.window().windowHandle()
             if handle is not None:

@@ -195,7 +195,7 @@ def test_stop_shows_the_bar_and_then_writes_nothing(
     release = threading.Event()
     original = cls.compute_series
 
-    def slow(self, name, data, settings):  # noqa: ANN001 - the dialog's own signature
+    def slow(self, name, data, settings):
         release.wait(10.0)
         return original(self, name, data, settings)
 
@@ -255,7 +255,7 @@ def test_stop_appearing_does_not_move_the_other_buttons(
     release = threading.Event()
     original = cls.compute_series
 
-    def slow(self, name, data, settings):  # noqa: ANN001 - the dialog's own signature
+    def slow(self, name, data, settings):
         release.wait(10.0)
         return original(self, name, data, settings)
 

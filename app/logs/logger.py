@@ -244,7 +244,7 @@ class QtLogEventHandler(logging.Handler):
                 int(record.levelno),
                 record.getMessage(),
             )
-        except Exception:  # noqa: BLE001 - logging.Handler contract: handleError, never raise
+        except Exception:
             self.handleError(record)
 
 

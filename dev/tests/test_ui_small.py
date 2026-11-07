@@ -30,9 +30,9 @@ from app.utils import screen_fit
 # (was test_font_scale.py)
 # ======================================================================
 matplotlib.use("Agg")
-from matplotlib.figure import Figure  # noqa: E402
+from matplotlib.figure import Figure
 
-from app.plugin_api.charts.render_figure import _apply_font_scale, font_scale_option  # noqa: E402
+from app.plugin_api.charts.render_figure import _apply_font_scale, font_scale_option
 
 
 def _figure_with_one_axis():
@@ -151,7 +151,7 @@ def test_a_new_plot_becomes_the_current_tab(qapp, tmp_path: Path, monkeypatch) -
             self.chart_result: NewPlotTabResult | None = None
             self._repo = repo_
 
-        def setWindowIcon(self, _icon) -> None:  # noqa: N802 - Qt's name
+        def setWindowIcon(self, _icon) -> None:
             pass
 
         def exec(self) -> int:

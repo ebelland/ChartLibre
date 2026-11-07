@@ -4,8 +4,8 @@ from __future__ import annotations
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import QStyleOptionViewItem
 
-import app.utils.config as config
 from app.dialogs.edit_mpl_styles_dialog import MplStyleEditorDialog, style_rc_keys
+from app.utils import config
 
 
 def test_no_system_rcparams_are_offered() -> None:

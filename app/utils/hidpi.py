@@ -68,7 +68,7 @@ def apply_configured_dpi(figure: Any, canvas: Any, configured_dpi: float) -> flo
     # threw away the FIXED-mode zoom (dpi fell from 374 to 200 at 187 %) and
     # the figure was drawn at half the canvas, with stale pixels around it.
     if hasattr(figure, "_original_dpi"):
-        figure._original_dpi = max(1.0, float(configured_dpi))  # noqa: SLF001
+        figure._original_dpi = max(1.0, float(configured_dpi))
     figure.set_dpi(device_dpi)
     return device_dpi
 

@@ -12,7 +12,13 @@ from typing import cast
 
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.gaussian_process.kernels import RBF, Kernel, Matern, RationalQuadratic, WhiteKernel
+from sklearn.gaussian_process.kernels import (
+    RBF,
+    Kernel,
+    Matern,
+    RationalQuadratic,
+    WhiteKernel,
+)
 
 from app.analysis import NUMERICAL_FAILURES
 from app.analysis.regression import GRID_POINTS

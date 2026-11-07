@@ -2,7 +2,12 @@
 from __future__ import annotations
 
 from app.dialogs.settings_dialog import _mpl_style_choices
-from app.styles.style import APP_STYLE_AUTOMATIC, APP_STYLE_QSS, available_app_styles, resolve_app_style
+from app.styles.style import (
+    APP_STYLE_AUTOMATIC,
+    APP_STYLE_QSS,
+    available_app_styles,
+    resolve_app_style,
+)
 from app.utils.config import MPLSTYLES_DIR
 
 

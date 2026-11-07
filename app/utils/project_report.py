@@ -158,7 +158,7 @@ def build_project_report(
         try:
             report.images[picture] = render_figure_bytes(repo, figure_id, image_format=image_format, dpi=dpi)
             image = f'<img src="{picture}" width="620" style="max-width:100%;" alt="{html.escape(name)}">'
-        except Exception as exc:  # noqa: BLE001 - one broken figure must not cost the report
+        except Exception as exc:
             report.failures.append((name, str(exc) or type(exc).__name__))
             image = report_html.note(_("This figure could not be drawn: {reason}").format(reason=exc))
         blocks = [f"<p style='margin:0 0 8px 0;'>{image}</p>"]

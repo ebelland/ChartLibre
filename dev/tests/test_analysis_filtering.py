@@ -12,7 +12,12 @@ import numpy as np
 import pytest
 
 from app.analysis import filtering as flt
-from app.analysis.filtering import analytic_signal, apply_detrend, apply_fir_filter, apply_iir_filter
+from app.analysis.filtering import (
+    analytic_signal,
+    apply_detrend,
+    apply_fir_filter,
+    apply_iir_filter,
+)
 from app.analysis.sampling import sampling_frequency
 from dev.tests._cases import check_all
 

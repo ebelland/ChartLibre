@@ -25,7 +25,11 @@ from pathlib import Path
 from typing import Any
 
 from app.utils.config import TEMPLATES_DIR
-from app.utils.figure_metrics import OPT_FIGURE_DPI, OPT_FIGURE_HEIGHT_CM, OPT_FIGURE_WIDTH_CM
+from app.utils.figure_metrics import (
+    OPT_FIGURE_DPI,
+    OPT_FIGURE_HEIGHT_CM,
+    OPT_FIGURE_WIDTH_CM,
+)
 
 VERSION = 1
 SUFFIX = ".json"

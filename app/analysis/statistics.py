@@ -271,7 +271,7 @@ def randomness_tests(
     values = finite(values)
     try:
         diagnostics = all_diagnostics(values, lags=lags, model_df=model_df, centre=centre)
-    except Exception as exc:  # noqa: BLE001 - preserve a complete statistics report
+    except Exception as exc:
         applogger.error(f"Randomness diagnostics failed: {exc}")
         return [note_row(_("Randomness diagnostics"), values.size, str(exc))]
     rows: list[dict[str, Any]] = []

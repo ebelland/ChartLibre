@@ -20,7 +20,12 @@ from typing import Any, ClassVar
 import numpy as np
 
 from app.logs.logger import applogger
-from app.plugin_api.charts.base import LEGEND_OPTIONS, BaseAxisRenderer, SeriesData, merge
+from app.plugin_api.charts.base import (
+    LEGEND_OPTIONS,
+    BaseAxisRenderer,
+    SeriesData,
+    merge,
+)
 from app.utils.coercion import column_of, to_numbers
 
 _PERIOD = {"degrees": 360.0, "radians": 2 * np.pi, "hours": 24.0}
@@ -116,7 +121,7 @@ class WindRoseAxisRenderer(BaseAxisRenderer):
                 edges = np.array([edges[0] - 0.5, edges[0] + 0.5])
                 count = 1
             band = np.clip(np.digitize(value, edges[1:-1]), 0, count - 1)
-            import matplotlib  # noqa: PLC0415 - only for the colormap
+            import matplotlib
 
             cmap = matplotlib.colormaps[str(self.opt("cmap", style) or "viridis")]
             bottom = np.zeros(sectors)

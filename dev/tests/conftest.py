@@ -18,7 +18,7 @@ import pytest
 # The assistant's key lives in the system keychain: the tests never read or write the developer's.
 os.environ["PYTHON_KEYRING_BACKEND"] = "keyring.backends.null.Keyring"
 
-from app.logs.logger import AppLogger  # noqa: E402 - after the keychain is set aside
+from app.logs.logger import AppLogger
 
 # The tests log to a file of their own. They shared the application's -
 # app/logs/chartlibre.log - so its Log window showed the errors the tests cause
@@ -27,7 +27,7 @@ from app.logs.logger import AppLogger  # noqa: E402 - after the keychain is set 
 AppLogger.reset()
 AppLogger.configure(Path(tempfile.gettempdir()) / "chartlibre-test-logs")
 
-from app.data.sqlite_repo import SqliteRepo  # noqa: E402 - after the logger is moved
+from app.data.sqlite_repo import SqliteRepo
 
 matplotlib.use("Agg")
 

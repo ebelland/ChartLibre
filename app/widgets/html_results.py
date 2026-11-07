@@ -72,7 +72,7 @@ try:
         replaces the report with the website, in a pane with no back button.
         """
 
-        def acceptNavigationRequest(self, url, navigation_type, is_main_frame):  # noqa: N802 - Qt override
+        def acceptNavigationRequest(self, url, navigation_type, is_main_frame):
             if navigation_type == QWebEnginePage.NavigationType.NavigationTypeLinkClicked:
                 _open_link(self.parent(), url.toString())
                 return False
@@ -253,7 +253,7 @@ class HtmlResultsView(QWidget):
     # test run). So when the window hides, its view and page leave it and are
     # deleted by the event loop, page first; a window shown again gets a new
     # view with the same report.
-    def showEvent(self, event) -> None:  # noqa: N802, ANN001 - Qt override
+    def showEvent(self, event) -> None:
         super().showEvent(event)
         window = self.window()
         if window is not self._watched_window and window is not self:
@@ -264,7 +264,7 @@ class HtmlResultsView(QWidget):
         if self._parked:
             self._unpark_viewer()
 
-    def eventFilter(self, watched: QObject, event: QEvent) -> bool:  # noqa: N802 - Qt override
+    def eventFilter(self, watched: QObject, event: QEvent) -> bool:
         if (watched is self._watched_window and event.type() == QEvent.Type.Hide
                 and not self._watched_window.isMinimized()):
             self._park_viewer()
@@ -367,12 +367,12 @@ class HtmlResultsView(QWidget):
         )
         return browser
 
-    def setText(self, text: str) -> None:  # noqa: N802 - Qt's name
+    def setText(self, text: str) -> None:
         """Show plain text, escaped and line-broken into HTML."""
         self._plain_text = str(text or "")
         self.setHtml(plain_to_html(self._plain_text), plain_source=self._plain_text)
 
-    def setHtml(self, markup: str, *, plain_source: str = "") -> None:  # noqa: N802 - Qt's name
+    def setHtml(self, markup: str, *, plain_source: str = "") -> None:
         """Show HTML markup directly."""
         self._html = str(markup or "")
         self._plain_text = str(plain_source or "")
@@ -387,7 +387,7 @@ class HtmlResultsView(QWidget):
         if callable(setter):
             setter(self._html)
 
-    def setContent(self, content: str) -> None:  # noqa: N802 - Qt's name
+    def setContent(self, content: str) -> None:
         """Render HTML if content looks like markup, otherwise render as text.
 
         Use this from shared dialog code when callers may pass either plain text
@@ -403,15 +403,15 @@ class HtmlResultsView(QWidget):
         """Return the plain-text form, or HTML when HTML was set directly."""
         return self._plain_text if self._plain_text else self._html
 
-    def setWordWrap(self, _enabled: bool) -> None:  # noqa: N802 - Qt's name
+    def setWordWrap(self, _enabled: bool) -> None:
         """Accepted for QLabel compatibility; the viewer always wraps."""
         return None
 
-    def setAlignment(self, _alignment: Qt.AlignmentFlag) -> None:  # noqa: N802 - Qt's name
+    def setAlignment(self, _alignment: Qt.AlignmentFlag) -> None:
         """Accepted for QLabel compatibility; alignment comes from the markup."""
         return None
 
-    def setTextInteractionFlags(self, _flags: Qt.TextInteractionFlag) -> None:  # noqa: N802 - Qt's name
+    def setTextInteractionFlags(self, _flags: Qt.TextInteractionFlag) -> None:
         """Accepted for QLabel compatibility; the viewer sets its own flags."""
         return None
 

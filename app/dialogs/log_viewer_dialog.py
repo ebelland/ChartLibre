@@ -80,5 +80,5 @@ class LogViewerDialog(PanelDialog):
         self._viewer.clear()
         self._caption.setText(_("The log was cleared."))
 
-    def closeEvent(self, event: QCloseEvent) -> None:  # noqa: N802 - Qt's name
+    def closeEvent(self, event: QCloseEvent) -> None:
         super().closeEvent(event)

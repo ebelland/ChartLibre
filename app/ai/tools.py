@@ -180,7 +180,7 @@ class AssistantTools:
             return f"Wrong arguments for {name}: {error}", True
         try:
             return _cut(str(handler(**dict(arguments))), self.max_result), False
-        except Exception as error:  # noqa: BLE001 - told to the model, which can try otherwise
+        except Exception as error:
             return f"{type(error).__name__}: {error}", True
 
     # -- read ------------------------------------------------------------
@@ -263,26 +263,26 @@ class AssistantTools:
         if analysis not in self.catalogue():
             raise ValueError(f"No analysis named '{analysis}'. They are: {', '.join(sorted(self.catalogue()))}.")
         lines = []
-        for name, entry in ((analysis, self.catalogue()[analysis]),):
-            cls = import_class_from_file(entry)
-            lines.append(f"## {name} - {entry.get('description', '')}")
-            for role in getattr(cls, "ROLES", ()):
-                most = f"at most {role.maximum}" if role.maximum else "any number"
-                lines.append(f"  role {role.key} ({role.label}): {', '.join(role.kinds)}; at least {role.minimum}, "
-                             f"{most} - {role.tooltip or role.label}")
-            for param in getattr(cls, "PARAMS", ()):
-                if isinstance(param, ChoiceParam):
-                    kind = "one of " + ", ".join(str(value) for _label, value in param.labelled_choices())
-                elif isinstance(param, (IntParam, FloatParam)):
-                    kind = f"number {param.minimum}..{param.maximum}"
-                elif isinstance(param, BoolParam):
-                    kind = "true/false"
-                else:
-                    kind = "text"
-                lines.append(f"  parameter {param.name}: {kind}, default {param.default!r}")
-            models = list(getattr(cls, "MODELS", {}) or {})
-            if models:
-                lines.append(f"  models: {', '.join(models)}")
+        entry = self.catalogue()[analysis]
+        cls = import_class_from_file(entry)
+        lines.append(f"## {analysis} - {entry.get('description', '')}")
+        for role in getattr(cls, "ROLES", ()):
+            most = f"at most {role.maximum}" if role.maximum else "any number"
+            lines.append(f"  role {role.key} ({role.label}): {', '.join(role.kinds)}; at least {role.minimum}, "
+                         f"{most} - {role.tooltip or role.label}")
+        for param in getattr(cls, "PARAMS", ()):
+            if isinstance(param, ChoiceParam):
+                kind = "one of " + ", ".join(str(value) for _label, value in param.labelled_choices())
+            elif isinstance(param, (IntParam, FloatParam)):
+                kind = f"number {param.minimum}..{param.maximum}"
+            elif isinstance(param, BoolParam):
+                kind = "true/false"
+            else:
+                kind = "text"
+            lines.append(f"  parameter {param.name}: {kind}, default {param.default!r}")
+        models = list(getattr(cls, "MODELS", {}) or {})
+        if models:
+            lines.append(f"  models: {', '.join(models)}")
         return "\n".join(lines)
 
     def _table(self, table: str) -> str:
@@ -442,7 +442,7 @@ class AssistantTools:
 
     # -- changes ---------------------------------------------------------
 
-    def _tool_add_column(self, table: str, name: str, expression: str, type: str = "") -> str:  # noqa: A002
+    def _tool_add_column(self, table: str, name: str, expression: str, type: str = "") -> str:
         if not self._confirm(f"Add the column '{name}' to '{table}', computed as:\n\n{expression}"):
             return "The user declined the change."
         self._repo.add_column_from_expression(table, name, expression, type or None)

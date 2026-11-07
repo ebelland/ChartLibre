@@ -568,7 +568,7 @@ class HistogramAxisRenderer(BaseAxisRenderer):
 
         try:
             ax.hist(datasets, **hist_kwargs)
-        except Exception:  # noqa: BLE001 - Matplotlib with the user's settings: a bad one costs this element, not the chart
+        except Exception:
             applogger.exception("Horizontal histogram failed to draw.")
             return
 

@@ -106,7 +106,7 @@ def build_fit_model_demo(directory: Path = DEMO_DIR) -> Path:
     """Write the designed-experiment demo into *directory* and return its path."""
     from PySide6.QtWidgets import QApplication, QMessageBox
 
-    import app.utils.config as config
+    from app.utils import config
 
     app = QApplication.instance() or QApplication([])
     real_exec = QMessageBox.exec

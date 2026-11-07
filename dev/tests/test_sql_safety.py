@@ -26,7 +26,7 @@ def rows(repo: SqliteRepo) -> int:
 
 
 def guard(monkeypatch, on: bool) -> None:
-    import app.utils.config as config
+    from app.utils import config
 
     real = config.get_value
     monkeypatch.setattr(config, "get_value", lambda name, default=None: on if name == "sql_guard" else real(name, default))

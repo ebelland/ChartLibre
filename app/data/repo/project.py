@@ -9,7 +9,7 @@ import re
 import sqlite3
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime, timezone
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, ClassVar
 
@@ -171,11 +171,11 @@ def file_created_at(path: Path) -> datetime | None:
     stamp = getattr(info, "st_birthtime", None)
     if stamp is None:
         stamp = info.st_ctime if os.name == "nt" else info.st_mtime
-    return datetime.fromtimestamp(stamp, tz=timezone.utc)
+    return datetime.fromtimestamp(stamp, tz=UTC)
 
 
 def _iso(moment: datetime) -> str:
-    return moment.astimezone(timezone.utc).isoformat(timespec="seconds")
+    return moment.astimezone(UTC).isoformat(timespec="seconds")
 
 
 if TYPE_CHECKING:
@@ -1521,7 +1521,7 @@ class ProjectMixin(_Host):
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                datetime.now(UTC).isoformat(timespec="seconds"),
                 str(operation),
                 str(dialog),
                 _json(dict(parameters)),
@@ -1598,7 +1598,7 @@ class ProjectMixin(_Host):
             "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name NOT LIKE '__%__' ESCAPE '_' "
             "AND name NOT LIKE 'sqlite_%' LIMIT 1"
         ).fetchone() or self._con.execute("SELECT 1 FROM __figure_descriptors__ LIMIT 1").fetchone()
-        born = (file_created_at(path) if (path is not None and has_content) else None) or datetime.now(timezone.utc)
+        born = (file_created_at(path) if (path is not None and has_content) else None) or datetime.now(UTC)
         self._con.execute(
             f"INSERT OR IGNORE INTO {PROJECT_INFO_TABLE} (key, value) VALUES ('created', ?)", (_iso(born),)
         )
