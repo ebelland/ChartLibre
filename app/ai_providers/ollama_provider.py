@@ -152,6 +152,42 @@ class OllamaSession(ChatSession):
         return turn
 
 
+    # -- the form (app.ai.form): a small model fills one form instead of choosing tools -----------------------
+
+    def fill(self, *, model: str, instructions: str, schema: Mapping[str, Any], text: str,
+             cancel: threading.Event) -> dict[str, Any]:
+        """The form *schema* filled for *text*: Ollama's structured output (format) keeps it to the schema."""
+        del cancel  # one short, unstreamed answer
+        payload = {"model": model, "stream": False, "format": dict(schema), "options": {"num_ctx": self._context},
+                   "messages": [{"role": "system", "content": instructions}, {"role": "user", "content": text}]}
+        try:
+            answer = post_json(self._url, payload, timeout=300)
+        except ProviderHTTPError as error:
+            raise RuntimeError(_readable(str(error), model)) from error
+        return _arguments(str((answer.get("message") or {}).get("content") or "{}"))
+
+    def say(self, *, model: str, text: str, on_text: Callable[[str], None], cancel: threading.Event) -> Turn:
+        """An answer to *text* in words, no tools offered; kept in the conversation's history."""
+        self._messages.append({"role": "user", "content": text})
+        turn = Turn(model=model)
+        payload = {"model": model, "messages": self._messages, "stream": True, "options": {"num_ctx": self._context}}
+        try:
+            for item in json_lines(stream_lines(self._url, payload, cancel=cancel)):
+                piece = str((item.get("message") or {}).get("content") or "")
+                if piece:
+                    turn.text += piece
+                    on_text(piece)
+                if item.get("done"):
+                    turn.input_tokens = int(item.get("prompt_eval_count") or 0)
+                    turn.output_tokens = int(item.get("eval_count") or 0)
+        except ProviderHTTPError as error:
+            raise RuntimeError(_readable(str(error), model)) from error
+        if cancel.is_set():
+            turn.stop = "stopped"
+        self._messages.append({"role": "assistant", "content": turn.text})
+        return turn
+
+
 def _readable(problem: str, model: str) -> str:
     if "not found" in problem and "model" in problem:
         return f"The model '{model}' is not installed in Ollama: ollama pull {model}"

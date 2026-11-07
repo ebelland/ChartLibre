@@ -298,3 +298,54 @@ def test_a_column_given_as_the_table_and_a_stray_argument_are_mended(repo) -> No
     tools, _made = _tools(repo)
     text, failed = tools.run("describe_table", {"table": "mass", " extra": 1}, settings.ANALYSES)
     assert not failed and text.startswith("birds:")
+
+
+class _FormSession(ChatSession):
+    """A small model's session: it fills the form it is given and says what it is told to (never a tool)."""
+
+    def __init__(self, filled: dict) -> None:
+        self.filled, self.schema, self.prompt = filled, {}, ""
+
+    def send(self, **_kwargs) -> Turn:
+        raise AssertionError("a small model is not asked to choose tools")
+
+    def fill(self, *, model: str, instructions: str, schema, text: str, cancel) -> dict:
+        self.schema = schema
+        assert "birds: species, mass" in instructions
+        return self.filled
+
+    def say(self, *, model: str, text: str, on_text, cancel) -> Turn:
+        self.prompt = text
+        on_text("Yes.")
+        return Turn(text="Yes.", model=model)
+
+
+class _SmallProvider(_Provider):
+    SMALL_MODEL = True
+
+    def __init__(self, filled: dict) -> None:
+        self.session = _FormSession(filled)
+
+
+def test_a_small_model_fills_the_form_and_the_application_runs_it(qapp, repo) -> None:
+    filled = {"action": "compare_groups", "table": "birds", "measure": "mass", "groups": "species"}
+    provider = _SmallProvider(filled)
+    tools, _made = _tools(repo)
+    assistant = Assistant(provider, tools, api_key="", level=settings.ANALYSES, mode=settings.AUTO)
+    used, text, ended = _converse(qapp, assistant, "Is mass different between species?")
+    assert used == ["compare_groups"] and text == "Yes." and ended == ["big"]
+    properties = provider.session.schema["properties"]
+    assert properties["table"]["enum"] == ["birds"] and "mass" in properties["measure"]["enum"]
+    assert "change_data" not in properties["action"]["enum"]
+    assert "The application ran compare_groups" in provider.session.prompt
+
+
+def test_the_form_mends_a_chart_s_roles(repo) -> None:
+    from app.ai import form
+
+    tools, made = _tools(repo)
+    action, text, failed = form.execute(tools, {"action": "create_chart", "table": "birds", "chart_type": "Box Plot",
+                                                "x": "species", "y": ["mass"]}, settings.ANALYSES)
+    assert action == "create_chart" and not failed and made
+    action, text, failed = form.execute(tools, {"action": "answer", "table": "birds"}, settings.READ_ONLY)
+    assert not failed and text.startswith("birds:")

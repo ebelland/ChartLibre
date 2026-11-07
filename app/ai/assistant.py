@@ -98,11 +98,35 @@ class Assistant(QObject):
             return
         self._tool_turns, self._tokens = 0, [0, 0]
         self.busy_changed.emit(True)
+        if self._provider.SMALL_MODEL and hasattr(self._session, "fill"):
+            self._ask_with_form(text)
+            return
         if self._mode == settings.AUTO:
             self._start(lambda _cancel: self._provider.classify(text, api_key=self._api_key),
                         lambda tier: self._send(tier=str(tier), user_text=text))
         else:
             self._send(tier=FAST if self._mode == FAST else ACCURATE, user_text=text)
+
+    def _ask_with_form(self, text: str) -> None:
+        """A small model: it fills the form, the application runs it, the model says what came of it (form.py)."""
+        from app.ai import form
+
+        model = self._models[ACCURATE]
+        instructions, schema = form.instructions(self._tools, self._level), form.schema(self._tools, self._level)
+
+        def run(filled: Any) -> None:  # GUI thread: the tools read and change the project
+            action, content, failed = form.execute(self._tools, dict(filled or {}), self._level)
+            if action != "answer":
+                self.tool_used.emit(action, content.splitlines()[0][:200] if content else "")
+            self._flush_timer.start()
+            prompt = form.answer_prompt(text, action, content, failed)
+            self._start(lambda cancel: self._session.say(model=model, text=prompt, on_text=self._buffered,
+                                                         cancel=cancel),
+                        self._on_turn)
+
+        self._start(lambda cancel: self._session.fill(model=model, instructions=instructions, schema=schema,
+                                                      text=text, cancel=cancel),
+                    run)
 
     def stop(self) -> None:
         if self._task is not None:

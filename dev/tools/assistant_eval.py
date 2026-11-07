@@ -48,7 +48,7 @@ class Case:
 
 
 CASES: tuple[Case, ...] = (
-    Case("Which tables are in this project?", ("list_tables",), (), "answer"),
+    Case("Which tables are in this project?", ("list_tables", "answer", "describe_table"), (), "answer"),
     Case("Describe the penguins table.", ("describe_table",), (), "answer"),
     Case("How many penguins are there of each species?", ("query", "describe_table", "compare_groups"),
          ("species",), "number"),
@@ -120,7 +120,7 @@ def judge(case: Case, result: Result) -> tuple[bool, str]:
     return True, "ok"
 
 
-def run_case(provider, index: int, case: Case, level: str, api_key: str, folder: Path) -> Result:
+def run_case(provider, index: int, case: Case, level: str, api_key: str, folder: Path, use_form: bool = True) -> Result:
     from app.ai.assistant import system_prompt
     from app.ai.tools import AssistantTools
     from app.data.sqlite_repo import SqliteRepo
@@ -143,20 +143,33 @@ def run_case(provider, index: int, case: Case, level: str, api_key: str, folder:
         session = provider.start(api_key=api_key, system=system_prompt(provider, tools, level),
                                  tools=tools.specs(level))
         pieces: list[str] = []
-        turn = session.send(model=model, user_text=case.request, tool_results=(), on_text=pieces.append,
-                            cancel=threading.Event())
-        for _step in range(MAX_TURNS):
-            if turn.stop != "tools":
-                break
-            results = []
-            for call in turn.tool_calls:
-                content, is_error = tools.run(call.name, call.input, level)
-                result.calls.append({"name": call.name, "input": dict(call.input), "error": is_error,
-                                     "result": content[:300]})
-                results.append(ToolResult(call.id, content, is_error))
-            turn = session.send(model=model, user_text=None, tool_results=tuple(results), on_text=pieces.append,
+        if use_form and provider.SMALL_MODEL and hasattr(session, "fill"):
+            from app.ai import form
+
+            filled = session.fill(model=model, instructions=form.instructions(tools, level),
+                                  schema=form.schema(tools, level), text=case.request, cancel=threading.Event())
+            action, content, is_error = form.execute(tools, filled, level)
+            # "answer" reads the table's summary: counted as the describe_table it runs.
+            name = "describe_table" if action == "answer" and filled.get("table") else action
+            result.calls.append({"name": name, "input": filled, "error": is_error, "result": content[:300]})
+            session.say(model=model, text=form.answer_prompt(case.request, action, content, is_error),
+                        on_text=pieces.append, cancel=threading.Event())
+            result.answer = "".join(pieces)
+        else:
+            turn = session.send(model=model, user_text=case.request, tool_results=(), on_text=pieces.append,
                                 cancel=threading.Event())
-        result.answer = "".join(pieces)
+            for _step in range(MAX_TURNS):
+                if turn.stop != "tools":
+                    break
+                results = []
+                for call in turn.tool_calls:
+                    content, is_error = tools.run(call.name, call.input, level)
+                    result.calls.append({"name": call.name, "input": dict(call.input), "error": is_error,
+                                         "result": content[:300]})
+                    results.append(ToolResult(call.id, content, is_error))
+                turn = session.send(model=model, user_text=None, tool_results=tuple(results), on_text=pieces.append,
+                                    cancel=threading.Event())
+            result.answer = "".join(pieces)
     except Exception as error:  # the provider's failure is the case's verdict
         result.error = f"{type(error).__name__}: {error}"
     finally:
@@ -172,6 +185,7 @@ def main() -> int:
     parser.add_argument("provider", choices=sorted(PROVIDERS))
     parser.add_argument("--only", type=int, default=0, help="run only case N (1-20)")
     parser.add_argument("--level", default="analyses", choices=["read_only", "analyses", "everything"])
+    parser.add_argument("--tools", action="store_true", help="a small model too chooses tools (before step C)")
     options = parser.parse_args()
 
     from app.utils.qt_plugins import ensure_visible_plugins
@@ -198,7 +212,7 @@ def main() -> int:
     results: list[Result] = []
     with tempfile.TemporaryDirectory(prefix="assistant_eval_") as folder:
         for index, case in cases:
-            result = run_case(provider, index, case, options.level, api_key, Path(folder))
+            result = run_case(provider, index, case, options.level, api_key, Path(folder), not options.tools)
             results.append(result)
             mark = "PASS" if result.passed else "FAIL"
             print(f"{index:2}. {mark} {result.seconds:6.1f}s  {case.request}")
