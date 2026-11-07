@@ -3084,6 +3084,8 @@ class DataOperationDialogBase(QDialog):
         of text.
         """
         body = formatted if looks_like_html(formatted) else plain_to_html(formatted)
+        # A report_html.document already opens with the operation's name: said once, by the heading below.
+        body = body.replace(report_html.document_title(self.operation_label), "", 1)
         stamp = datetime.now().strftime("%Y-%m-%d %H:%M")
         return (
             f"<h3 style='margin:0 0 4px 0;'>{html.escape(self.operation_label)}</h3>"

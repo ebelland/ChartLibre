@@ -233,9 +233,14 @@ def with_reading_guide(body: str, box: str) -> str:
     return body + box
 
 
+def document_title(title: str) -> str:
+    """The title line a document opens with."""
+    return f"<div style='font-size:12pt;font-weight:600;color:{_TEXT};'>{html.escape(title)}</div>"
+
+
 def document(title: str, subtitle: str = "", *sections: str) -> str:
     """Wrap sections in the report shell: title, optional subtitle, body."""
-    head = f"<div style='font-size:12pt;font-weight:600;color:{_TEXT};'>{html.escape(title)}</div>"
+    head = document_title(title)
     if subtitle:
         head += f"<div style='color:{_MUTED};margin:2px 0 12px 0;'>{html.escape(subtitle)}</div>"
     else:
