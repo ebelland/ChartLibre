@@ -2446,7 +2446,7 @@ class MainWindow(QMainWindow):
         but Cocoa then *replaces* its text with its own "About {name}" /
         "Hide {name}" / "Quit {name}" template - not read from the QAction at
         all, so nothing on the Qt side can change it.  The assumption in
-        main.py that QApplication.setApplicationName() controls "{name}" does
+        ChartLibre.py that QApplication.setApplicationName() controls "{name}" does
         not hold here: measured directly, Cocoa's template uses
         NSProcessInfo.processName (the running interpreter, "Python" for an
         unsigned script) instead, which no public Qt or Cocoa API renames

@@ -4,7 +4,7 @@
  *
  *   - once .python holds Python and the libraries (its CHARTLIBRE_READY
  *     file says so - a ready-made package has it from the start), it starts
- *     .python\pythonw.exe main.py with no console window at all, and exits;
+ *     .python\pythonw.exe ChartLibre.py with no console window at all, and exits;
  *   - an install made before .python is started from .venv the same way;
  *   - before either, it runs ChartLibre.bat in a console window, which
  *     downloads Python, installs the libraries with its progress on screen,
@@ -81,7 +81,7 @@ int WINAPI wWinMain(HINSTANCE instance, HINSTANCE previous, PWSTR arguments, int
     if (!join(ready, BUF, folder, L"\\.python\\CHARTLIBRE_READY", NULL, NULL, NULL)
         || !join(runtime, BUF, folder, L"\\.python\\pythonw.exe", NULL, NULL, NULL)
         || !join(pythonw, BUF, folder, L"\\.venv\\Scripts\\pythonw.exe", NULL, NULL, NULL)
-        || !join(script, BUF, folder, L"\\main.py", NULL, NULL, NULL)
+        || !join(script, BUF, folder, L"\\ChartLibre.py", NULL, NULL, NULL)
         || !join(batch, BUF, folder, L"\\ChartLibre.bat", NULL, NULL, NULL)) {
         fail(L"The ChartLibre folder's path is too long.");
         return 1;

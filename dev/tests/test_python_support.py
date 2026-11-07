@@ -53,7 +53,7 @@ def test_every_pin_is_exact() -> None:
 
 def _text_opens_without_encoding() -> list[str]:
     hits: list[str] = []
-    for path in sorted((ROOT / "app").rglob("*.py")) + [ROOT / "main.py", ROOT / "install.py"]:
+    for path in sorted((ROOT / "app").rglob("*.py")) + [ROOT / "ChartLibre.py", ROOT / "install.py"]:
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for call in ast.walk(tree):
             if not isinstance(call, ast.Call):

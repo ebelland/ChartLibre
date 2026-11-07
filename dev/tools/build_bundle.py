@@ -286,7 +286,7 @@ def web_check(python: Path) -> None:
 
 def smoke_test(python: Path, folder: Path, seconds: float = 20.0) -> None:
     """Start ChartLibre without a window; it must still be running after *seconds*."""
-    command, env = windowless([str(python), str(folder / "main.py")])
+    command, env = windowless([str(python), str(folder / "ChartLibre.py")])
     log = folder.parent / "smoke.log"
     with log.open("w", encoding="utf-8") as out:
         process = subprocess.Popen(command, cwd=folder, env=env,

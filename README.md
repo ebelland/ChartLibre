@@ -207,7 +207,7 @@ With your own Python 3.14 or newer, from a terminal:
 git clone https://github.com/ebelland/ChartLibre.git
 cd ChartLibre
 python3 install.py        # creates .venv and installs requirements.txt
-.venv/bin/python3 main.py # on Windows: .venv\Scripts\python.exe main.py
+.venv/bin/python3 ChartLibre.py # on Windows: .venv\Scripts\python.exe ChartLibre.py
 ```
 </details>
 

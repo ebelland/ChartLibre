@@ -29,10 +29,10 @@ get_python() {  # download Python 3.15.0 into .python, once
 if [ -f .python/CHARTLIBRE_READY ]; then
   # A ready-made package: add the menu entry the first time it runs here.
   [ -f "$HOME/.local/share/applications/chartlibre.desktop" ] || .python/bin/python3 install.py --menu-only
-  exec .python/bin/python3 main.py "$@"
+  exec .python/bin/python3 ChartLibre.py "$@"
 fi
 if [ -x .venv/bin/python3 ]; then  # an install made before .python
-  exec .venv/bin/python3 main.py "$@"
+  exec .venv/bin/python3 ChartLibre.py "$@"
 fi
 
 echo "First launch: ChartLibre downloads what it needs into this folder -"
@@ -40,4 +40,4 @@ echo "Python and its scientific libraries: about 400 MB to download, 1.7 GB"
 echo "on disk. This needs an internet connection and takes a few minutes."
 get_python || exit 1
 .python/bin/python3 install.py --runtime || exit 1
-exec .python/bin/python3 main.py "$@"
+exec .python/bin/python3 ChartLibre.py "$@"

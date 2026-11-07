@@ -139,14 +139,14 @@ MACOS_SCRIPT = _fill(r"""#!/bin/bash
 HERE="$(cd "$(dirname "$0")/../../.." && pwd)"
 # macOS App Translocation (issue #4): a downloaded, still quarantined app is
 # run from a random read-only copy of the .app alone - its folder, with
-# .python and main.py, left behind - so it looked like a first launch and
+# .python and ChartLibre.py, left behind - so it looked like a first launch and
 # offered to download Python. Find the real folder, clear its quarantine and
 # open the app there, where it is not moved again. On the disk image itself
 # (read-only) that cannot work: say to copy the folder to Applications.
-if [ ! -f "$HERE/main.py" ] && [[ "$0" == */AppTranslocation/* ]]; then
+if [ ! -f "$HERE/ChartLibre.py" ] && [[ "$0" == */AppTranslocation/* ]]; then
   for candidate in "/Applications/ChartLibre" "$HOME/Applications/ChartLibre" "$HOME/Desktop/ChartLibre" \
                    "$HOME/Downloads/ChartLibre"; do
-    if [ -f "$candidate/main.py" ] && [ -d "$candidate/ChartLibre.app" ]; then
+    if [ -f "$candidate/ChartLibre.py" ] && [ -d "$candidate/ChartLibre.app" ]; then
       xattr -dr com.apple.quarantine "$candidate" 2>/dev/null
       if ! xattr -p com.apple.quarantine "$candidate/ChartLibre.app" >/dev/null 2>&1; then
         exec open -n "$candidate/ChartLibre.app" --args "$@"
@@ -193,10 +193,10 @@ if [ -f "$RUNTIME/CHARTLIBRE_READY" ]; then
   if xattr -p com.apple.quarantine "$RUNTIME/bin/python3" >/dev/null 2>&1; then
     xattr -dr com.apple.quarantine "$HERE" 2>/dev/null
   fi
-  exec "$RUNTIME/bin/python3" "$HERE/main.py" "$@"
+  exec "$RUNTIME/bin/python3" "$HERE/ChartLibre.py" "$@"
 fi
 if [ -x "$VENV/bin/python3" ]; then  # an install made before .python
-  exec "$VENV/bin/python3" "$HERE/main.py" "$@"
+  exec "$VENV/bin/python3" "$HERE/ChartLibre.py" "$@"
 fi
 
 ask "First launch: ChartLibre will download what it needs into its own folder - Python and its scientific libraries: about 400 MB to download, 1.7 GB on disk.\n\nThis needs an internet connection and takes a few minutes. ChartLibre opens by itself when it is ready." "Install" || exit 0
@@ -207,7 +207,7 @@ if ! { get_python \
   osascript -e "display dialog \"The installation did not complete. The details are in:\n$LOG\n\nCheck the internet connection and open ChartLibre again.\" buttons {\"OK\"} with title \"ChartLibre\" with icon stop" >/dev/null 2>&1
   exit 1
 fi
-exec "$RUNTIME/bin/python3" "$HERE/main.py" "$@"
+exec "$RUNTIME/bin/python3" "$HERE/ChartLibre.py" "$@"
 """)
 
 #: The Windows launcher. %~dp0 is the folder the .bat sits in. curl.exe,
@@ -230,12 +230,12 @@ if not exist ".python\python.exe" call :getpython || goto failed
 ".python\python.exe" install.py --runtime || goto failed
 
 :runtime
-start "" ".python\pythonw.exe" "%~dp0main.py" %*
+start "" ".python\pythonw.exe" "%~dp0ChartLibre.py" %*
 exit /b 0
 
 :venv
 rem An install made before .python.
-start "" ".venv\Scripts\pythonw.exe" "%~dp0main.py" %*
+start "" ".venv\Scripts\pythonw.exe" "%~dp0ChartLibre.py" %*
 exit /b 0
 
 :getpython
@@ -360,10 +360,10 @@ get_python() {  # download Python @PYTHON_VERSION@ into .python, once
 if [ -f .python/CHARTLIBRE_READY ]; then
   # A ready-made package: add the menu entry the first time it runs here.
   [ -f "$HOME/.local/share/applications/chartlibre.desktop" ] || .python/bin/python3 install.py --menu-only
-  exec .python/bin/python3 main.py "$@"
+  exec .python/bin/python3 ChartLibre.py "$@"
 fi
 if [ -x .venv/bin/python3 ]; then  # an install made before .python
-  exec .venv/bin/python3 main.py "$@"
+  exec .venv/bin/python3 ChartLibre.py "$@"
 fi
 
 echo "First launch: ChartLibre downloads what it needs into this folder -"
@@ -371,7 +371,7 @@ echo "Python and its scientific libraries: about 400 MB to download, 1.7 GB"
 echo "on disk. This needs an internet connection and takes a few minutes."
 get_python || exit 1
 .python/bin/python3 install.py --runtime || exit 1
-exec .python/bin/python3 main.py "$@"
+exec .python/bin/python3 ChartLibre.py "$@"
 """)
 
 #: The icon the Linux menu entry shows, tracked so install.py needs no Qt.

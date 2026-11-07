@@ -803,7 +803,7 @@ Tests: `dev/tests/test_chart_panel_selection.py`,
   its own `EXTRA_THEME_ICON_NAMES`. Validation matters because the failure
   is silent: `fromTheme` returns a null icon on a typo and says nothing.
 
-  `ensure_icon_theme()` (called from `main.py`) makes step 3 work on a desktop
+  `ensure_icon_theme()` (called from `ChartLibre.py`) makes step 3 work on a desktop
   that names no theme. GNOME and KDE set one through their platform
   integration; a bare window manager does not, and `fromTheme` then fails for
   everything. It probes Qt's search paths, names an installed theme, and sets

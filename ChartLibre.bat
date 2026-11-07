@@ -16,12 +16,12 @@ if not exist ".python\python.exe" call :getpython || goto failed
 ".python\python.exe" install.py --runtime || goto failed
 
 :runtime
-start "" ".python\pythonw.exe" "%~dp0main.py" %*
+start "" ".python\pythonw.exe" "%~dp0ChartLibre.py" %*
 exit /b 0
 
 :venv
 rem An install made before .python.
-start "" ".venv\Scripts\pythonw.exe" "%~dp0main.py" %*
+start "" ".venv\Scripts\pythonw.exe" "%~dp0ChartLibre.py" %*
 exit /b 0
 
 :getpython

@@ -11,7 +11,7 @@ which can only open a file they do not have.  Starting on an empty project is
 the answer that needs no explaining, and the demo set is still one menu item
 away once the window is up (File, Load demo).
 
-It lives here rather than in ``main.py`` because the remaining fallback shows
+It lives here rather than in ``ChartLibre.py`` because the remaining fallback shows
 a box, and every box in this application comes from the catalogue in
 config.json (see ``app/utils/messages.py``).  A message id used only from the
 root script would sit outside the sweep that proves every id is defined and

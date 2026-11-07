@@ -568,7 +568,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
         # panel and the viewport filter fills the strip the canvas does not
         # cover, so the transparency only ever exposed stale pixels.
         #
-        # _testChart.py, beside main.py, shows the difference on a Mac.
+        # _testChart.py, beside ChartLibre.py, shows the difference on a Mac.
         self._canvas.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground, False)
         self._canvas.setSizePolicy(
             QSizePolicy.Policy.Ignored,

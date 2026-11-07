@@ -75,7 +75,7 @@ def test_the_file_page_has_project_save_with_export_demo_and_recent(qapp, tmp_pa
 
 
 def test_settings_offers_to_clear_the_log_at_start(qapp) -> None:
-    """Settings > Advanced: "Clear the log at start", kept in user.json; main.py empties the log when it is on."""
+    """Settings > Advanced: "Clear the log at start", kept in user.json; ChartLibre.py empties the log when it is on."""
     from app.dialogs.settings_dialog import SettingsDialog
 
     dialog = SettingsDialog()
@@ -86,5 +86,5 @@ def test_settings_offers_to_clear_the_log_at_start(qapp) -> None:
     finally:
         dialog.close()
     assert config.clear_log_at_start()
-    assert "clear_log_at_start()" in Path(__file__).resolve().parents[2].joinpath("main.py").read_text()
+    assert "clear_log_at_start()" in Path(__file__).resolve().parents[2].joinpath("ChartLibre.py").read_text()
     config.set_value(config.CLEAR_LOG_KEY, False)

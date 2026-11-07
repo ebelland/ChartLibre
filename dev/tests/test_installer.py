@@ -130,7 +130,7 @@ def test_linux_gets_a_menu_entry_that_starts_this_folder(tmp_path: Path) -> None
 def test_the_linux_launcher_and_its_icon_ship_with_the_project() -> None:
     root = Path(__file__).resolve().parents[2]
     script = (root / "ChartLibre.sh").read_text(encoding="utf-8")
-    assert script.startswith("#!/bin/sh") and "python3 install.py" in script and "main.py" in script
+    assert script.startswith("#!/bin/sh") and "python3 install.py" in script and "ChartLibre.py" in script
     assert (root / "ChartLibre.sh").stat().st_mode & 0o111
     assert (root / "dev" / "tools" / "launcher" / "chartlibre.png").stat().st_size > 1000
 
@@ -208,7 +208,7 @@ def test_the_shipped_launchers_are_the_generated_ones_with_every_archive_filled_
         for key in wanted[platform]:
             url, digest = make_launcher._archive(key)
             assert url in shipped and digest in shipped
-        assert "install.py" in shipped and "main.py" in shipped
+        assert "install.py" in shipped and "ChartLibre.py" in shipped
 
 
 def test_the_unix_launchers_are_valid_shell() -> None:
@@ -258,7 +258,7 @@ def test_the_linux_launcher_downloads_checks_and_unpacks_python(tmp_path: Path) 
     good = launch(digest)
     assert good.returncode == 0, good.stdout + good.stderr
     assert (folder / ".python" / "bin" / "python3").exists()
-    assert "fake python install.py --runtime" in good.stdout and "fake python main.py" in good.stdout
+    assert "fake python install.py --runtime" in good.stdout and "fake python ChartLibre.py" in good.stdout
     assert not (folder / ".python-download.tar.gz").exists()
 
     # Once the libraries are in, the launcher goes straight to ChartLibre.
@@ -267,7 +267,7 @@ def test_the_linux_launcher_downloads_checks_and_unpacks_python(tmp_path: Path) 
     (tmp_path / "home" / ".local" / "share" / "applications" / "chartlibre.desktop").write_text("", encoding="utf-8")
     env["HOME"] = str(tmp_path / "home")
     again = subprocess.run(["sh", str(folder / "ChartLibre.sh")], capture_output=True, text=True, env=env)
-    assert again.stdout.strip() == "fake python main.py" and "Downloading" not in again.stdout
+    assert again.stdout.strip() == "fake python ChartLibre.py" and "Downloading" not in again.stdout
 
 
 def test_the_runtime_install_marks_the_python_ready_only_when_every_library_loads(
@@ -294,7 +294,7 @@ _bundle_spec.loader.exec_module(build_bundle)
 def test_a_package_holds_the_application_and_only_its_own_system_launchers() -> None:
     wanted = build_bundle.wanted_file
     for system in ("macos", "windows", "linux"):
-        assert wanted("main.py", system) and wanted("app/charts/bar.py", system) and wanted("install.py", system)
+        assert wanted("ChartLibre.py", system) and wanted("app/charts/bar.py", system) and wanted("install.py", system)
         assert not wanted("dev/tests/test_installer.py", system) and not wanted("todo.txt", system)
         assert not wanted(".github/workflows/bundles.yml", system) and not wanted(".gitignore", system)
         assert wanted("dev/tools/launcher/chartlibre.png", system)
@@ -360,7 +360,7 @@ def test_a_translocated_launcher_opens_the_real_folder(tmp_path: Path) -> None:
     launcher, calls, env = _translocated_launcher(tmp_path)
     real = Path(env["HOME"]) / "Applications" / "ChartLibre"
     (real / "ChartLibre.app").mkdir(parents=True)
-    (real / "main.py").write_text("")
+    (real / "ChartLibre.py").write_text("")
     subprocess.run(["/bin/bash", str(launcher)], env=env, timeout=30)
     recorded = calls.read_text()
     assert f"xattr -dr com.apple.quarantine {real}" in recorded
