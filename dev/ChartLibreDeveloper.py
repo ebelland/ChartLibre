@@ -38,7 +38,7 @@ from PySide6.QtWidgets import (  # noqa: E402
     QWidget,
 )
 
-from app.styles.style.themes import apply_platform_style  # noqa: E402
+from app.styles.style import apply_platform_style, ensure_icon_theme  # noqa: E402
 from app.utils.config import get_value, set_value  # noqa: E402
 from app.utils.machine_translation import DEEPL_KEY_SETTING  # noqa: E402
 from app.widgets.nav_bar import NavButton, NavPanel  # noqa: E402
@@ -63,15 +63,19 @@ class DeveloperWindow(QMainWindow):
         columns = QWidget(self)
         row = QHBoxLayout(columns)
         row.setContentsMargins(12, 12, 12, 0)
+        row.setSpacing(12)
         row.addWidget(self._code_column(), 1)
         row.addWidget(self._check_column(), 1)
         row.addWidget(self._ship_column(), 1)
 
-        log_box = QWidget(self)
+        # The log as a titled card of the app's pages, its buttons in the title's row.
+        log_page = NavPanel(self)
+        log_box = QWidget(log_page)
         log_layout = QVBoxLayout(log_box)
-        log_layout.setContentsMargins(12, 4, 12, 12)
+        log_layout.setContentsMargins(0, 0, 0, 0)
         bar = QHBoxLayout()
         self._status = QLabel("Ready.", log_box)
+        self._status.setProperty("muted", True)
         bar.addWidget(self._status, 1)
         self._open_button = QPushButton("Open result", log_box)
         self._open_button.setEnabled(False)
@@ -84,18 +88,24 @@ class DeveloperWindow(QMainWindow):
         log_layout.addLayout(bar)
         self._log = QPlainTextEdit(log_box)
         self._log.setReadOnly(True)
+        self._log.setFrameShape(QPlainTextEdit.Shape.NoFrame)
         self._log.setFont(QFont("Menlo" if sys.platform == "darwin" else "Consolas", 11))
         self._log.setMaximumBlockCount(20000)
         log_layout.addWidget(self._log)
+        log_page.add_frame("Log", log_box, stretch=1)
 
         split = QSplitter(Qt.Orientation.Vertical, self)
         split.addWidget(columns)
-        split.addWidget(log_box)
+        split.addWidget(log_page)
+        # The page the app's panels sit on (the toolboxPage rule of each style sheet).
+        for page in (split, columns, log_page):
+            page.setProperty("toolboxPage", True)
+            page.setAttribute(Qt.WidgetAttribute.WA_StyledBackground, True)
         split.setStretchFactor(0, 0)
         split.setStretchFactor(1, 1)
         self.setCentralWidget(split)
         self.resize(1180, 820)
-        split.setSizes([480, 340])  # the columns whole, without a scroll bar
+        split.setSizes([400, 420])  # the columns whole, without a scroll bar
 
     # ------------------------------------------------------------------
     # The three columns
@@ -341,7 +351,9 @@ def main() -> int:
     os.chdir(ROOT)
     app = QApplication(sys.argv)
     app.setApplicationName("ChartLibre Developer")
+    # As ChartLibre.py starts: the same sheet, palette and icon theme.
     apply_platform_style(app)
+    ensure_icon_theme()
     window = DeveloperWindow()
     window.show()
     return app.exec()
