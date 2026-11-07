@@ -1,0 +1,151 @@
+<title>ChartLibre UI Names</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a labelled mock of the main window on top, the reference table under it. */
+:root{
+  --bg:#f3f4f7; --win:#ffffff; --rail:#e9ebf0; --panel:#f6f7f9; --line:#d9dce3; --fg:#1c1f26; --muted:#667085;
+  --accent:#2f6fe0; --tag:#eef3fd; --tagfg:#1d4fae; --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+  --ui:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15171b; --win:#1e2026; --rail:#262930; --panel:#23262c; --line:#3a3e47; --fg:#eceef2; --muted:#9aa1ad;
+  --tag:#1f2b44; --tagfg:#9cc0ff; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15171b; --win:#1e2026; --rail:#262930; --panel:#23262c; --line:#3a3e47; --fg:#eceef2; --muted:#9aa1ad;
+  --tag:#1f2b44; --tagfg:#9cc0ff; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--ui);line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:24px 48px}
+.wrap{max-width:1100px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1{font-size:24px;margin:0;text-wrap:balance}
+.lead{color:var(--muted);margin:4px 0 0;max-width:70ch}
+code,.cls{font-family:var(--mono);font-size:12px}
+.tag{display:inline-block;font-family:var(--mono);font-size:11px;background:var(--tag);color:var(--tagfg);
+  border-radius:5px;padding:1px 6px;white-space:nowrap}
+.n{display:inline-grid;place-items:center;width:20px;height:20px;border-radius:50%;background:var(--accent);color:#fff;
+  font-size:11px;font-weight:700;flex:none}
+/* window mock */
+.mock-scroll{overflow-x:auto}
+.win{min-width:860px;background:var(--win);border:1px solid var(--line);border-radius:12px;overflow:hidden;
+  display:grid;grid-template-columns:150px 260px 1fr;grid-template-rows:auto 1fr auto;height:520px;font-size:12px}
+.title{grid-column:1/-1;display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--line)}
+.dots{display:flex;gap:6px}.dots i{width:11px;height:11px;border-radius:50%;display:block}
+.rail{background:var(--rail);border-right:1px solid var(--line);padding:10px 8px;display:flex;flex-direction:column;gap:5px}
+.rail .row{display:flex;gap:6px;align-items:center;padding:3px 4px;border-radius:5px;color:var(--muted)}
+.rail .row.on{background:var(--win);color:var(--fg)}
+.rail .sec{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-top:6px}
+.side{background:var(--panel);border-right:1px solid var(--line);padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.card{background:var(--win);border:1px solid var(--line);border-radius:8px;padding:8px;display:flex;flex-direction:column;gap:6px}
+.cardhead{display:flex;justify-content:space-between;align-items:center;font-weight:600}
+.pill{display:inline-flex;gap:3px;border:1px solid var(--line);border-radius:12px;padding:2px 6px;color:var(--muted);font-weight:400}
+.main{display:flex;flex-direction:column;min-width:0}
+.tabs{display:flex;gap:2px;padding:6px 10px 0;border-bottom:1px solid var(--line)}
+.tabs span{padding:4px 10px;border:1px solid var(--line);border-bottom:none;border-radius:6px 6px 0 0;color:var(--muted)}
+.tabs span.on{background:var(--win);color:var(--fg)}
+.chart{flex:1;display:flex;flex-direction:column;padding:8px;gap:6px;min-height:0}
+.top{display:flex;gap:8px;align-items:center}
+.canvas{flex:1;border:1px dashed var(--line);border-radius:6px;display:grid;place-items:center;color:var(--muted)}
+.notes{height:70px;border:1px solid var(--line);border-radius:6px;padding:6px;color:var(--muted)}
+.status{grid-column:1/-1;display:flex;gap:14px;align-items:center;padding:5px 12px;border-top:1px solid var(--line);color:var(--muted)}
+.lab{display:inline-flex;gap:5px;align-items:center}
+/* table */
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:8px;border-bottom:1px solid var(--line);vertical-align:top}
+td:first-child{width:28px}
+.tbl{overflow-x:auto;background:var(--win);border:1px solid var(--line);border-radius:12px;padding:6px 10px}
+h2{font-size:16px;margin:10px 0 6px}
+.file{color:var(--muted);font-family:var(--mono);font-size:11.5px}
+</style>
+
+<div class="wrap">
+<header>
+  <h1>I nomi delle parti di ChartLibre</h1>
+  <p class="lead">Lo schema della finestra principale con i numeri, e sotto per ogni numero il nome con cui chiamarla, la classe Python e il file. I nomi sono quelli del codice al 7 novembre 2026.</p>
+</header>
+
+<div class="mock-scroll">
+<div class="win" role="img" aria-label="Schema della finestra principale con le parti numerate">
+  <div class="title">
+    <span class="dots"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></span>
+    <span class="lab"><span class="n">1</span>CustomTitleBar · sidebar toggle</span>
+  </div>
+  <div class="rail">
+    <span class="lab"><span class="n">2</span><b>NavigationBar</b></span>
+    <span class="lab"><span class="n">3</span>CatalogSearch</span>
+    <div class="sec">Tools</div>
+    <div class="row">File</div><div class="row on">Tables</div><div class="row">Chart properties</div>
+    <div class="row">Analysis</div><div class="row">Guided analysis</div><div class="row">Assistant</div>
+    <div class="row">SymPy workpad</div><div class="row">Project</div>
+    <div class="sec"><span class="lab"><span class="n">4</span>Recent</span></div>
+    <div class="row">Fit curve</div><div class="row">Statistics</div>
+  </div>
+  <div class="side">
+    <span class="lab"><span class="n">5</span><b>NavPanel</b> (side panel)</span>
+    <div class="card">
+      <div class="cardhead">Tables <span class="pill"><span class="n" style="width:16px;height:16px;font-size:10px">7</span>+ ⧉ 🗑 📈 ⓘ ✎ ⋯</span></div>
+      <span class="lab"><span class="n">6</span>TableListPanel</span>
+    </div>
+    <div class="card" style="flex:1">
+      <div class="cardhead">Data <span class="pill">ⓘ 📈 ⧉ ⋯</span></div>
+      <span class="lab"><span class="n">8</span>TablePreviewPanel</span>
+    </div>
+  </div>
+  <div class="main">
+    <div class="tabs"><span class="on">Chart 1</span><span>Chart 2</span> <span class="lab" style="border:none"><span class="n">9</span>_tabs</span></div>
+    <div class="chart">
+      <div class="top">
+        <span class="lab"><span class="n">10</span>ChartJumpBar ‹ ›</span>
+        <span class="pill"><span class="n" style="width:16px;height:16px;font-size:10px">11</span>⌂ ← → | ✥ 🔍 | 🗑</span>
+      </div>
+      <div class="canvas"><span class="lab"><span class="n">12</span>ChartPanel · canvas</span></div>
+      <div class="notes"><span class="lab"><span class="n">13</span>Notes · HtmlResultsView</span></div>
+    </div>
+  </div>
+  <div class="status"><span class="lab"><span class="n">14</span>status bar</span><span>project.dhub</span><span>Ready</span></div>
+</div>
+</div>
+
+<div class="tbl">
+<h2>La finestra</h2>
+<table>
+<thead><tr><th>#</th><th>Nome da usare</th><th>Classe / oggetto</th><th>Cos'è</th></tr></thead>
+<tbody>
+<tr><td><span class="n">1</span></td><td><b>Title bar</b></td><td><span class="tag">CustomTitleBar</span><div class="file">app/main_window/custom_title_bar.py</div></td><td>Striscia in alto: sul Mac solo il pulsante <i>sidebar toggle</i> accanto ai semafori nativi; su Windows titolo e min/max/chiudi.</td></tr>
+<tr><td><span class="n">2</span></td><td><b>NavBar</b> (rail)</td><td><span class="tag">NavigationBar</span><div class="file">app/widgets/nav_bar.py</div></td><td>La colonna di voci a sinistra, divisa in sezioni (Tools, Recent, Settings). Ogni voce è un <span class="tag">NavBarItem</span>.</td></tr>
+<tr><td><span class="n">3</span></td><td><b>Rail search</b></td><td><span class="tag">CatalogSearch</span></td><td>La ricerca sotto Workspace: trova analisi e grafici.</td></tr>
+<tr><td><span class="n">4</span></td><td><b>Recent</b></td><td>sezione della NavBar<div class="file">app/utils/recent_analyses.py</div></td><td>Le ultime analisi aperte (Impostazioni → Recent analyses).</td></tr>
+<tr><td><span class="n">5</span></td><td><b>Side panel</b></td><td><span class="tag">NavPanel</span></td><td>Il pannello che si apre accanto alla NavBar: una pagina per voce, fatta di <i>card</i> con titolo (<span class="tag">TitledCard</span>, box <span class="tag">CardFrame</span>) e pulsanti <span class="tag">NavButton</span>.</td></tr>
+<tr><td><span class="n">6</span></td><td><b>Tables list</b></td><td><span class="tag">TableListPanel</span><div class="file">app/widgets/table_list.py</div></td><td>L'elenco di tabelle, funzioni (F) e query (Q).</td></tr>
+<tr><td><span class="n">7</span></td><td><b>Title buttons</b> (mini toolbar)</td><td><span class="tag">_title_buttons</span> · pill <span class="tag">chartNavPill</span></td><td>I pulsantini accanto ai titoli Tables e Data. Il + apre il <i>New table menu</i>.</td></tr>
+<tr><td><span class="n">8</span></td><td><b>Data preview</b></td><td><span class="tag">TablePreviewPanel</span><div class="file">app/widgets/table_preview.py</div></td><td>Le righe della tabella scelta; formato "Best" disegnato da <span class="tag">_BestFormatDelegate</span>.</td></tr>
+<tr><td><span class="n">9</span></td><td><b>Chart tabs</b></td><td><span class="tag">QTabWidget</span> <code>_tabs</code></td><td>Una scheda per grafico (o per pagina).</td></tr>
+<tr><td><span class="n">10</span></td><td><b>Jump bar</b></td><td><span class="tag">ChartJumpBar</span></td><td>‹ › e il menu con il nome del grafico corrente.</td></tr>
+<tr><td><span class="n">11</span></td><td><b>Chart toolbar</b> (pill)</td><td><span class="tag">ChartNavigation</span> · <span class="tag">chartNavPill</span></td><td>La toolbar di Matplotlib in un gruppo arrotondato: home, indietro, avanti, sposta, zoom, e il cestino rosso.</td></tr>
+<tr><td><span class="n">12</span></td><td><b>ChartPanel</b></td><td><span class="tag">ChartPanel</span><div class="file">app/widgets/chart_panel/panel.py</div></td><td>Il grafico con il suo canvas; tasto destro → <i>chart context menu</i>.</td></tr>
+<tr><td><span class="n">13</span></td><td><b>Notes</b></td><td><span class="tag">HtmlResultsView</span> <code>_notes_view</code></td><td>Le note e i report delle analisi sotto il grafico.</td></tr>
+<tr><td><span class="n">14</span></td><td><b>Status bar</b></td><td><code>_status_*</code></td><td>Progetto, stato e il pallino che si colora mentre l'assistente lavora.</td></tr>
+</tbody>
+</table>
+
+<h2>Le pagine del side panel</h2>
+<table>
+<thead><tr><th></th><th>Voce della NavBar</th><th>Classe</th><th>Contenuto</th></tr></thead>
+<tbody>
+<tr><td></td><td>Chart properties</td><td><span class="tag">FigurePropertiesWidget</span> <span class="tag">AxisPropertiesWidget</span> <span class="tag">SeriesPropertiesWidget</span> <span class="tag">OverlayPropertiesWidget</span></td><td>Pagine Figure, Axis, Series, Overlay; si apre al clic sul grafico.</td></tr>
+<tr><td></td><td>Analysis</td><td><span class="tag">AnalysisPanel</span></td><td>Tutte le analisi per categoria.</td></tr>
+<tr><td></td><td>Assistant</td><td><span class="tag">AssistantPanel</span></td><td>La conversazione con l'assistente.</td></tr>
+<tr><td></td><td>SymPy workpad</td><td><span class="tag">WorkpadPanel</span> · motore <span class="tag">Workpad</span></td><td>Comandi SymPy con get, save, plot.</td></tr>
+<tr><td></td><td>File</td><td><span class="tag">ProjectsTabs</span> (Recent / Demo)</td><td>Nuovo, apri, importa, salva.</td></tr>
+<tr><td></td><td>Project</td><td><span class="tag">DatabaseInfoPanel</span></td><td>Info progetto, cronologia, database, log.</td></tr>
+</tbody>
+</table>
+
+<h2>Fuori dall'app</h2>
+<table>
+<tbody>
+<tr><td></td><td><b>ChartLibre Developer</b></td><td><span class="tag">DeveloperWindow</span><div class="file">dev/ChartLibreDeveloper.py</div></td><td>Il launcher degli strumenti per sviluppatori; tre colonne (Write code, Check, Ship) e il log.</td></tr>
+<tr><td></td><td><b>Qt style editor</b></td><td><span class="tag">QssEditorDialog</span><div class="file">dev/developer/qss_editor.py</div></td><td>Modifica e prova dal vivo i file .qss.</td></tr>
+</tbody>
+</table>
+</div>
+</div>
