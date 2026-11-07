@@ -36,7 +36,6 @@ from PySide6.QtGui import (
 from PySide6.QtWidgets import (
     QApplication,
     QBoxLayout,
-    QCheckBox,
     QFileDialog,
     QFrame,
     QHBoxLayout,
@@ -642,8 +641,16 @@ class MainWindow(QMainWindow):
                                 margins=(4, 4, 4, 4))
         data = page.add_frame(_("Data"), self._preview, object_name="dataFrame", stretch=2, margins=(4, 4, 4, 4))
         # Beside each title, the actions used most, as the chart's own buttons; the last opens the right-click menu.
+        self._clipboard_transposed = QAction(_("Rows and columns swapped (transposed)"), self)
+        self._clipboard_transposed.setCheckable(True)
+        self._clipboard_transposed.setObjectName("clipboardTransposed")
+        self._clipboard_transposed.setToolTip(
+            _("For data copied one series per row: the clipboard is read with rows and columns exchanged.")
+        )
         tables_bar = self._title_buttons([
-            ("add", _("New table"), lambda _button: self._left_panel.select("new_table")),
+            ("add", _("New table: blank, from a file, the clipboard, the web or a database"),
+             lambda button: self._new_table_menu().exec(button.mapToGlobal(button.rect().bottomLeft()))),
+            ("paste", _("Import from clipboard"), lambda _button: self._on_import_clipboard()),
             ("delete", _("Delete the selected tables"), lambda _button: self._table_panel._delete_selected()),
             ("chart_from_columns", _("A new chart of this table"),
              lambda _button: self._table_panel._on_new_plot_tab()),
@@ -681,6 +688,12 @@ class MainWindow(QMainWindow):
             icon = load_icon(action_id)
             # Delete in red, as a destructive action is everywhere on the Mac.
             button.setIcon(colored_icon(icon, "#dc2626", 16) if action_id == "delete" else icon)
+            if action_id == "add":
+                # The page's main action: white on a blue disc, as the Mac's own add buttons.
+                button.setIcon(colored_icon(icon, "#ffffff", 16))
+                button.setStyleSheet("QToolButton { background: #2f6fe0; border-radius: 14px; }"
+                                     "QToolButton:hover { background: #2563d0; }"
+                                     "QToolButton:pressed { background: #1d4fae; }")
             # The chart's sizes: the sheet's pill rule (radius 17, buttons 28) is drawn for them.
             button.setIconSize(QSize(16, 16))
             button.setFixedSize(QSize(28, 28))
@@ -762,35 +775,38 @@ class MainWindow(QMainWindow):
         else:
             self.set_navigation_compact(True)
 
-    def _create_new_table_page(self) -> NavPanel:
-        """The ways to make a source table, each with its sentence."""
-        page = NavPanel(self)
-        card = page.add_buttons(_("Create a new table"), [
-            NavButton("new", self._on_new_blank_table, _("New Blank Table"),
-                      _("Create an empty table with named columns."), described=True),
-            NavButton("import", self._on_import_data, _("Import from file"),
-                      _("Create a table from a file: CSV, Excel, JSON."), described=True),
-            NavButton("paste", self._on_import_clipboard, _("Import from clipboard"),
-                      _("Create a table from the table copied to the clipboard."), described=True),
-            NavButton("web_sources", self._on_import_web, _("Import from the web"),
-                      _("Create a table from a web address or a listed open-data source."), described=True),
-            NavButton("import", self._on_database_table_import, _("Import Database Table"),
-                      _("Create a table from a database table."), described=True),
-            NavButton("query", self._on_create_query_table, _("Create Query Table"),
-                      _("Create a table from a database query."), described=True),
-        ], object_name="newTableCard")
-        # An option of Import from clipboard, which reads it when pressed: right under it, its
-        # third and fourth items being that button's row and sentence (bugs2.pptx: it was a
-        # frame of its own at the bottom, far from the button it changes).
-        self._clipboard_transposed = QCheckBox(_("Rows and columns swapped (transposed)"), card)
-        self._clipboard_transposed.setObjectName("clipboardTransposed")
-        self._clipboard_transposed.setToolTip(
-            _("For data copied one series per row: the clipboard is read with rows and columns exchanged.")
-        )
-        layout = card.layout()
-        if isinstance(layout, QBoxLayout):
-            layout.insertWidget(6, self._clipboard_transposed)
-        return page
+    def _new_table_menu(self) -> QMenu:
+        """The ways to make a table, under the Tables title's + (it was a page of the rail)."""
+        menu = QMenu(self)
+        entries = [
+            ("new", _("New Blank Table"), _("Create an empty table with named columns."), self._on_new_blank_table),
+            ("query", _("Create Query Table"), _("Create a table from a database query."),
+             self._on_create_query_table),
+            None,
+            ("import", _("Import from file"), _("Create a table from a file: CSV, Excel, JSON."),
+             self._on_import_data),
+            ("paste", _("Import from clipboard"), _("Create a table from the table copied to the clipboard."),
+             self._on_import_clipboard),
+            "transposed",
+            ("web_sources", _("Import from the web"),
+             _("Create a table from a web address or a listed open-data source."), self._on_import_web),
+            None,
+            ("import", _("Import Database Table"), _("Create a table from a database table."),
+             self._on_database_table_import),
+        ]
+        menu.setToolTipsVisible(True)
+        for entry in entries:
+            if entry is None:
+                menu.addSeparator()
+            elif entry == "transposed":
+                # An option of Import from clipboard, which reads it when pressed: right under it.
+                menu.addAction(self._clipboard_transposed)
+            else:
+                icon, text, tip, call = entry
+                action = menu.addAction(load_icon(icon), text)
+                action.setToolTip(tip)
+                action.triggered.connect(lambda _checked=False, c=call: c())
+        return menu
 
     def _show_table(self, table_name: str | None = None) -> None:
         """Go to the Tables page, with *table_name* (when there is one) selected and previewed.
@@ -970,7 +986,6 @@ class MainWindow(QMainWindow):
         "nav_workspace": ("#5B6474", "#A9B1BD"),
         "nav_file": ("#C26A12", "#F2A65A"),
         "nav_data": ("#2F6FE4", "#6EA0FF"),
-        "nav_new_table": ("#0E7F8D", "#4CC9D8"),
         "nav_chart_options": ("#6A4BD6", "#A893FF"),
         "nav_analysis": ("#178A58", "#4DD293"),
         "nav_guided": ("#B7791F", "#F0C04A"),
@@ -993,7 +1008,6 @@ class MainWindow(QMainWindow):
         """Create the bar and panel host from one section dictionary."""
         file_panel = self._create_file_page()
         tables_panel = self._data_page
-        new_table_panel = self._create_new_table_page()
         chart_properties_panel = self._properties_control
         analysis_panel = AnalysisPanel(self)
         # Data operations, table analyses and the DOE in one panel, as JMP's Analyze menu.
@@ -1034,10 +1048,6 @@ class MainWindow(QMainWindow):
                 "tables": NavBarItem(
                     _("Tables"), self._rail_icon("nav_data"), tables_panel,
                     _("Show data tables"),
-                ),
-                "new_table": NavBarItem(
-                    _("New table"), self._rail_icon("nav_new_table"), new_table_panel,
-                    _("Create a new table"),
                 ),
                 "chart_properties": NavBarItem(
                     _("Chart properties"), self._rail_icon("nav_chart_options"),
