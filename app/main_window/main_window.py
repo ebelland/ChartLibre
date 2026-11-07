@@ -122,6 +122,7 @@ from app.utils.startup import PROJECT_FILE_FILTER
 from app.widgets.analysis_panel import AnalysisPanel, plot_operation, plugin_icon
 from app.widgets.assistant_panel import AssistantPanel
 from app.widgets.workpad_panel import WorkpadPanel
+from app.utils import recent_analyses
 from app.widgets.catalog_search import CatalogSearch
 from app.widgets.chart_jump_bar import ChartJumpBar
 from app.widgets.chart_panel import ChartPanel
@@ -624,6 +625,7 @@ class MainWindow(QMainWindow):
         if dialog.exec():
             self._build_app_menu()
             self._apply_developer_mode()
+            self._refresh_recent_section()  # its count may have changed (Settings > General)
         # Shown in the navigation bar or not (Settings > Assistant).
         self._left_panel.set_item_hidden("assistant", not assistant_settings.in_navigation())
         # The key, the consent or the permissions may have changed: the panel says what is missing.
@@ -728,6 +730,8 @@ class MainWindow(QMainWindow):
     def _on_data_operation_requested(self, operation: dict) -> None:
         """Handle a built-in or runtime data-operation request."""
         icon = plugin_icon(operation)
+        if recent_analyses.remember(operation):
+            self._refresh_recent_section()
 
         if operation.get("name") == "NewPlotTabDialog":
             self._on_new_plot_tab(icon)
@@ -1108,6 +1112,10 @@ class MainWindow(QMainWindow):
                     _("User manual and credits"),
                 ),
             }
+        recent = self._recent_items()
+        if recent:
+            sections = {**{k: v for k, v in sections.items() if k != "Settings"}, "Recent": recent,
+                        **({"Settings": sections["Settings"]} if "Settings" in sections else {})}
         if IS_WINDOWS:
             sections.setdefault("Settings", {})["settings"] = NavBarItem(
                 _("Settings"), self._rail_icon("settings"), None,
@@ -1146,6 +1154,43 @@ class MainWindow(QMainWindow):
         if key == "help":
             self._popup_help_menu()
             return
+        if key.startswith(self.RECENT_PREFIX):
+            name = key[len(self.RECENT_PREFIX):]
+            from app.scanners.data_operation_scanner import data_operations
+
+            for operation in data_operations:
+                if str(operation.get("name")) == name:
+                    self._on_data_operation_requested(operation)
+                    return
+
+    #: The rail keys of the Recent section's rows: this prefix and the analysis' class name.
+    RECENT_PREFIX = "recent:"
+
+    def _recent_items(self) -> dict[str, NavBarItem]:
+        """The Recent section's rows: the analyses opened last, as many as Settings says (none: no section)."""
+        from app.scanners.data_operation_scanner import data_operations
+
+        return {
+            f"{self.RECENT_PREFIX}{operation['name']}": NavBarItem(
+                _(str(operation.get("value") or operation["name"])), plugin_icon(operation), None,
+                _(str(operation.get("description") or "")),
+            )
+            for operation in recent_analyses.operations(list(data_operations))
+        }
+
+    def _refresh_recent_section(self) -> None:
+        """The Recent section again: after an analysis opened, or its count changed in Settings."""
+        navigation = getattr(self, "_left_panel", None)
+        if navigation is None:
+            return
+        sections = {k: v for k, v in navigation.sections().items() if k != "Recent"}
+        recent = self._recent_items()
+        if recent:
+            settings_rows = sections.pop("Settings", None)
+            sections["Recent"] = recent
+            if settings_rows is not None:
+                sections["Settings"] = settings_rows
+        navigation.set_sections(sections)
 
     def _popup_help_menu(self) -> None:
         """The Help menu beside its rail row, opening to the right: the rail is on the left."""

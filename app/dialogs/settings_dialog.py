@@ -246,6 +246,14 @@ class SettingsDialog(PanelDialog):
                                             "table and columns."))
         self._what_next_check.setChecked(next_steps.enabled())
         form.addRow(tr("Next"), self._what_next_check)
+        from app.utils import recent_analyses
+
+        self._recent_count = QSpinBox(card)
+        self._recent_count.setRange(0, recent_analyses.MAX_COUNT)
+        self._recent_count.setValue(recent_analyses.count())
+        self._recent_count.setToolTip(tr("How many of the analyses opened last the navigation bar lists under "
+                                         "Recent; 0 hides the section."))
+        form.addRow(tr("Recent analyses"), self._recent_count)
 
         self._build_assistant_section(card, forms)
 
@@ -556,6 +564,9 @@ class SettingsDialog(PanelDialog):
 
         set_value(reading_guide.SETTING_KEY, bool(self._how_to_read_check.isChecked()))
         set_value(next_steps.SETTING_KEY, bool(self._what_next_check.isChecked()))
+        from app.utils import recent_analyses
+
+        set_value(recent_analyses.COUNT_KEY, int(self._recent_count.value()))
         set_value(DEEPL_KEY_SETTING, self._deepl_key_edit.text().strip())
         set_value(DEVELOPER_MODE_KEY, bool(self._developer_check.isChecked()))
         set_value(CLEAR_LOG_KEY, bool(self._clear_log_check.isChecked()))
