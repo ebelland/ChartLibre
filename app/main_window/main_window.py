@@ -675,7 +675,10 @@ class MainWindow(QMainWindow):
             ("delete", _("Delete the selected tables"), lambda _button: self._table_panel._delete_selected()),
             ("chart_from_columns", _("A new chart of this table"),
              lambda _button: self._table_panel._on_new_plot_tab()),
-            ("edit", _("Edit the table, function or query"), lambda _button: self._table_panel.edit_selected()),
+            ("column_info", _("The table's columns, types and cells; a function's formula; a query's SQL"),
+             lambda _button: self._table_panel.edit_selected()),
+            ("rename", _("Rename the selected table, saved query or stored function"),
+             lambda _button: self._table_panel._rename_table()),
             ("table_more", _("More"), lambda button: self._table_panel.show_menu_at(
                 button.mapToGlobal(button.rect().bottomLeft()))),
         ])
@@ -683,7 +686,7 @@ class MainWindow(QMainWindow):
             ("column_info", _("Column Info..."), lambda _button: self._preview.column_info()),
             ("chart_from_columns", _("A chart of the selected columns: a histogram of one, else New plot"),
              lambda _button: self._preview.chart()),
-            ("edit", _("Edit the table"), lambda _button: self._table_panel.edit_selected()),
+            ("copy", _("Copy the selected cells"), lambda _button: self._preview._copy_selection()),
             ("table_more", _("More"), lambda button: self._preview.show_menu_at(
                 button.mapToGlobal(button.rect().bottomLeft()))),
         ])
@@ -2935,7 +2938,7 @@ class MainWindow(QMainWindow):
                 return
 
     def _on_chart_object_clicked(self, panel: Any, hit: dict[str, Any]) -> None:
-        """A click on the chart selects what it landed on here - when Chart properties is shown.
+        """A click on the chart opens Chart properties on what it landed on.
 
         Outside every axis: the Figure page. On an axis: the Axis page on that
         axis - on its X, Y or Z tab for a click on that coordinate's ticks or
@@ -2944,8 +2947,11 @@ class MainWindow(QMainWindow):
         edited together.
         """
         control = self._properties_control
-        if not control.isVisible() or panel is not self._current_chart_panel():
+        if panel is not self._current_chart_panel():
             return
+        if not control.isVisible():
+            # A click on a chart opens Chart properties on what it landed on.
+            self._left_panel.select("chart_properties")
         pages = [control.widget(index) for index in range(control.count())]
 
         def show(widget: QWidget) -> None:

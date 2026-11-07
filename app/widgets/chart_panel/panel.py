@@ -42,7 +42,10 @@ from app.data.sqlite_repo import SqliteRepo
 from app.logs.logger import applogger
 from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 from app.styles.style import (
+    CONTEXT_MENU_ICONS,
     SPLITTER_HANDLE_WIDTH,
+    colored_icon,
+    load_icon,
     MenuItem,
     action_presentation,
     create_menu,
@@ -639,6 +642,23 @@ class ChartPanel(ChartToolsMixin, QFrame):
             button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
             button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             layout.addWidget(button)
+        # Delete the chart: at the pill's end, apart and in red, as a destructive action (out of the menu).
+        separator = QFrame(pill)
+        separator.setObjectName("chartNavSeparator")
+        separator.setFixedSize(1, 16)
+        layout.addSpacing(3)
+        layout.addWidget(separator, 0, Qt.AlignmentFlag.AlignVCenter)
+        layout.addSpacing(3)
+        delete = QToolButton(pill)
+        delete.setObjectName("chartToolButton")
+        delete.setIcon(colored_icon(load_icon("delete"), "#dc2626", 18))
+        delete.setIconSize(QSize(18, 18))
+        delete.setFixedSize(QSize(28, 28))
+        delete.setAutoRaise(True)
+        delete.setToolTip(_("Delete this figure"))
+        delete.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        delete.clicked.connect(lambda _checked=False: self.delete_chart())
+        layout.addWidget(delete)
         return pill
 
     def _build_top_row(self) -> QWidget:
@@ -1841,7 +1861,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
         menu = create_menu(
             self,
             [
-                MenuItem(_("Reload"), _("Reload chart"), None, self.reload,False,"reload"),
+                MenuItem(_("Reload"), _("Reload chart"), PySide6.QtGui.QKeySequence.StandardKey.Refresh, self.reload,False,"reload"),
                 MenuItem(_("Copy"),_("Copy figure"),PySide6.QtGui.QKeySequence.StandardKey.Copy,self.copy_chart_to_clipboard,False,"copy"),
                 MenuItem(_("Save figure"),_("Save as picture"), PySide6.QtGui.QKeySequence.StandardKey.SaveAs,self.save_chart_as,False,"save"),
                 MenuItem(_("Export report…"), _("This chart and its notes as an HTML or PDF report, like File > Export for the whole project"), None, self.export_report, False, "project_report"),
@@ -1902,9 +1922,9 @@ class ChartPanel(ChartToolsMixin, QFrame):
                     checked=self._live_updates_enabled,
                     icon="live_updates",
                 ),
-                None,
-                MenuItem(_("Delete"),_("Delete this figure"),PySide6.QtGui.QKeySequence.StandardKey.Delete,self.delete_chart,False,"delete"),
             ],
+            # No icons on the Mac, as its own menus; the shortcuts shown as it shows them.
+            icons=CONTEXT_MENU_ICONS,
         )
         return menu
 
@@ -1935,6 +1955,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
         menu = self._build_actions_menu()
         menu.addSeparator()
         create_menu_item(
+            icons=CONTEXT_MENU_ICONS,
             parent=self,
             menu=menu,
             icon="add.vertical",
@@ -1947,6 +1968,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
             action=lambda: self._add_reference_line(axis_id, "vertical", x_value),
         )
         create_menu_item(
+            icons=CONTEXT_MENU_ICONS,
             parent=self,
             menu=menu,
             icon="add.horizontal",
@@ -1959,6 +1981,7 @@ class ChartPanel(ChartToolsMixin, QFrame):
             action=lambda: self._add_reference_line(axis_id, "horizontal", y_value),
         )
         create_menu_item(
+            icons=CONTEXT_MENU_ICONS,
             parent=self,
             menu=menu,
             icon="add.annotation",
