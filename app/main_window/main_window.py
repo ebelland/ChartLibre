@@ -17,7 +17,7 @@ from collections.abc import Callable, Mapping
 from functools import partial
 from pathlib import Path
 from time import monotonic
-from typing import Any, ClassVar, TYPE_CHECKING, cast
+from typing import TYPE_CHECKING, Any, ClassVar, cast
 
 import pandas as pd
 from PySide6.QtCore import QEvent, QObject, QPoint, QSize, Qt, QTimer, QUrl
@@ -95,6 +95,7 @@ from app.styles.style import (
     theme_is_dark,
 )
 from app.utils import column_summary
+from app.utils.coercion import column_of, to_numbers
 from app.utils.config import (
     clear_recent_databases,
     developer_mode,
@@ -104,7 +105,11 @@ from app.utils.config import (
     set_last_database,
     set_section,
 )
-from app.utils.data_sources import SERVER_DATABASE_QUERY_READERS, SERVER_DATABASE_READERS, is_importable
+from app.utils.data_sources import (
+    SERVER_DATABASE_QUERY_READERS,
+    SERVER_DATABASE_READERS,
+    is_importable,
+)
 from app.utils.dialog_state import restore_window_geometry, save_window_geometry
 from app.utils.i18n import _
 from app.utils.messages import ask, show_message
@@ -125,7 +130,6 @@ from app.widgets.nav_bar import NavBarItem, NavButton, NavigationBar, NavPanel
 from app.widgets.recent_projects import ProjectsTabs
 from app.widgets.table_list import TableListPanel
 from app.widgets.table_preview import TablePreviewPanel
-from app.utils.coercion import column_of, to_numbers
 
 if TYPE_CHECKING:
     from app.data.sqlite_repo import SqliteRepo
@@ -384,6 +388,7 @@ class MainWindow(QMainWindow):
                     ("palette(window)", "rgba(255, 255, 255, 0.10)", "#5BD69A", "#3FCF8E")),
         "busy": (("palette(window)", "rgba(0, 0, 0, 0.08)", "#1D4FB8", "#2F6FE4"),
                  ("palette(window)", "rgba(255, 255, 255, 0.10)", "#8DB4FF", "#4C8DF6")),
+        "working": (("#dbeafe", "#93c5fd", "#1e3a8a", "#2563eb"), ("#1e3a8a", "#2563eb", "#dbeafe", "#93c5fd")),
         "warning": (("#FEF6E4", "#F3D9A4", "#7A4D05", "#B54708"),
                     ("#3A2E12", "#6B5320", "#F5D58A", "#F0B429")),
         "error": (("#FDECEC", "#F4B4B0", "#912018", "#C4320A"),
@@ -465,6 +470,13 @@ class MainWindow(QMainWindow):
         # seconds; this one is said on the right, in colour, and stays - the
         # left keeps the project's name instead of the same words twice.
         QTimer.singleShot(0, self.statusBar().clearMessage)
+
+    def _on_assistant_busy(self, busy: bool) -> None:
+        """The bar is coloured while the assistant works; an error already shown stays."""
+        if busy and self._status_current != "error":
+            self._set_status_state("working", _("The assistant is working..."))
+        elif not busy and self._status_current == "working":
+            self._set_status_state("normal", _("Ready"))
 
     def _set_status_state(self, state: str = "normal", message: str | None = None, timeout_ms: int = 0) -> None:
         """Colour the status bar for *state* and show *message* in it; after *timeout_ms*, back to Ready."""
@@ -952,6 +964,7 @@ class MainWindow(QMainWindow):
             current_figure=lambda: getattr(self._current_chart_panel(), "figure_id", None))
         assistant_panel.project_changed.connect(self._on_assistant_changed)
         assistant_panel.settings_requested.connect(self._on_settings)
+        assistant_panel.busy_changed.connect(self._on_assistant_busy)
 
         sections: dict[str, dict[str, NavBarItem]] = {
             "Tools": {

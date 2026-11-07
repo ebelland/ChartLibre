@@ -12,6 +12,7 @@ Claude at several steps: choosing an analysis, casting its columns, reading its 
 from __future__ import annotations
 
 import json
+import os
 import threading
 import urllib.parse
 from collections.abc import Callable, Mapping, Sequence
@@ -39,9 +40,9 @@ from app.plugin_api.ai.provider import (
 DEFAULT_ADDRESS = "http://localhost:11434"
 DEFAULT_MODEL = "llama3.1"
 _LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
-#: Tokens a conversation may hold. Ollama's own default (4096) drops the oldest messages without a word, and the
-#: tools with one analysis catalogue already fill it.
-CONTEXT_TOKENS = 16384
+#: Tokens a conversation may hold, unless Settings says otherwise. Ollama's own default (4096) drops the oldest
+#: messages without a word. More takes more memory: llama3.1 at 16384 needs 7 GB and swamps an 8 GB Mac.
+DEFAULT_CONTEXT = "8192"
 
 _ROUTER = (
     "You route requests for a data-analysis application. Reply with one word. SIMPLE: a direct question "
@@ -64,7 +65,8 @@ def _arguments(raw: Any) -> dict[str, Any]:
 class OllamaSession(ChatSession):
     """One conversation: the history in /api/chat's form, sent whole on every turn."""
 
-    def __init__(self, address: str, system: str, tools: Sequence[ToolSpec]) -> None:
+    def __init__(self, address: str, system: str, tools: Sequence[ToolSpec], context: int = 8192) -> None:
+        self._context = context
         self._url = f"{address.rstrip('/')}/api/chat"
         self._tools = [{"type": "function", "function": {"name": spec.name, "description": spec.description,
                                                          "parameters": dict(spec.input_schema)}} for spec in tools]
@@ -83,7 +85,7 @@ class OllamaSession(ChatSession):
         turn = Turn(model=model)
         calls: list[ToolCall] = []
         payload = {"model": model, "messages": self._messages, "tools": self._tools, "stream": True,
-                   "options": {"num_ctx": CONTEXT_TOKENS}}
+                   "options": {"num_ctx": self._context}}
         try:
             for item in json_lines(stream_lines(self._url, payload, cancel=cancel)):
                 message = item.get("message") or {}
@@ -135,6 +137,8 @@ class OllamaProvider(AIProvider):
                        "Where Ollama answers: this computer's by default; another machine's sends it the data."),
         ProviderOption("accurate_model", "Model", DEFAULT_MODEL,
                        "The conversation and the analyses: a model that calls tools (llama3.1, qwen2.5...)."),
+        ProviderOption("context", "Context", DEFAULT_CONTEXT,
+                       "Tokens a conversation may hold: more remembers more, and takes more memory."),
         ProviderOption("fast_model", "Fast model", "",
                        "Routes and answers the simple requests in Automatic mode; empty: the model above."),
     )
@@ -178,6 +182,23 @@ class OllamaProvider(AIProvider):
         if missing:
             return (f"Not installed in Ollama: {', '.join(missing)} - ollama pull {missing[0]}. Installed: "
                     f"{', '.join(names) or 'none'}.")
+        return self._too_big()
+
+    def _too_big(self) -> str:
+        """A warning when the model will not fit beside the application in this computer's memory."""
+        if self.SENDS_DATA:
+            return ""  # another machine's memory
+        try:
+            memory = os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+            answer = get_json(f"{self.address.rstrip('/')}/api/tags")
+        except (ValueError, OSError, AttributeError, ProviderHTTPError):
+            return ""
+        sizes = {str(model.get("name") or ""): int(model.get("size") or 0) for model in answer.get("models") or ()}
+        accurate = self.models()[ACCURATE]
+        size = sizes.get(accurate) or sizes.get(f"{accurate}:latest") or 0
+        if size > memory * 0.4:
+            return (f"'{accurate}' takes {size / 2**30:.1f} GB of this computer's {memory / 2**30:.0f} GB: everything "
+                    "will slow down. Choose a smaller model (llama3.2).")
         return ""
 
     def classify(self, text: str, *, api_key: str) -> str:
@@ -197,4 +218,8 @@ class OllamaProvider(AIProvider):
 
     def start(self, *, api_key: str, system: str, tools: Sequence[ToolSpec]) -> ChatSession:
         del api_key
-        return OllamaSession(self.address, system, tools)
+        try:
+            context = max(2048, int(self.option("context")))
+        except ValueError:
+            context = int(DEFAULT_CONTEXT)
+        return OllamaSession(self.address, system, tools, context)

@@ -50,6 +50,8 @@ class AssistantPanel(NavPanel):
     project_changed = Signal(list)
     #: Settings > Assistant asked for (the key, the consent, the permissions).
     settings_requested = Signal()
+    #: The assistant started or finished working.
+    busy_changed = Signal(bool)
 
     def __init__(self, parent: QWidget | None, *, repo: Callable[[], Any],
                  current_figure: Callable[[], int | None]) -> None:
@@ -231,6 +233,7 @@ class AssistantPanel(NavPanel):
         self._stop_button.setVisible(busy)
         self._send_button.setEnabled(getattr(self, "_ready", False) and not busy)
         self._question.setReadOnly(busy)
+        self.busy_changed.emit(busy)
 
     def _confirm(self, question: str) -> bool:
         """A change the assistant wants to make: the user says yes before it runs."""
