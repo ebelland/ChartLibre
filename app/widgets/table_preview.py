@@ -61,13 +61,15 @@ class _BestFormatDelegate(QStyledItemDelegate):
     """The Best format, sized to the cell: 1/3 is 0.333 in a narrow column and 0.333333333333 in a wide one
     (column_metadata.best_text) - the stored value itself unchanged, edited and copied whole."""
 
-    PADDING = 10
+    PADDING = 24
 
     def initStyleOption(self, option, index) -> None:
         super().initStyleOption(option, index)
         model = index.model()
         if not getattr(model, "shows_best", lambda _c: False)(index.column()):
             return
+        # The room left for the text: the cell less the sheet's padding (8 px a side on #dataTable::item) and
+        # the item's own text margins. The cell's width less a guess of 10 left 0.333… elided where 0.33 fits.
         room = option.rect.width() - self.PADDING
         metrics = option.fontMetrics
         option.text = column_metadata.best_text(option.text, lambda text: metrics.horizontalAdvance(text) <= room)
