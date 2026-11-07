@@ -107,6 +107,8 @@ class AIProvider:
     SENDS_DATA: bool = True
     #: Whether it may only read the project, whatever the permission chosen: too small a model for more.
     READ_ONLY: bool = False
+    #: The longest tool result its model can take, in characters; 0: the application's own limit.
+    MAX_RESULT: int = 0
     #: Its own settings, shown in Settings > Assistant when it is the provider (kept in user.json).
     OPTIONS: tuple[ProviderOption, ...] = ()
 

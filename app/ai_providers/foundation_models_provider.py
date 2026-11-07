@@ -145,6 +145,7 @@ class FoundationModelsProvider(AIProvider):
     # Measured: 4096 tokens in all, and the analyses' catalogue alone overflows them; a tool's free-form
     # roles reach the model as an empty object. Listing, describing and querying tables work.
     READ_ONLY = True
+    MAX_RESULT = 1500
 
     def unavailable(self) -> str:
         if sys.platform != "darwin" or platform.machine() != "arm64":

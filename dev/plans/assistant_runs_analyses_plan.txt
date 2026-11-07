@@ -1,0 +1,36 @@
+The assistant launches analyses on small local models (2026-11-07)
+==================================================================
+
+Today
+-----
+Claude has the room: the catalogue, then run_analysis. Measured on small models:
+ - Apple (4096 tokens): list_analyses gives 8000 characters (cut from 13000) and overflows the conversation;
+   it is read-only for now.
+ - run_analysis' roles and parameters are free-form objects. Apple's schema turns them into empty objects, so the
+   model calls run_analysis with roles {} and can never fill them.
+ - The model must read a catalogue of 14 analyses to choose one. Ollama's small models are unreliable at this.
+
+Proposal: choose in two steps, and let the application do the casting
+---------------------------------------------------------------------
+A. A short catalogue. list_analyses gives names and one line each (about 37 lines); a new describe_analysis(name)
+   gives one analysis' roles and parameters. All providers benefit: fewer tokens, also for Claude.
+B. Roles as a flat argument. run_analysis also takes roles_text: "response=mass; group=species", which any schema can
+   express; the tool parses it and says which role or column is wrong. The object form stays.
+C. Quick answers first. Tools for the three questions - are_there_differences(table, measure, groups),
+   what_has_impact(table, response, factors), has_it_changed(table, measure, time): typed flat arguments, the
+   right test chosen by the application. Enough for most requests, and within a small model's reach.
+D. Short results. A provider declares MAX_RESULT (Apple about 1500 characters). A report keeps its conclusion
+   and key numbers; the whole report stays in the figure's notes.
+E. Apple: READ_ONLY goes when a live test passes; see Measures. Until then an analysis request is explained
+   instead of failing, and Settings says that this provider only reads.
+F. Tests: fake helper for the protocol; tools for roles_text and the quick answers on a real repo.
+
+Measures (live, by hand, not in the suite)
+------------------------------------------
+Five requests on the Palmer penguins demo, on Apple and on llama3.2: compare two groups; what affects a response; a
+trend over time; a distribution; "fit a model". Passed: right analysis, right columns, a correct sentence.
+Apple's READ_ONLY goes only at 4 of 5, without overflowing. The same measure tells how much C alone gives.
+
+Order: A, B, C (then measure) - D - E - F. Strings are listed for translation, not translated.
+
+Not in this plan: changing data, multi-step analyses on small models, Ollama's hardware limits.

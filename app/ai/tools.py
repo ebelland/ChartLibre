@@ -18,9 +18,8 @@ from __future__ import annotations
 import inspect
 import re
 import time
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from typing import Any
-
 
 from app.ai import settings
 from app.data.repo._common import is_read_only_select
@@ -36,8 +35,38 @@ MAX_QUERY_ROWS = 200
 ANALYSIS_TIMEOUT_S = 600
 
 
-def _cut(text: str) -> str:
-    return text if len(text) <= MAX_RESULT else text[:MAX_RESULT] + f"\n... ({len(text) - MAX_RESULT} characters cut)"
+def _cut(text: str, limit: int = MAX_RESULT) -> str:
+    return text if len(text) <= limit else text[:limit] + f"\n... ({len(text) - limit} characters cut)"
+
+
+def _assignments(text: str) -> dict[str, str]:
+    """"a=1; b=x,y" as {"a": "1", "b": "x,y"}: what any model can write, whatever its schema can say."""
+    pairs = (part.split("=", 1) for part in str(text or "").split(";") if "=" in part)
+    return {key.strip(): value.strip() for key, value in pairs}
+
+
+def _closest(name: str, known: Iterable[str]) -> str:
+    """The one of *known* a small model meant - "box_plot" for Box Plot, "body mass" for body_mass_g; else *name*."""
+    def words(text: str) -> list[str]:
+        return [word for word in re.split(r"[^a-z0-9]+", str(text).lower()) if word]
+
+    wanted = words(name)
+    choices = list(known)
+    for test in (lambda have: have == wanted,
+                 lambda have: [w for w in have if w not in ("plot", "chart")] == [w for w in wanted
+                                                                                  if w not in ("plot", "chart")],
+                 lambda have: bool(wanted) and all(word in have for word in wanted)):
+        found = [choice for choice in choices if test(words(choice))]
+        if len(found) == 1:
+            return found[0]
+    return name
+
+
+def _column_list(value: Any) -> list[str]:
+    """Columns as a list, also when a model wrote the list as text: "['a', 'b']" or "a, b"."""
+    if isinstance(value, str):
+        return [part.strip(" '\"") for part in value.strip("[] ").split(",") if part.strip(" '\"")]
+    return [str(item) for item in value]
 
 
 def _quote(name: str) -> str:
@@ -68,6 +97,8 @@ class AssistantTools:
         self._current_figure = current_figure
         self._keep_waiting = keep_waiting
         self._catalogue: dict[str, Any] | None = None
+        #: The longest text given back; a provider with a small model asks for less (AIProvider.MAX_RESULT).
+        self.max_result = MAX_RESULT
 
     # ------------------------------------------------------------------
     # What the model is told
@@ -91,23 +122,35 @@ class AssistantTools:
             spec("list_figures", "The project's figures: their axes (chart type, title) and series."),
         ]
         if level in (settings.ANALYSES, settings.EVERYTHING):
-            names = sorted(self.catalogue())
             tools += [
-                spec("list_analyses", "The analyses that can be run: each one's column roles (with the modelling "
-                     "types they take), its parameters and their choices, its models."),
+                spec("compare_groups", "Is a measure different between groups? The right test is chosen for you; "
+                     "draws a figure and returns the answer in words.",
+                     {"table": text, "measure": text, "groups": text}, ("table", "measure", "groups")),
+                spec("find_impact", "Which columns have the most impact on a result? Draws a figure and returns "
+                     "the answer in words.",
+                     {"table": text, "result": text, "factors": {"type": "array", "items": text}},
+                     ("table", "result", "factors")),
+                spec("list_analyses", "The other analyses, one line each. describe_analysis gives one's details."),
+                spec("describe_analysis", "One analysis: its column roles, parameters and models.",
+                     {"analysis": text}, ("analysis",)),
                 spec("run_analysis", "Run an analysis as its window's OK does: it writes its result tables, draws its "
                      "figure (unless draw_on is none), keeps its report and is one Undo step. Returns the report.",
-                     {"analysis": {"type": "string", "enum": names}, "table": text,
+                     {"analysis": text, "table": text,
+                      "roles_text": {"type": "string", "description": "Role key = columns: response=mass; x=a,b"},
+                      "parameters_text": {"type": "string", "description": "Parameter = value: alpha=0.05; n=3"},
                       "roles": {"type": "object", "additionalProperties": {"type": "array", "items": text},
-                                "description": "Role key -> column names, as list_analyses gives them."},
-                      "parameters": {"type": "object", "description": "Parameter name -> value; defaults otherwise."},
+                                "description": "The same as roles_text, as an object."},
+                      "parameters": {"type": "object", "description": "The same as parameters_text, as an object."},
                       "model": {"type": "string", "description": "One of the analysis' models, when it has any."},
                       "draw_on": {"type": "string", "enum": ["new_figure", "new_axis", "same_axis", "none"]}},
-                     ("analysis", "table", "roles")),
-                spec("create_chart", "Draw a table's columns as a new figure: chart_type as the application names "
-                     "them (Scatter Plot, Histogram, Box Plot, Time Series, Bar Chart...).",
+                     ("analysis", "table")),
+                spec("list_charts", "The chart types by family. With a chart_type: when to use it and its roles; "
+                     "with a family: its charts and when to use each.",
+                     {"family": text, "chart_type": text}),
+                spec("create_chart", "Draw a table's columns as a new figure. y: the columns to draw, one series "
+                     "each. x, and roles_text for other roles (group=species; color=sex), as list_charts gives them.",
                      {"table": text, "chart_type": text, "x": text, "y": {"type": "array", "items": text},
-                      "title": text}, ("table", "chart_type", "y")),
+                      "roles_text": text, "title": text}, ("table", "chart_type", "y")),
             ]
         if level == settings.EVERYTHING:
             tools += [
@@ -136,7 +179,7 @@ class AssistantTools:
         except TypeError as error:  # an argument missing, or not one of the tool's
             return f"Wrong arguments for {name}: {error}", True
         try:
-            return _cut(str(handler(**dict(arguments)))), False
+            return _cut(str(handler(**dict(arguments))), self.max_result), False
         except Exception as error:  # noqa: BLE001 - told to the model, which can try otherwise
             return f"{type(error).__name__}: {error}", True
 
@@ -205,11 +248,22 @@ class AssistantTools:
         return self._catalogue
 
     def _tool_list_analyses(self) -> str:
-        from app.plugin_api.data_operations.parameter_spec import BoolParam, ChoiceParam, FloatParam, IntParam
+        return "\n".join(f"{name}: {str(entry.get('description') or '')[:90]}"
+                         for name, entry in sorted(self.catalogue().items()))
+
+    def _tool_describe_analysis(self, analysis: str) -> str:
+        from app.plugin_api.data_operations.parameter_spec import (
+            BoolParam,
+            ChoiceParam,
+            FloatParam,
+            IntParam,
+        )
         from app.scanners.data_operation_scanner import import_class_from_file
 
+        if analysis not in self.catalogue():
+            raise ValueError(f"No analysis named '{analysis}'. They are: {', '.join(sorted(self.catalogue()))}.")
         lines = []
-        for name, entry in sorted(self.catalogue().items()):
+        for name, entry in ((analysis, self.catalogue()[analysis]),):
             cls = import_class_from_file(entry)
             lines.append(f"## {name} - {entry.get('description', '')}")
             for role in getattr(cls, "ROLES", ()):
@@ -231,16 +285,51 @@ class AssistantTools:
                 lines.append(f"  models: {', '.join(models)}")
         return "\n".join(lines)
 
-    def _tool_run_analysis(self, analysis: str, table: str, roles: Mapping[str, list[str]],
+    def _table(self, table: str) -> str:
+        """The table a model named, or the error that names the real ones."""
+        names = [str(name) for name in self._repo.list_user_tables()["Table"]]
+        found = _closest(table, names)
+        if found not in names:
+            raise ValueError(f"No table named '{table}'. Tables: {', '.join(names) or 'none'}.")
+        return found
+
+    def _columns(self, table: str, names: Iterable[str]) -> list[str]:
+        """The columns a model named, or the error that names the real ones."""
+        known = [str(name) for name in self._repo.get_columns(table) if name not in ("Hide", "Selected")]
+        found = [_closest(name, known) for name in names]
+        wrong = [name for name in found if name not in known]
+        if wrong:
+            raise ValueError(f"Not columns of {table}: {', '.join(wrong)}. Columns: {', '.join(known)}.")
+        return found
+
+    def _tool_compare_groups(self, table: str, measure: str, groups: str) -> str:
+        table = self._table(table)
+        measure, groups = self._columns(table, [measure, groups])
+        return self._tool_run_analysis("Are there differences?", table, {"response": [measure], "group": [groups]})
+
+    def _tool_find_impact(self, table: str, result: str, factors: list[str]) -> str:
+        table = self._table(table)
+        result = self._columns(table, [result])[0]
+        return self._tool_run_analysis("What has the most impact?", table,
+                                       {"response": [result],
+                                        "factor": [name for name in self._columns(table, _column_list(factors))
+                                                   if name != result]})
+
+    def _tool_run_analysis(self, analysis: str, table: str, roles: Mapping[str, list[str]] | None = None,
                            parameters: Mapping[str, Any] | None = None, model: str = "",
-                           draw_on: str = "new_figure") -> str:
+                           draw_on: str = "new_figure", roles_text: str = "", parameters_text: str = "") -> str:
         from PySide6.QtWidgets import QApplication
 
         from app.scanners.data_operation_scanner import import_class_from_file
 
+        analysis = _closest(analysis, self.catalogue())
         entry = self.catalogue().get(analysis)
         if entry is None:
-            raise ValueError(f"No analysis named '{analysis}'.")
+            raise ValueError(f"No analysis named '{analysis}'. They are: {', '.join(sorted(self.catalogue()))}.")
+        casting = {**{key: value.split(",") for key, value in _assignments(roles_text).items()}, **dict(roles or {})}
+        values = {**_assignments(parameters_text), **dict(parameters or {})}
+        table = self._table(table)
+        casting = {key: self._columns(table, _column_list(columns)) for key, columns in casting.items()}
         before = set(self._repo.list_user_tables()["Table"].astype(str))
         cls = import_class_from_file(entry)
         if cls is None:  # its file went, or did not load: the log says why
@@ -253,9 +342,9 @@ class AssistantTools:
             if dialog.table != table:
                 raise ValueError(f"No table named '{table}'.")
             dialog.current_figure_id = self._current_figure()
-            dialog.roles_widget.set_casting({key: list(columns) for key, columns in dict(roles).items()})
+            dialog.roles_widget.set_casting({key: [str(column).strip() for column in columns] for key, columns in casting.items()})
             for form in dialog.parameter_forms():
-                form.set_values(dict(parameters or {}))
+                form.set_values(values)
             if model and getattr(dialog, "model_combo", None) is not None:
                 index = dialog.model_combo.findData(model)
                 if index < 0:
@@ -284,26 +373,70 @@ class AssistantTools:
         return (f"{analysis} on {table} done. Tables written: {', '.join(written) or 'none'}. "
                 f"Figures: {', '.join(map(str, figures)) or 'none'}.\nReport:\n{report}")
 
-    def _tool_create_chart(self, table: str, chart_type: str, y: list[str], x: str = "", title: str = "") -> str:
-        from app.scanners.axis_renderer_scanner import get_renderer
+    def _chart_class(self, chart_type: str) -> Any:
+        from app.scanners.axis_renderer_scanner import get_renderer, renderers
+        from app.scanners.data_operation_scanner import import_class_from_file
 
-        if get_renderer(chart_type) is None:
-            raise ValueError(f"No chart type '{chart_type}'.")
-        columns = set(self._repo.get_columns(table))
-        missing = [name for name in [*y, *([x] if x else [])] if name not in columns]
-        if missing:
-            raise ValueError(f"Not columns of {table}: {', '.join(missing)}")
+        entry = get_renderer(_closest(chart_type, [str(item["value"]) for item in renderers]))
+        if entry is None:
+            raise ValueError(f"No chart type '{chart_type}': list_charts gives them.")
+        return import_class_from_file(entry)
+
+    def _tool_list_charts(self, family: str = "", chart_type: str = "") -> str:
+        from app.scanners.axis_renderer_scanner import renderers
+
+        if chart_type:
+            cls = self._chart_class(chart_type)
+            return (f"{chart_type}: {cls.Description}\n{cls.WhenToUse}\nRequired roles: "
+                    f"{', '.join(cls.RequiredRoles)}. Optional: {', '.join(cls.OptionalRoles)}.")
+        families: dict[str, list[str]] = {}
+        for entry in renderers:
+            families.setdefault(str(entry.get("category") or ""), []).append(str(entry["value"]))
+        if family:
+            if family not in families:
+                raise ValueError(f"No family '{family}'. They are: {', '.join(sorted(families))}.")
+            return "\n".join(f"{name}: {self._chart_class(name).WhenToUse}" for name in families[family])
+        return "\n".join(f"{name}: {', '.join(charts)}" for name, charts in sorted(families.items()))
+
+    def _tool_create_chart(self, table: str, chart_type: str, y: list[str], x: str = "", title: str = "",
+                           roles_text: str = "") -> str:
+        cls = self._chart_class(chart_type)
+        chart_type = str(cls.Name)
+        table = self._table(table)
+        y = self._columns(table, _column_list(y))
+        required = list(getattr(cls, "RequiredRoles", ()) or ())
+        known = {*required, *(getattr(cls, "OptionalRoles", ()) or ())}
+        shared = _assignments(roles_text)
+        if x:
+            shared.setdefault("x", x)
+        unknown = sorted(set(shared) - known)
+        if unknown:
+            raise ValueError(f"{chart_type} has no role {', '.join(unknown)}. Its roles: {', '.join(sorted(known))}.")
+        shared = dict(zip(shared, self._columns(table, shared.values()), strict=True))
+        # What y's columns fill: y when the chart has it, else its first required role still free (a histogram's x).
+        free = [role for role in required if role not in shared]
+        drawn = "y" if "y" in known else (free[0] if free else "")
+        if not drawn:
+            raise ValueError(f"{chart_type}'s roles are all given: {', '.join(sorted(known))}.")
+        absent = [role for role in free if role not in (drawn, "x")]
+        if absent:
+            raise ValueError(f"{chart_type} also needs: {', '.join(absent)} (in roles_text).")
+        use_row = "x" in required and "x" not in shared and drawn != "x"
         repo = self._repo
         repo.snapshot_for_undo(list(repo.DESCRIPTOR_TABLES), label=f"Assistant: chart of '{table}'")
         figure_id = int(repo.create_figure_descriptor(name=title or f"{table}: {', '.join(y)}"))
         axis_id = int(repo.create_axis_descriptor(figure_id=figure_id, axis_index=0, chart_type=chart_type,
-                                                  title=title, x_label=x, y_label=y[0] if len(y) == 1 else "",
-                                                  options={"grid": True}))
+                                                  title=title, x_label=shared.get("x", ""),
+                                                  y_label=y[0] if len(y) == 1 else "", options={"grid": True}))
         for index, column in enumerate(y):
-            select = f"{_quote(x)} AS x, {_quote(column)} AS y" if x else f"rowid AS x, {_quote(column)} AS y"
+            chosen = {**shared, drawn: column}
+            select = [f"{_quote(name)} AS {_quote(role)}" for role, name in chosen.items()]
+            if use_row:
+                select.insert(0, 'rowid AS "x"')
+            roles = {role: role for role in chosen} | ({"x": "x"} if use_row else {})
             repo.create_series_descriptor(axis_id=axis_id, series_index=index, name=column,
-                                          sql_query=f"SELECT {select} FROM {_quote(table)}",
-                                          roles={"x": "x", "y": "y"}, style={})
+                                          sql_query=f"SELECT {', '.join(select)} FROM {_quote(table)}",
+                                          roles=roles, style={})
         self._changed([figure_id])
         return f"Figure {figure_id} drawn: {chart_type} of {', '.join(y)}" + (f" against {x}" if x else "") + "."
 

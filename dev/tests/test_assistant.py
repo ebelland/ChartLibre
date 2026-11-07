@@ -14,7 +14,16 @@ from app.ai import settings
 from app.ai.assistant import Assistant
 from app.ai.tools import AssistantTools
 from app.data.sqlite_repo import SqliteRepo
-from app.plugin_api.ai.provider import ACCURATE, FAST, AIProvider, ChatSession, ToolCall, ToolSpec, Turn
+from app.plugin_api.ai.provider import (
+    ACCURATE,
+    FAST,
+    AIProvider,
+    ChatSession,
+    ToolCall,
+    ToolSpec,
+    Turn,
+)
+from app.plugin_api.charts.render_figure import render_figure_from_descriptor
 
 
 @pytest.fixture
@@ -224,4 +233,41 @@ def test_the_analyses_can_be_listed(qapp, repo) -> None:
     tools, _made = _tools(repo)
     text, failed = tools.run("list_analyses", {}, settings.ANALYSES)
     assert not failed and "Are there differences?" in text
+
+
+def test_small_models_flat_arguments_run_analyses_and_draw_charts(qapp, repo) -> None:
+    tools, made = _tools(repo)
+    text, failed = tools.run("compare_groups", {"table": "birds", "measure": "mass", "groups": "species"},
+                             settings.ANALYSES)
+    assert not failed and "done" in text
+    text, failed = tools.run("run_analysis", {"analysis": "Are there differences?", "table": "birds",
+                                              "roles_text": "response=mass; group=species"}, settings.ANALYSES)
+    assert not failed, text
+    assert "Box Plot" in tools.run("list_charts", {}, settings.ANALYSES)[0]
+    assert "group" in tools.run("list_charts", {"chart_type": "Box Plot"}, settings.ANALYSES)[0]
+    for arguments in ({"chart_type": "Histogram", "y": ["mass"]},
+                      {"chart_type": "Box Plot", "y": ["mass"], "roles_text": "group=species"}):
+        text, failed = tools.run("create_chart", {"table": "birds", **arguments}, settings.ANALYSES)
+        assert not failed, text
+        descriptor = repo.load_figure_descriptor(made[-1][0])
+        Figure = pytest.importorskip("matplotlib.figure").Figure
+        figure = Figure()
+        render_figure_from_descriptor(figure=figure, descriptor=descriptor, repo=repo)
+        assert figure.axes
+    text, failed = tools.run("create_chart", {"table": "birds", "chart_type": "Box Plot", "y": ["mass"],
+                                              "roles_text": "wrong=species"}, settings.ANALYSES)
+    assert failed and "no role wrong" in text
+
+
+def test_what_a_small_model_gets_nearly_right_is_understood(qapp, repo) -> None:
+    tools, _made = _tools(repo)
+    text, failed = tools.run("create_chart", {"table": "birds", "chart_type": "box_plot", "y": "['Mass']",
+                                              "roles_text": "group=species"}, settings.ANALYSES)
+    assert not failed and text.endswith("Box Plot of mass.")
+    text, failed = tools.run("compare_groups", {"table": "species", "measure": "mass", "groups": "species"},
+                             settings.ANALYSES)
+    assert failed and "Tables: birds" in text
+    text, failed = tools.run("compare_groups", {"table": "birds", "measure": "weight", "groups": "species"},
+                             settings.ANALYSES)
+    assert failed and "Columns: species, mass" in text
 

@@ -62,6 +62,8 @@ class Assistant(QObject):
         self._tools = tools
         self._api_key = api_key
         level = settings.READ_ONLY if provider.READ_ONLY else level
+        if provider.MAX_RESULT:
+            tools.max_result = provider.MAX_RESULT
         self._level = level
         self._mode = mode
         self._models = dict(provider.models())
