@@ -30,7 +30,9 @@ from pathlib import Path
 
 from PySide6.QtCore import Qt, QTimer
 from PySide6.QtWidgets import (
+    QAbstractItemDelegate,
     QAbstractItemView,
+    QApplication,
     QCheckBox,
     QComboBox,
     QHBoxLayout,
@@ -201,7 +203,9 @@ class EditLocalizationDialog(SettingsTableDialog):
         self._status_label.setWordWrap(True)
         self.content_layout.addWidget(self._status_label)
 
-        self.add_action("apply", self._on_save, default=True)
+        # Not the default button: Return ends a cell's edit - as the default it also saved and closed the
+        # dialog in the middle of the work.
+        self.add_action("apply", self._on_save)
         self.add_action("close", self.reject)
 
         self._entries: dict[str, str] = {}
@@ -318,7 +322,15 @@ class EditLocalizationDialog(SettingsTableDialog):
     # ------------------------------------------------------------------
     # Save
     # ------------------------------------------------------------------
+    def _commit_open_edit(self) -> None:
+        """The cell being typed into, written to its item: OK clicked mid-edit saved the text before it."""
+        editor = QApplication.focusWidget()
+        if self._table.state() == QAbstractItemView.State.EditingState and editor is not None:
+            self._table.commitData(editor)
+            self._table.closeEditor(editor, QAbstractItemDelegate.EndEditHint.NoHint)
+
     def _on_save(self) -> None:
+        self._commit_open_edit()
         language = self._current_language()
         path = _po_path(language)
         header_comment = _leading_comment(path)

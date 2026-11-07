@@ -123,6 +123,9 @@ class DeveloperWindow(QMainWindow):
             NavButton("data_operation_builder", lambda: DataOperationBuilderDialog(self).exec(), described=True),
             NavButton("function_creator", lambda: FunctionCreatorDialog(self).exec(), described=True),
             NavButton("renderer_helper", lambda: RendererHelperDialog(self).exec(), described=True),
+            NavButton("settings", self._qss_editor, text="Qt style editor",
+                      tooltip="Edit one of app/styles/*.qss and try it live on the app's widgets, light or dark.",
+                      described=True),
         ])
         # The one secret here: kept in user.json on this computer, sent to nobody but DeepL.
         key = QLineEdit(str(get_value(DEEPL_KEY_SETTING, "") or ""), self)
@@ -132,6 +135,11 @@ class DeveloperWindow(QMainWindow):
         key.editingFinished.connect(lambda: set_value(DEEPL_KEY_SETTING, key.text().strip()))
         page.add_frame("DeepL API key", key)
         return page
+
+    def _qss_editor(self) -> None:
+        from dev.developer.qss_editor import QssEditorDialog
+
+        QssEditorDialog(self).exec()
 
     def _check_column(self) -> NavPanel:
         page = NavPanel(self)

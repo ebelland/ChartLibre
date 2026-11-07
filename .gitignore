@@ -75,3 +75,4 @@ venv/
 
 # Editor plugin state (Typst extensions).
 .typstify/
+*.qss.bak

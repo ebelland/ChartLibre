@@ -400,3 +400,29 @@ def test_argos_translates_a_block_and_keeps_its_placeholders() -> None:
     assert run.translations["Name cannot be empty."] == "Il nome non può essere vuoto."
     assert "{file}" in run.translations["A file named {file} already exists."]
     assert run.failed == run.rejected == 0
+
+
+def test_edit_localization_keeps_a_cell_being_typed_and_return_does_not_save(qapp, tmp_path, monkeypatch) -> None:
+    """OK writes the text still in the cell's editor; Return only ends the edit (OK is not the default)."""
+    from PySide6.QtWidgets import QPushButton
+
+    import dev.developer.localization_helper as helper
+    from app.utils import i18n
+
+    monkeypatch.setattr(i18n, "LOCALES_DIR", tmp_path)
+    monkeypatch.setattr(i18n, "available_languages", lambda: ["en", "xx"])
+    monkeypatch.setattr(i18n, "source_translator_calls", lambda: {"Hello"})
+    monkeypatch.setattr(i18n, "compile_catalog", lambda *_args, **_kwargs: None)
+    dialog = helper.EditLocalizationDialog()
+    assert not any(button.isDefault() for button in dialog.findChildren(QPushButton))
+    item = dialog._table.item(0, 1)
+    dialog._table.setCurrentItem(item)
+    dialog._table.editItem(item)
+    qapp.processEvents()
+    editor = qapp.focusWidget()
+    if editor is not None and hasattr(editor, "setText"):
+        editor.setText("Ciao")
+    else:  # offscreen without focus: the item itself
+        item.setText("Ciao")
+    dialog._on_save()
+    assert 'msgstr "Ciao"' in (tmp_path / "xx" / "LC_MESSAGES" / f"{i18n.DOMAIN}.po").read_text(encoding="utf-8")
