@@ -214,6 +214,26 @@ def _first_line(message: str, limit: int = 160) -> str:
     return line if len(line) <= limit else line[: limit - 1] + "\u2026"
 
 
+
+def _bold_plus_icon(colour: str, size: int) -> QIcon:
+    """A heavy plus in *colour*: the symbol fonts draw theirs too thin to stand out as the main action."""
+    from PySide6.QtGui import QColor, QPainter, QPen, QPixmap
+
+    ratio = 3
+    pixmap = QPixmap(size * ratio, size * ratio)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    pen = QPen(QColor(colour), size * ratio * 0.16, Qt.PenStyle.SolidLine, Qt.PenCapStyle.RoundCap)
+    painter.setPen(pen)
+    middle, reach = size * ratio / 2, size * ratio * 0.36
+    painter.drawLine(int(middle), int(middle - reach), int(middle), int(middle + reach))
+    painter.drawLine(int(middle - reach), int(middle), int(middle + reach), int(middle))
+    painter.end()
+    pixmap.setDevicePixelRatio(ratio)
+    return QIcon(pixmap)
+
+
 class MainWindow(QMainWindow):
     """The navigation bar and its panels, and the chart tabs beside them.
 
@@ -689,11 +709,8 @@ class MainWindow(QMainWindow):
             # Delete in red, as a destructive action is everywhere on the Mac.
             button.setIcon(colored_icon(icon, "#dc2626", 16) if action_id == "delete" else icon)
             if action_id == "add":
-                # The page's main action: white on a blue disc, as the Mac's own add buttons.
-                button.setIcon(colored_icon(icon, "#ffffff", 16))
-                button.setStyleSheet("QToolButton { background: #2f6fe0; border-radius: 14px; }"
-                                     "QToolButton:hover { background: #2563d0; }"
-                                     "QToolButton:pressed { background: #1d4fae; }")
+                # The page's main action: the plus in the accent blue, a little larger - marked, not shouting.
+                button.setIcon(_bold_plus_icon("#2f6fe0", 16))
             # The chart's sizes: the sheet's pill rule (radius 17, buttons 28) is drawn for them.
             button.setIconSize(QSize(16, 16))
             button.setFixedSize(QSize(28, 28))
