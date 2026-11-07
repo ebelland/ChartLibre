@@ -546,8 +546,22 @@ class TableListPanel(QWidget):
         )
 
 
-    def _show_context_menu(self, pos: PySide6.QtCore.QPoint) -> None:
-        self._select_clicked_row(pos)
+    def show_menu_at(self, global_pos: PySide6.QtCore.QPoint) -> None:
+        """The right-click menu, for the selected rows, opened at *global_pos* (the title's menu button)."""
+        self._show_context_menu(None, global_pos)
+
+    def edit_selected(self) -> None:
+        """Edit what is selected: the table, the stored function or the saved query - as the menu's Edit."""
+        parent = self.window()
+        items = self._edit_items(parent, self.selected_sources(), any(
+            kind != "table" for _name, kind in self.selected_sources())) if parent is not None else []
+        if items:
+            items[0].callback()
+
+    def _show_context_menu(self, pos: PySide6.QtCore.QPoint | None,
+                           global_pos: PySide6.QtCore.QPoint | None = None) -> None:
+        if pos is not None:
+            self._select_clicked_row(pos)
         table, has_link = self._selected_row_info()
         selected_tables = self.selected_tables()
         if (not table and not selected_tables) or self._repo is None:
@@ -655,7 +669,7 @@ class TableListPanel(QWidget):
         )
 
         menu = create_menu(self, items, icons=CONTEXT_MENU_ICONS)
-        menu.exec(self._view.viewport().mapToGlobal(pos))
+        menu.exec(global_pos if global_pos is not None else self._view.viewport().mapToGlobal(pos))
 
     def _select_clicked_row(self, pos: PySide6.QtCore.QPoint) -> None:
         """The row under a right-click made current, the selection kept; selected when nothing is."""

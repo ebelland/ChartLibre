@@ -313,6 +313,31 @@ class TablePreviewPanel(QWidget):
         header = model.headerData(index.column(), Qt.Orientation.Horizontal, Qt.ItemDataRole.DisplayRole)
         return str(header) if header is not None else None
 
+    def show_menu_at(self, global_pos: QPoint) -> None:
+        """The right-click menu for the current cell, opened at *global_pos* (the title's menu button)."""
+        current = self.view.currentIndex()
+        pos = self.view.visualRect(current).center() if current.isValid() else QPoint(-1, -1)
+        menu = self._build_context_menu(pos)
+        if menu is not None:
+            menu.exec(global_pos)
+
+    def column_info(self) -> None:
+        """Column Info for the current column, as the menu's."""
+        column = self._current_column_name() if self._model() is not None else self._query_column_name()
+        if column:
+            self._open_column_info(column)
+
+    def chart(self) -> None:
+        """A chart of the selected columns: one column's histogram, else New plot with them."""
+        if not self._table:
+            return
+        _rows, positions = self._selected_block()
+        selected = self._column_names(positions)
+        if len(selected) == 1:
+            self.histogram_requested.emit(str(self._table), selected[0])
+        else:
+            self._request_chart()
+
     def _show_context_menu(self, pos: QPoint) -> None:
         """Show the preview's right-click menu."""
         menu = self._build_context_menu(pos)

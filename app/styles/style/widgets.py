@@ -219,6 +219,24 @@ class TitledCard(QWidget):
             return True
         return super().eventFilter(watched, event)
 
+    def add_header_widget(self, widget: QWidget) -> None:
+        """Put *widget* at the right end of the title's row - small buttons that act on the box below."""
+        layout = self.layout()
+        header = getattr(self, "_header", None)
+        if header is None:
+            header = self._header = QHBoxLayout()
+            header.setContentsMargins(0, 0, 0, 0)
+            header.setSpacing(2)
+            index = layout.indexOf(self.title_label)
+            if index >= 0:
+                layout.removeWidget(self.title_label)
+                header.addWidget(self.title_label, 0, Qt.AlignmentFlag.AlignVCenter)
+                header.addStretch(1)
+                layout.insertLayout(index, header)
+            else:  # a collapsible card: its header is the first item
+                header = self._header = layout.itemAt(0).layout()
+        header.addWidget(widget, 0, Qt.AlignmentFlag.AlignVCenter)
+
 
 def mark_editor_panel(widget: QWidget) -> QWidget:
     """Mark list/tree/editor widgets for shared panel styling."""

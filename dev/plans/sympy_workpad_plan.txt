@@ -1,0 +1,44 @@
+SymPy workpad: a notebook of SymPy commands beside the project's tables (2026-11-07)
+==================================================================================
+
+What it is
+----------
+Data > SymPy workpad... opens a non-modal window: an input box, a history of commands and results, and a list of
+the names defined so far. Each command is run with Run (Ctrl+Return); its result is shown as text and, when it is an
+expression, as rendered math (sympy.latex drawn by matplotlib's mathtext, already in the app). The session lives as
+long as the window; its commands are saved in the project (one table, like stored functions), not its values.
+
+  >>> x = symbols("x")
+  >>> f = exp(-a*x)*sin(w*x)
+  >>> diff(f, x)
+  >>> m = get("Penguins", "body_mass_g")          # a column, as a sympy Matrix (or a list with mean/std)
+  >>> mean(m), std(m)
+  >>> fit = get("Damped", "y"); xs = get("Damped", "x")
+  >>> lambdify(x, f.subs({a: 0.3, w: 2}))(xs)
+  >>> put("Derived", {"x": xs, "y": ...})           # optional: a new table from the results
+
+A. The window and the session: input, history, names; every SymPy name available (from sympy import *).
+B. Table access, read-only first:
+     get(table, column)        one column -> a list of numbers (or strings); Matrix(get(...)) on request
+     get(table)                the whole table -> a dict column -> list
+     tables(), columns(table)  names, for the user and for completion
+   Names are matched as Fit curve matches them (case, spaces); an unknown name says the close ones.
+   put(table, {...}) writes a new table through the repository, with Undo; never overwrites without asking.
+C. Statistics helpers on lists: mean, std, median, minimum, maximum, count (sympy's own stays available as sp.).
+D. Safety ("filter unsafe commands"; the setting On by default, can be turned off in Settings):
+   - Each command is parsed with ast before it runs. Refused: import / from-import, names starting with "_",
+     attribute access to dunders (x.__class__), and the builtins eval, exec, compile, open, input, __import__,
+     globals, locals, vars, getattr/setattr/delattr, breakpoint. Allowed: assignments, expressions, def, for, if,
+     comprehensions, lambdas.
+   - Builtins limited to a list (abs, min, max, sum, len, range, round, list, dict, tuple, zip, enumerate, sorted,
+     print, float, int, str, bool).
+   - A long command runs on a worker with Stop; a 30 s limit says it was stopped.
+   This is a filter, not a sandbox: it stops mistakes and casual copies from the web, not a determined attacker.
+   Workpads saved in a project from elsewhere are re-run only when trusted on this computer, as stored functions
+   already are (sympy_store.is_trusted).
+E. Bridges: "Save as function" turns an expression into a stored function (the Function dialog's Expression model);
+   "Plot" draws an expression on a new chart over the range asked.
+F. Tests: the filter (each refused construct, each allowed one), get/put on a demo repo, name matching, the session
+   kept across commands, trust; offscreen, no real worker timing beyond a short one.
+
+Order: A+B (usable), C, D, E, F alongside each. Strings listed for translation, not translated.

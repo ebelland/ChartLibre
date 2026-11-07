@@ -38,6 +38,8 @@ from PySide6.QtWidgets import (
     QBoxLayout,
     QCheckBox,
     QFileDialog,
+    QFrame,
+    QHBoxLayout,
     QInputDialog,
     QLabel,
     QMainWindow,
@@ -49,6 +51,7 @@ from PySide6.QtWidgets import (
     QSizePolicy,
     QSplitter,
     QTabWidget,
+    QToolButton,
     QVBoxLayout,
     QWidget,
 )
@@ -74,6 +77,7 @@ from app.main_window.custom_title_bar import CustomTitleBar
 from app.plugin_api.charts import layout_presets
 from app.scanners.data_operation_scanner import import_class_from_file
 from app.styles.style import (
+    load_icon,
     EXPANDED_CLIENT_AREA_HINT,
     IS_MACOS,
     IS_WINDOWS,
@@ -117,6 +121,7 @@ from app.utils.screen_fit import fit_on_show
 from app.utils.startup import PROJECT_FILE_FILTER
 from app.widgets.analysis_panel import AnalysisPanel, plot_operation, plugin_icon
 from app.widgets.assistant_panel import AssistantPanel
+from app.widgets.workpad_panel import WorkpadPanel
 from app.widgets.catalog_search import CatalogSearch
 from app.widgets.chart_jump_bar import ChartJumpBar
 from app.widgets.chart_panel import ChartPanel
@@ -633,11 +638,58 @@ class MainWindow(QMainWindow):
         # A small inset: the tables' square headers and scroll corners stay
         # inside the frame's rounded corners instead of squaring them (B-10);
         # the frame's border is the only one (the sheets drop the views').
-        page.add_frame(_("Tables"), self._table_panel, object_name="tablesFrame", stretch=1, margins=(4, 4, 4, 4))
-        page.add_frame(_("Data"), self._preview, object_name="dataFrame", stretch=2, margins=(4, 4, 4, 4))
+        tables = page.add_frame(_("Tables"), self._table_panel, object_name="tablesFrame", stretch=1,
+                                margins=(4, 4, 4, 4))
+        data = page.add_frame(_("Data"), self._preview, object_name="dataFrame", stretch=2, margins=(4, 4, 4, 4))
+        # Beside each title, the actions used most, as the chart's own buttons; the last opens the right-click menu.
+        tables_bar = self._title_buttons([
+            ("add", _("New table"), lambda _button: self._left_panel.select("new_table")),
+            ("delete", _("Delete the selected tables"), lambda _button: self._table_panel._delete_selected()),
+            ("chart_from_columns", _("A new chart of this table"),
+             lambda _button: self._table_panel._on_new_plot_tab()),
+            ("edit", _("Edit the table, function or query"), lambda _button: self._table_panel.edit_selected()),
+            ("table_more", _("More"), lambda button: self._table_panel.show_menu_at(
+                button.mapToGlobal(button.rect().bottomLeft()))),
+        ])
+        data_bar = self._title_buttons([
+            ("column_info", _("Column Info..."), lambda _button: self._preview.column_info()),
+            ("chart_from_columns", _("A chart of the selected columns: a histogram of one, else New plot"),
+             lambda _button: self._preview.chart()),
+            ("edit", _("Edit the table"), lambda _button: self._table_panel.edit_selected()),
+            ("table_more", _("More"), lambda button: self._preview.show_menu_at(
+                button.mapToGlobal(button.rect().bottomLeft()))),
+        ])
+        for card, bar in ((tables, tables_bar), (data, data_bar)):
+            titled = card.parentWidget()
+            if hasattr(titled, "add_header_widget"):
+                titled.add_header_widget(bar)
         assert page.splitter is not None
         self._data_split = page.splitter
         return page
+
+    def _title_buttons(self, entries: list[tuple[str, str, Any]]) -> QFrame:
+        """Small icon buttons in one rounded group, as the chart's navigation: (action id, tooltip, call(button))."""
+        pill = QFrame(self)
+        pill.setObjectName("chartNavPill")
+        pill.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        row = QHBoxLayout(pill)
+        row.setContentsMargins(3, 2, 3, 2)
+        row.setSpacing(1)
+        for action_id, tooltip, call in entries:
+            button = QToolButton(pill)
+            button.setObjectName("chartToolButton")
+            icon = load_icon(action_id)
+            # Delete in red, as a destructive action is everywhere on the Mac.
+            button.setIcon(colored_icon(icon, "#dc2626", 16) if action_id == "delete" else icon)
+            # The chart's sizes: the sheet's pill rule (radius 17, buttons 28) is drawn for them.
+            button.setIconSize(QSize(16, 16))
+            button.setFixedSize(QSize(28, 28))
+            button.setAutoRaise(True)
+            button.setToolTip(tooltip)
+            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            button.clicked.connect(lambda _checked=False, b=button, c=call: c(b))
+            row.addWidget(button)
+        return pill
 
     def _on_data_operation_requested(self, operation: dict) -> None:
         """Handle a built-in or runtime data-operation request."""
@@ -965,6 +1017,9 @@ class MainWindow(QMainWindow):
         assistant_panel.project_changed.connect(self._on_assistant_changed)
         assistant_panel.settings_requested.connect(self._on_settings)
         assistant_panel.busy_changed.connect(self._on_assistant_busy)
+        # The SymPy workpad: commands on the project's tables (app.workpad).
+        workpad_panel = self._workpad_panel = WorkpadPanel(self, repo=lambda: self._repo)
+        workpad_panel.project_changed.connect(self._on_assistant_changed)
 
         sections: dict[str, dict[str, NavBarItem]] = {
             "Tools": {
@@ -1002,6 +1057,10 @@ class MainWindow(QMainWindow):
                     _("Assistant"), self._rail_icon("nav_assistant"), assistant_panel,
                     _("Ask an AI about the project's data - and, as Settings allow, have it run analyses or change "
                       "the data"),
+                ),
+                "workpad": NavBarItem(
+                    _("SymPy workpad"), self._rail_icon("nav_analysis"), workpad_panel,
+                    _("SymPy commands on the project's tables: get, save, plot"),
                 ),
                 "developer": NavBarItem(
                     _("Project"), self._rail_icon("database_info"), developer_panel,
