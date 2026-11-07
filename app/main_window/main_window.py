@@ -76,6 +76,7 @@ from app.main_window.custom_title_bar import CustomTitleBar
 from app.plugin_api.charts import layout_presets
 from app.scanners.data_operation_scanner import import_class_from_file
 from app.styles.style import (
+    CONTEXT_MENU_ICONS,
     load_icon,
     EXPANDED_CLIENT_AREA_HINT,
     IS_MACOS,
@@ -800,16 +801,16 @@ class MainWindow(QMainWindow):
             ("query", _("Create Query Table"), _("Create a table from a database query."),
              self._on_create_query_table),
             None,
-            ("import", _("Import from file"), _("Create a table from a file: CSV, Excel, JSON."),
-             self._on_import_data),
             ("paste", _("Import from clipboard"), _("Create a table from the table copied to the clipboard."),
              self._on_import_clipboard),
             "transposed",
-            ("web_sources", _("Import from the web"),
-             _("Create a table from a web address or a listed open-data source."), self._on_import_web),
             None,
+            ("import", _("Import from file"), _("Create a table from a file: CSV, Excel, JSON."),
+             self._on_import_data),
             ("import", _("Import Database Table"), _("Create a table from a database table."),
              self._on_database_table_import),
+            ("web_sources", _("Import from the web"),
+             _("Create a table from a web address or a listed open-data source."), self._on_import_web),
         ]
         menu.setToolTipsVisible(True)
         for entry in entries:
@@ -820,7 +821,8 @@ class MainWindow(QMainWindow):
                 menu.addAction(self._clipboard_transposed)
             else:
                 icon, text, tip, call = entry
-                action = menu.addAction(load_icon(icon), text)
+                # No icons on the Mac, as its own menus; Windows and Linux show them (CONTEXT_MENU_ICONS).
+                action = menu.addAction(load_icon(icon), text) if CONTEXT_MENU_ICONS else menu.addAction(text)
                 action.setToolTip(tip)
                 action.triggered.connect(lambda _checked=False, c=call: c())
         return menu
