@@ -12,6 +12,10 @@ import tempfile
 from collections.abc import Iterator
 from pathlib import Path
 
+from app.utils.qt_plugins import ensure_visible_plugins
+
+ensure_visible_plugins()  # macOS may flag the environment's Qt plugins hidden; Qt then finds none
+
 import matplotlib
 import pytest
 

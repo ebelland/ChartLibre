@@ -1389,10 +1389,12 @@ class MainWindow(QMainWindow):
         if guided is not None:
             guided.set_table(table)
 
-    def _guided_table(self, table: str) -> tuple[Any, dict[str, str]]:
+    def _guided_table(self, table: str) -> tuple[Any, dict[str, str]] | None:
         """A table as the analysis windows read it - visible rows, no application columns - and its SQL types."""
         from app.plugin_api.data_operations.roles_base import APPLICATION_COLUMNS
 
+        if self._repo.source_kind(table) == "function":
+            return None  # a stored function has no rows to read: nothing to profile
         frame = self._repo.table_frame(table)
         if "Hide" in frame.columns:
             frame = frame[to_numbers(column_of(frame, "Hide")).fillna(0) == 0]

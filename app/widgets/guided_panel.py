@@ -143,8 +143,10 @@ class GuidedAnalysisPanel(NavPanel):
         self._profile = None
         if self._table and self._loader is not None:
             try:
-                frame, declared = self._loader(self._table)
-                self._profile = table_profile.profile(self._table, frame, declared)
+                read = self._loader(self._table)
+                if read is not None:  # None: a stored function, which has no rows
+                    frame, declared = read
+                    self._profile = table_profile.profile(self._table, frame, declared)
             except Exception:
                 applogger.exception("Guided analysis: could not read table %s", self._table)
         self._show_table()
