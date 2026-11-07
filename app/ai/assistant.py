@@ -42,6 +42,15 @@ _PERMISSIONS = {
 }
 
 
+def system_prompt(provider: AIProvider, tools: AssistantTools, level: str) -> str:
+    """The instructions; a small model also gets the project's tables, and is told to use their exact names."""
+    prompt = SYSTEM.format(permission=_PERMISSIONS[level])
+    if provider.SMALL_MODEL:
+        prompt += ("\n- Use these exact table and column names. Call the tool for the request at once; if it fails, "
+                   "correct the arguments and call it again.\n\nTables:\n" + tools.run("list_tables", {}, level)[0])
+    return prompt
+
+
 class Assistant(QObject):
     """The conversation; its signals are the panel's."""
 
@@ -67,7 +76,7 @@ class Assistant(QObject):
         self._level = level
         self._mode = mode
         self._models = dict(provider.models())
-        self._session = provider.start(api_key=api_key, system=SYSTEM.format(permission=_PERMISSIONS[level]),
+        self._session = provider.start(api_key=api_key, system=system_prompt(provider, tools, level),
                                        tools=tools.specs(level))
         self._buffer: list[str] = []
         self._lock = threading.Lock()

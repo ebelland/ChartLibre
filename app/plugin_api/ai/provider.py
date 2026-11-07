@@ -109,6 +109,8 @@ class AIProvider:
     READ_ONLY: bool = False
     #: The longest tool result its model can take, in characters; 0: the application's own limit.
     MAX_RESULT: int = 0
+    #: A small model: told the tables and columns from the start, or it guesses them.
+    SMALL_MODEL: bool = False
     #: Its own settings, shown in Settings > Assistant when it is the provider (kept in user.json).
     OPTIONS: tuple[ProviderOption, ...] = ()
 

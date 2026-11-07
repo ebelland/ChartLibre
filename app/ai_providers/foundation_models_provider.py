@@ -135,7 +135,10 @@ class FoundationModelsSession(ChatSession):
                     return turn
                 if event.get("kind") == "context" or "maximum allowed" in str(event.get("message")):
                     raise RuntimeError("The conversation no longer fits Apple's model: start a new one.")
-                raise RuntimeError(str(event.get("message") or "Apple's model failed."))
+                message = str(event.get("message") or "Apple's model failed.")
+                if "MemoryPressure" in message:
+                    message = "This Mac is short of memory, so Apple's model will not run: close some applications."
+                raise RuntimeError(message)
 
 
 class FoundationModelsProvider(AIProvider):
@@ -146,6 +149,7 @@ class FoundationModelsProvider(AIProvider):
     # roles reach the model as an empty object. Listing, describing and querying tables work.
     READ_ONLY = True
     MAX_RESULT = 1500
+    SMALL_MODEL = True
 
     def unavailable(self) -> str:
         if sys.platform != "darwin" or platform.machine() != "arm64":

@@ -131,6 +131,7 @@ def _readable(problem: str, model: str) -> str:
 
 class OllamaProvider(AIProvider):
     Name = "Ollama"
+    SMALL_MODEL = True
     Description = "A model running on this computer through Ollama (ollama.com): nothing leaves the computer."
     OPTIONS = (
         ProviderOption("address", "Address", DEFAULT_ADDRESS,
