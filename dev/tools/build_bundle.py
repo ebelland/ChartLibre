@@ -194,6 +194,8 @@ def thin_universal_binaries(runtime: Path, arch: str) -> int:
         path.chmod(mode)
         thinned.append(path)
         saved += before - path.stat().st_size
+    # Again: while lipo ran, iCloud may have tagged the new files.
+    subprocess.run(["xattr", "-cr", str(runtime)], check=False)
     # Innermost first: signing a framework's library seals the helper app
     # inside it, which must already carry its own signature.
     for path in sorted(thinned, key=lambda item: len(item.parts), reverse=True):

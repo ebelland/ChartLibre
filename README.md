@@ -44,7 +44,7 @@ ChartLibre aims at the first of those without the price tag:
 - **Your file stays yours** — a project is one `.dhub` file (a SQLite database) holding *both* the data and every chart definition built on it. Copy it, email it, commit it to git. No proprietary container, no cloud, no lock-in: any SQLite tool can read the data back out.
 - **Publication output** — export to PNG, JPEG, **SVG** and **PDF** at a DPI you choose.
 
-> **Status: early, and not thoroughly tested.** ChartLibre is at version 0.1.3 and under active development. The feature list below is what is implemented and covered by the automated test suite, not a roadmap — but it has had little testing by real users on real data yet. Expect rough edges, and check results that matter.
+> **Status: early, and not thoroughly tested.** ChartLibre is at version 0.2.0 and under active development. The feature list below is what is implemented and covered by the automated test suite, not a roadmap — but it has had little testing by real users on real data yet. Expect rough edges, and check results that matter.
 >
 > **Collaborators wanted.** Testers, bug reports, fixes, translations, a Linux check, packaging: see [Contributing](#contributing).
 
