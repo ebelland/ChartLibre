@@ -37,7 +37,7 @@ does what the user asked, and fill only the fields that action needs:
 {actions}
 Fields: table; measure (the column measured), groups (the column of the groups), result and factors (for \
 find_impact); chart_type, x, y (a list), group (colours) for create_chart; analysis and columns for run_analysis; \
-sql for query (SQLite, double quotes around names).
+sql for query (SQLite; a name with a space in double quotes).
 
 Tables and their columns:
 {tables}"""
@@ -105,7 +105,8 @@ def _roles(tools: AssistantTools, analysis: str, form: Mapping[str, Any]) -> dic
     roles: dict[str, list[str]] = {}
     for key in keys:
         if key in ("response", "y", "input") and (form.get("measure") or form.get("y") or named):
-            roles[key] = _many(form.get("measure")) or _many(form.get("y")) or named[:1]
+            # Several columns where the analysis reads several (Multivariate's correlations): all of them.
+            roles[key] = _many(form.get("measure")) or _many(form.get("y")) or _many(form.get("columns"))
         elif key in ("factor", "predictor", "x") and (form.get("factors") or form.get("x")):
             roles[key] = _many(form.get("factors")) or _many(form.get("x"))
         elif key in ("group", "by") and (form.get("groups") or form.get("group")):

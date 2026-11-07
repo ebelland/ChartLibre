@@ -61,3 +61,12 @@ Risks
 Not in this plan: fine-tuning. A later plan could use A's cases as its first data, if C-E fall short.
 
 Order: A - B - C - D - E - F - G, one commit each. Strings are listed for translation, not translated.
+
+Measured (2026-11-07, llama3.2, dev/tools/assistant_eval.py, 20 penguin requests)
+--------------------------------------------------------------------------------
+ A  tools, today's code            9 of 20
+ B  text calls, mended arguments  10 of 20 (8 with half of B: within the noise of one run)
+ C  one form                      13 of 20 - charts 4 of 4; queries without their SQL, analyses unnamed
+ D  7 examples in the form        10 of 20 - taken out: the model fills the chart fields for every action
+Next idea, not in the plan: the form in two steps - the action alone, then a form of that action's own
+fields, all required - so the chart fields are never there to fill.
