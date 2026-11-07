@@ -311,11 +311,37 @@ class DeveloperWindow(QMainWindow):
             with table.open(newline="") as handle:
                 rows = list(csv.DictReader(handle))
             lines.append("Last commits (dev/appsize.csv):")
-            for row in rows[-15:]:
+            for row in rows[-15:]:  # the whole history is in the chart
                 lines.append("  " + "  ".join(f"{key}={value}" for key, value in row.items()))
         self._log.clear()
         self._log.appendPlainText("\n".join(lines))
         self._status.setText("Project size.")
+        if table.exists():
+            self._size_chart(rows)
+
+    def _size_chart(self, rows: list[dict[str, str]]) -> None:
+        """Lines of code and of tests at each commit, against its date, in a window of its own."""
+        from datetime import datetime
+
+        from matplotlib.backends.backend_qtagg import FigureCanvasQTAgg
+        from matplotlib.figure import Figure
+
+        dates = [datetime.strptime(row["date"], "%Y-%m-%d %H:%M") for row in rows]
+        figure = Figure(figsize=(8, 4.5), layout="constrained")
+        axes = figure.add_subplot()
+        for key, label in (("lines", "app/ lines"), ("code_lines", "app/ code lines"), ("test_lines", "test lines")):
+            axes.plot(dates, [int(row[key]) for row in rows], label=label, linewidth=1.6)
+        axes.set_ylabel("lines")
+        axes.set_title(f"ChartLibre's size, {len(rows)} commits")
+        axes.grid(alpha=0.3)
+        axes.legend()
+        figure.autofmt_xdate()
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Project size")
+        layout = QVBoxLayout(dialog)
+        layout.addWidget(FigureCanvasQTAgg(figure))
+        dialog.resize(900, 520)
+        dialog.show()  # not modal: the log stays usable
 
     def _build_bundle(self) -> None:
         BUILD_WORK.mkdir(parents=True, exist_ok=True)
