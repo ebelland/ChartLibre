@@ -20,13 +20,13 @@ from pathlib import Path
 
 from PySide6.QtWidgets import QComboBox, QFormLayout, QLineEdit, QWidget
 
-from app.developer_helpers.developer_helper_base import DeveloperDialogBase
+from dev.developer.developer_helper_base import DeveloperDialogBase
 from app.utils.config import USER_CHARTS_DIR
 from app.utils.i18n import _
 
 #: Where axis_renderer_scanner.py itself looks for the built-in renderers -
 #: used here only to check a new Name against them, never written to.
-BUILTIN_CHARTS_DIR: Path = Path(__file__).resolve().parent.parent / "charts"
+BUILTIN_CHARTS_DIR: Path = Path(__file__).resolve().parents[2] / "app" / "charts"
 
 #: Where this dialog writes - a user-authored renderer, kept separate from
 #: the app's own shipped source. Created on first use.

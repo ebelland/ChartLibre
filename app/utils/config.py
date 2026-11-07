@@ -60,7 +60,7 @@ TEMPLATES_DIR = _repo_root().parent / "Templates"
 
 #: Where a user-authored plugin (a renderer, a data operation, a fit
 #: function) lives, one subfolder per kind, mirroring the shipped folder it
-#: extends - see app/developer_helpers/renderer_helper.py and its Developer-menu
+#: extends - see dev/developer/renderer_helper.py and its
 #: siblings. Kept beside config.json/user.json/mplstyles/ rather than inside
 #: app/ itself: a packaged build's own app/ tree may be read-only, and
 #: user-authored code has no business living alongside the app's own shipped
@@ -329,17 +329,6 @@ def set_value(name: str, value: Any) -> None:
 # ----------------------------------------------------------------------
 # Named preferences
 # ----------------------------------------------------------------------
-#: Shows the tools for contributors - Edit Localization, Data Operation
-#: Builder, Function Creator, Renderer Helper - and the DeepL key in
-#: Settings (todo H-13). Off: they are for people extending the app.
-DEVELOPER_MODE_KEY = "developer_mode"
-
-
-def developer_mode() -> bool:
-    """True when Settings' Developer mode is on."""
-    return bool(get_value(DEVELOPER_MODE_KEY, False))
-
-
 #: Settings > Advanced: the log file emptied when the application starts, so it holds this session only.
 CLEAR_LOG_KEY = "clear_log_at_start"
 

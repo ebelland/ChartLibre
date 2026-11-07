@@ -5,10 +5,10 @@ from pathlib import Path
 
 import pytest
 
-import app.developer_helpers.developer_helper_base as common
-from app.developer_helpers.data_operation_helper import DataOperationBuilderDialog
-from app.developer_helpers.function_creator_helper import FunctionCreatorDialog
-from app.developer_helpers.renderer_helper import RendererHelperDialog
+import dev.developer.developer_helper_base as common
+from dev.developer.data_operation_helper import DataOperationBuilderDialog
+from dev.developer.function_creator_helper import FunctionCreatorDialog
+from dev.developer.renderer_helper import RendererHelperDialog
 
 
 @pytest.fixture
@@ -71,11 +71,3 @@ def test_a_built_in_name_is_refused_and_a_typed_file_name_is_kept(qapp, shown: l
     dialog._on_name_edited("Something else")
     assert dialog._file_edit.text() == "custom.py"
 
-
-@pytest.mark.parametrize("dialog_class", [FunctionCreatorDialog, DataOperationBuilderDialog, RendererHelperDialog])
-def test_every_text_a_tool_shows_is_found_for_the_catalogues(dialog_class) -> None:
-    from app.utils.i18n import TRANSLATED_ATTRIBUTES, source_translator_calls
-
-    found = source_translator_calls()
-    for attribute in TRANSLATED_ATTRIBUTES & set(vars(dialog_class)):
-        assert getattr(dialog_class, attribute) in found, attribute

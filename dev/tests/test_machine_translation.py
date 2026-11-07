@@ -163,7 +163,7 @@ def test_each_service_gets_its_own_language_code() -> None:
 def test_the_dialog_fills_only_empty_cells(qapp, monkeypatch: pytest.MonkeyPatch) -> None:
     from PySide6.QtCore import Qt
 
-    import app.developer_helpers.localization_helper as dialog_module
+    import dev.developer.localization_helper as dialog_module
 
     monkeypatch.setattr(mt, "available", lambda: True)
     monkeypatch.setattr(mt, "_make_translator", lambda provider, language: Echo())
@@ -304,16 +304,23 @@ def test_deepl_without_a_key_hands_over_to_the_next_service() -> None:
     assert run.translations == {"Hello": "HELLO"}
 
 
-def test_settings_keep_the_deepl_key_in_user_json(qapp) -> None:
-    from app.dialogs.settings_dialog import SettingsDialog
+def test_the_developer_app_keeps_the_deepl_key_in_user_json(qapp) -> None:
+    """The key is set in dev/ChartLibreDeveloper.py (it left Settings with Developer mode); user.json only."""
+    import runpy
+
+    from PySide6.QtWidgets import QLineEdit
+
     from app.utils import config
 
-    dialog = SettingsDialog()
-    dialog._deepl_key_edit.setText("  my-key:fx ")
-    dialog._save()
+    launcher = Path(__file__).resolve().parents[1] / "ChartLibreDeveloper.py"
+    window = runpy.run_path(str(launcher), run_name="developer_app_test")["DeveloperWindow"]()
+    field = next(edit for edit in window.findChildren(QLineEdit) if edit.placeholderText().endswith(":fx"))
+    field.setText("  my-key:fx ")
+    field.editingFinished.emit()
     assert config.get_value(mt.DEEPL_KEY_SETTING) == "my-key:fx"
     assert mt.DEEPL_KEY_SETTING not in json.loads(config.CONFIG_PATH.read_text(encoding="utf-8"))
     config.set_value(mt.DEEPL_KEY_SETTING, "")
+    window.close()
 
 
 def _argos_archive(top: str) -> bytes:

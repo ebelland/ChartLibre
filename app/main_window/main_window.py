@@ -61,10 +61,6 @@ from app.data.demos import PROJECTS_DIR, DemoProject, copy_demo_project
 from app.data.repo._common import ensure_read_only_select
 from app.data.repo.function_sql import function_names
 from app.data.sqlite_repo import DatabaseError, SqliteRepo
-from app.developer_helpers.data_operation_helper import DataOperationBuilderDialog
-from app.developer_helpers.function_creator_helper import FunctionCreatorDialog
-from app.developer_helpers.localization_helper import EditLocalizationDialog
-from app.developer_helpers.renderer_helper import RendererHelperDialog
 from app.dialogs.connect_database_dialog import ConnectDatabaseDialog
 from app.dialogs.create_chart_dialog import NewPlotTabDialog
 from app.dialogs.credits_dialog import CreditsDialog
@@ -102,7 +98,6 @@ from app.utils import column_summary
 from app.utils.coercion import column_of, to_numbers
 from app.utils.config import (
     clear_recent_databases,
-    developer_mode,
     get_constant,
     get_recent_databases,
     get_section,
@@ -624,7 +619,6 @@ class MainWindow(QMainWindow):
         dialog = SettingsDialog(self)
         if dialog.exec():
             self._build_app_menu()
-            self._apply_developer_mode()
             self._refresh_recent_section()  # its count may have changed (Settings > General)
         # Shown in the navigation bar or not (Settings > Assistant).
         self._left_panel.set_item_hidden("assistant", not assistant_settings.in_navigation())
@@ -959,12 +953,12 @@ class MainWindow(QMainWindow):
         return page
 
     def _create_developer_page(self) -> NavPanel:
-        """The Project page: the project's information, history, database and log - then, in developer mode, the scaffolding tools.
+        """The Project page: the project's information, history, database and log.
 
         The Database page's content lives here since that page went; Query
         Builder moved to the Data Operations list. Each tool has a frame
-        of its own with its catalogue sentence under the button. The tools
-        for contributors show only with Settings' Developer mode (todo H-13).
+        of its own with its catalogue sentence under the button. The tools for
+        contributors are in dev/ChartLibreDeveloper.py.
         """
         page = NavPanel(self)
         page.add_buttons(_("Project information"), [NavButton("project_info", self._on_project_info, described=True)],
@@ -976,30 +970,8 @@ class MainWindow(QMainWindow):
         page.add_buttons(action_presentation("log_viewer")[1],
                          [NavButton("log_viewer", self._show_log_viewer, described=True)],
                          object_name="log_viewerCard")
-        self._developer_cards = [
-            page.add_buttons(action_presentation(action_id)[1], [NavButton(action_id, handler, described=True)],
-                             object_name=f"{action_id}Card")
-            for action_id, handler in (
-                ("edit_localization", self._on_edit_localization),
-                ("data_operation_builder", self._on_data_operation_builder),
-                ("function_creator", self._on_function_creator),
-                ("renderer_helper", self._on_renderer_helper),
-            )
-        ]
-        self._apply_developer_mode()
         return page
 
-    def _apply_developer_mode(self) -> None:
-        """Show the tools for contributors on the Project page only in developer mode (todo H-13)."""
-        shown = developer_mode()
-        for card in getattr(self, "_developer_cards", []):
-            # The whole frame, its title too: the box alone left the titles behind.
-            card.parentWidget().setVisible(shown)
-
-    # ------------------------------------------------------------------
-    # Navigation bar
-    # ------------------------------------------------------------------
-    @staticmethod
     def _navigation_icon(action_id: str) -> QIcon:
         icon, _text, _tooltip = action_presentation(action_id)
         return icon
@@ -1100,7 +1072,7 @@ class MainWindow(QMainWindow):
                 ),
                 "developer": NavBarItem(
                     _("Project"), self._rail_icon("database_info"), developer_panel,
-                    _("The project's information, history, database and log - and, in developer mode, the tools for extending the app"),
+                    _("The project's information, history, database and log"),
                 ),
             },
         }
@@ -1883,10 +1855,6 @@ class MainWindow(QMainWindow):
         if panel is not None:
             panel.copy_chart_to_clipboard()
 
-    def _on_edit_localization(self) -> None:
-        """Open Edit Localization: browse/edit a translation catalogue."""
-        EditLocalizationDialog(self).exec()
-
     def edit_stored_function(self, name: str) -> None:
         """Tables panel > Edit function...: the Functions operation, open on the stored function *name*."""
         from app.scanners.data_operation_scanner import data_operations
@@ -1897,18 +1865,6 @@ class MainWindow(QMainWindow):
             applogger.error("The Functions operation is not installed: %r cannot be edited.", name)
             return
         self._open_data_operation(dialog_class, plugin_icon(entry), prepare=lambda dialog: dialog.edit_stored(name))
-
-    def _on_data_operation_builder(self) -> None:
-        """Open the Data Operation Builder: scaffold a new operation file."""
-        DataOperationBuilderDialog(self).exec()
-
-    def _on_function_creator(self) -> None:
-        """Open the Function Creator: scaffold a new fit-function file."""
-        FunctionCreatorDialog(self).exec()
-
-    def _on_renderer_helper(self) -> None:
-        """Open the Renderer Helper: scaffold a new chart-type file."""
-        RendererHelperDialog(self).exec()
 
     def _on_zoom(self) -> None:
         """Toggle the window between its normal and maximized size.

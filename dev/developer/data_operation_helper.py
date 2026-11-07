@@ -21,15 +21,15 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from app.developer_helpers.developer_helper_base import DeveloperDialogBase
-from app.developer_helpers.developer_helper_base import slug as _slug
+from dev.developer.developer_helper_base import DeveloperDialogBase
+from dev.developer.developer_helper_base import slug as _slug
 from app.utils.config import USER_DATA_OPERATIONS_DIR
 
 #: Where data_operation_scanner.py itself looks for the built-in
 #: operations - used here only to check a new Name against them, never
 #: written to.
 BUILTIN_OPERATIONS_DIR: Path = (
-    Path(__file__).resolve().parent.parent / "data_operations"
+    Path(__file__).resolve().parents[2] / "app" / "data_operations"
 )
 
 #: Where this dialog writes - a user-authored operation, kept separate

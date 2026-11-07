@@ -56,16 +56,13 @@ from app.styles.style import (
 )
 from app.utils.config import (
     CLEAR_LOG_KEY,
-    DEVELOPER_MODE_KEY,
     MPLSTYLES_DIR,
     clear_log_at_start,
-    developer_mode,
     get_language,
     get_value,
     set_value,
 )
 from app.utils.i18n import AUTO_LANGUAGE, available_languages, platform_language, tr
-from app.utils.machine_translation import DEEPL_KEY_SETTING
 
 #: Config key and choices for the default chart export format.  The chart
 #: panel's save dialog offers all of them whatever is chosen here; this only
@@ -276,43 +273,11 @@ class SettingsDialog(PanelDialog):
         self._sql_guard_check.setChecked(sql_guard_enabled())
         form.addRow(tr("SQL guard"), self._sql_guard_check)
 
-        # The tools for contributors, and what only they use (todo H-13).
-        self._developer_check = QCheckBox(tr("Show the tools for extending the app"), card)
-        self._developer_check.setToolTip(
-            tr(
-                "Edit Localization, Data Operation Builder, Function Creator and "
-                "Renderer Helper on the Project page, and the DeepL key below."
-            )
-        )
-        self._developer_check.setChecked(developer_mode())
-        form.addRow(tr("Developer mode"), self._developer_check)
-
         self._clear_log_check = QCheckBox(tr("Clear the log at start"), card)
         self._clear_log_check.setToolTip(tr("The log file is emptied each time the application starts, so it holds "
                                             "the current session only."))
         self._clear_log_check.setChecked(clear_log_at_start())
         form.addRow(tr("Log"), self._clear_log_check)
-
-        # The one secret in here: shown as dots, kept in user.json on this
-        # computer - never in config.json or a project - and sent only to
-        # DeepL. Edit Localization offers DeepL once it is set (todo A-08).
-        self._deepl_key_edit = QLineEdit(card)
-        self._deepl_key_edit.setEchoMode(QLineEdit.EchoMode.PasswordEchoOnEdit)
-        self._deepl_key_edit.setPlaceholderText(tr("Free plan keys end in :fx"))
-        self._deepl_key_edit.setToolTip(
-            tr(
-                "Used by Edit Localization to translate with DeepL. Kept on this "
-                "computer only, and sent to nobody but DeepL. Leave it empty to "
-                "translate with Google or MyMemory."
-            )
-        )
-        self._deepl_key_edit.setText(str(get_value(DEEPL_KEY_SETTING, "") or ""))
-        form.addRow(tr("DeepL API key"), self._deepl_key_edit)
-        deepl_label = form.labelForField(self._deepl_key_edit)
-        self._developer_check.toggled.connect(self._deepl_key_edit.setVisible)
-        if deepl_label is not None:
-            self._developer_check.toggled.connect(deepl_label.setVisible)
-        self._developer_check.toggled.emit(self._developer_check.isChecked())
 
         note = QLabel(tr("The style and the language are applied the next time the app starts."), self)
         note.setProperty("muted", True)
@@ -567,8 +532,6 @@ class SettingsDialog(PanelDialog):
         from app.utils import recent_analyses
 
         set_value(recent_analyses.COUNT_KEY, int(self._recent_count.value()))
-        set_value(DEEPL_KEY_SETTING, self._deepl_key_edit.text().strip())
-        set_value(DEVELOPER_MODE_KEY, bool(self._developer_check.isChecked()))
         set_value(CLEAR_LOG_KEY, bool(self._clear_log_check.isChecked()))
         self._save_assistant()
 
