@@ -172,6 +172,12 @@ say() {  # a notification, so the first launch is not silent; never fails
   return 0
 }
 
+start_app() {  # ChartLibreNative (current SDK: the current look) when it is there, else python3
+  native="$HERE/ChartLibre.app/Contents/MacOS/ChartLibreNative"
+  [ -x "$native" ] && exec "$native" "$@"
+  exec "$RUNTIME/bin/python3" "$HERE/ChartLibre.py" "$@"
+}
+
 get_python() {  # download Python @PYTHON_VERSION@ into .python, once
   [ -x "$RUNTIME/bin/python3" ] && return 0
   case "$(uname -m)" in
@@ -193,7 +199,7 @@ if [ -f "$RUNTIME/CHARTLIBRE_READY" ]; then
   if xattr -p com.apple.quarantine "$RUNTIME/bin/python3" >/dev/null 2>&1; then
     xattr -dr com.apple.quarantine "$HERE" 2>/dev/null
   fi
-  exec "$RUNTIME/bin/python3" "$HERE/ChartLibre.py" "$@"
+  start_app "$@"
 fi
 if [ -x "$VENV/bin/python3" ]; then  # an install made before .python
   exec "$VENV/bin/python3" "$HERE/ChartLibre.py" "$@"
@@ -207,7 +213,7 @@ if ! { get_python \
   osascript -e "display dialog \"The installation did not complete. The details are in:\n$LOG\n\nCheck the internet connection and open ChartLibre again.\" buttons {\"OK\"} with title \"ChartLibre\" with icon stop" >/dev/null 2>&1
   exit 1
 fi
-exec "$RUNTIME/bin/python3" "$HERE/ChartLibre.py" "$@"
+start_app "$@"
 """)
 
 #: The Windows launcher. %~dp0 is the folder the .bat sits in. curl.exe,
@@ -267,8 +273,33 @@ exit /b 1
 """)
 
 
+def make_macos_native(target: Path) -> bool:
+    """Compile dev/tools/launcher/chartlibre_mac_launcher.c into *target*, for Apple Silicon and Intel.
+
+    Built with this Mac's SDK, so ChartLibre gets the current look (Liquid Glass): AppKit decides it by the main
+    executable's SDK, and python3 says 15. Needs clang (xcode-select --install); without it nothing is built and
+    the app's script starts python3 as before. False when nothing was built.
+    """
+    clang = shutil.which("clang")
+    if sys.platform != "darwin" or clang is None:
+        print("clang not found: ChartLibreNative not rebuilt (xcode-select --install).")
+        return False
+    source = Path(__file__).resolve().parent / "launcher" / "chartlibre_mac_launcher.c"
+    result = subprocess.run(
+        [clang, "-Os", "-arch", "arm64", "-arch", "x86_64", "-mmacosx-version-min=11.0", "-o", str(target),
+         str(source)],
+        capture_output=True, text=True,
+    )
+    if result.returncode != 0:
+        print(f"ChartLibreNative not built:\n{result.stderr}")
+        return False
+    return True
+
+
 def make_macos_app(target_dir: Path) -> Path:
     app_dir = target_dir / f"{APP_NAME}.app"
+    native = app_dir / "Contents" / "MacOS" / "ChartLibreNative"
+    kept = native.read_bytes() if native.is_file() else None  # kept when it cannot be rebuilt here
     if app_dir.exists():
         shutil.rmtree(app_dir)
     macos = app_dir / "Contents" / "MacOS"
@@ -279,6 +310,9 @@ def make_macos_app(target_dir: Path) -> Path:
     executable = macos / APP_NAME
     executable.write_text(MACOS_SCRIPT, encoding="utf-8")
     executable.chmod(0o755)
+    if not make_macos_native(native) and kept is not None:
+        native.write_bytes(kept)
+        native.chmod(0o755)
 
     if shutil.which("iconutil"):
         iconset = target_dir / f"{APP_NAME}.iconset"

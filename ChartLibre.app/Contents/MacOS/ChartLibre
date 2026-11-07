@@ -39,6 +39,12 @@ say() {  # a notification, so the first launch is not silent; never fails
   return 0
 }
 
+start_app() {  # ChartLibreNative (current SDK: the current look) when it is there, else python3
+  native="$HERE/ChartLibre.app/Contents/MacOS/ChartLibreNative"
+  [ -x "$native" ] && exec "$native" "$@"
+  exec "$RUNTIME/bin/python3" "$HERE/ChartLibre.py" "$@"
+}
+
 get_python() {  # download Python 3.15.0 into .python, once
   [ -x "$RUNTIME/bin/python3" ] && return 0
   case "$(uname -m)" in
@@ -60,7 +66,7 @@ if [ -f "$RUNTIME/CHARTLIBRE_READY" ]; then
   if xattr -p com.apple.quarantine "$RUNTIME/bin/python3" >/dev/null 2>&1; then
     xattr -dr com.apple.quarantine "$HERE" 2>/dev/null
   fi
-  exec "$RUNTIME/bin/python3" "$HERE/ChartLibre.py" "$@"
+  start_app "$@"
 fi
 if [ -x "$VENV/bin/python3" ]; then  # an install made before .python
   exec "$VENV/bin/python3" "$HERE/ChartLibre.py" "$@"
@@ -74,4 +80,4 @@ if ! { get_python \
   osascript -e "display dialog \"The installation did not complete. The details are in:\n$LOG\n\nCheck the internet connection and open ChartLibre again.\" buttons {\"OK\"} with title \"ChartLibre\" with icon stop" >/dev/null 2>&1
   exit 1
 fi
-exec "$RUNTIME/bin/python3" "$HERE/ChartLibre.py" "$@"
+start_app "$@"
