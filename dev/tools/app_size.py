@@ -3,8 +3,8 @@
 Counted: the Python files under app/ (the application itself), not dev/ (tools, tests, plans). Lines are all
 lines; code lines leave out blank lines and comments. Tests are counted apart, for comparison.
 
-    venv/bin/python dev/tools/app_size.py            # a row for HEAD
-    venv/bin/python dev/tools/app_size.py --install  # write .git/hooks/post-commit
+    .python/bin/python3 dev/tools/app_size.py            # a row for HEAD
+    .python/bin/python3 dev/tools/app_size.py --install  # write .git/hooks/post-commit
 
 The row a commit writes goes into the next commit: a hook cannot add to the commit it runs after.
 """

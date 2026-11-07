@@ -1,6 +1,6 @@
 """ChartLibre Developer: the contributors' tools in one window - not part of the app, not packaged.
 
-    venv/bin/python dev/ChartLibreDeveloper.py
+    .python/bin/python3 dev/ChartLibreDeveloper.py
 
 Three columns as the app's Project page: writing code (the creators, localization, the Qt style), checking it
 (tests, NIST, size, chart previews) and shipping it (bundle, libraries, manuals). The long ones run one at a
@@ -43,7 +43,8 @@ from app.utils.config import get_value, set_value  # noqa: E402
 from app.utils.machine_translation import DEEPL_KEY_SETTING  # noqa: E402
 from app.widgets.nav_bar import NavButton, NavPanel  # noqa: E402
 
-PYTHON = str(ROOT / "venv" / "bin" / "python") if (ROOT / "venv" / "bin" / "python").exists() else sys.executable
+#: The one environment: .python, a link to python.nosync (out of iCloud), as the launchers use it.
+PYTHON = str(ROOT / ".python" / "bin" / "python3") if (ROOT / ".python" / "bin" / "python3").exists() else sys.executable
 RESULTS = ROOT / "dev" / "test_results"
 JUNIT = RESULTS / "junit.xml"
 #: Outside the Desktop: iCloud tags files there while codesign reads them (build_bundle --work).
@@ -323,7 +324,7 @@ class DeveloperWindow(QMainWindow):
             return
         answer = QMessageBox.question(
             self, "Update libraries",
-            "Install the latest releases into venv and write them into requirements.txt?\n"
+            "Install the latest releases into .python and write them into requirements.txt?\n"
             "The tests run afterwards; git restores requirements.txt if something breaks.")
         if answer == QMessageBox.StandardButton.Yes:
             self._script("Library update", [*arguments, "--write-pins", "--test"])
