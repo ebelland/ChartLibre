@@ -41,3 +41,13 @@ whose values turn each marker - arrows pointing with the wind direction, a vecto
    - Legend: the series' marker drawn unrotated; a colourbar is not needed.
    - Tests: angles 0/90/180 give the rotated path's bounds; a column of NaN leaves those points unrotated; SVG export.
 Order: after B's marker editor; strings listed, not translated.
+
+
+D. One option box for Marker and Line style (requested 2026-11-08)
+-----------------------------------------------------------------
+Instead of "Custom…" at the bottom of the list, a group of choices with what each needs beside it:
+   ◉ Standard  -> today's list
+   ○ Custom    -> a text box with its helper (line: ..--, (0,(5,2)); marker: a character, $...$, (5,1,0))
+   ○ Symbol    -> a grid of SVG symbols kept in memory (shipped with the app, open licences)
+   ○ Picture   -> a button: choose an SVG / PNG, kept in the project (__images__, image_markers_plan A)
+Lines: Standard and Custom only (a picture along a line is rare). Stored values stay as they are today.

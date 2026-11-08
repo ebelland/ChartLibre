@@ -356,6 +356,9 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
 
         if has_marker:
             common_line_kwargs["marker"] = marker_style
+            every = _marker_every(style.get("markevery"))
+            if every > 1:
+                common_line_kwargs["markevery"] = every  # a marker on every n-th point, the line on all of them
         else:
             common_line_kwargs["marker"] = "None"
 
@@ -413,9 +416,10 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
                 marker_kwargs.pop("marker", None)
                 marker_kwargs["marker"] = marker_style
                 marker_kwargs["label"] = "_nolegend_" if has_line else raw_kwargs.get("label", "_nolegend_")
+                every = int(marker_kwargs.pop("markevery", 1) or 1)
                 self._draw_colored_markers(
                     ax=ax,
-                    frame=frame,
+                    frame=frame.iloc[::every],
                     marker_kwargs=marker_kwargs,
                     fallback_color=flat_color,
                     color_is_discrete=color_is_discrete,
@@ -721,3 +725,11 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
 
         parts.append(result.iloc[start:])
         return pd.concat(parts, ignore_index=True)
+
+
+def _marker_every(value: Any) -> int:
+    """A series' "Marker every" as a step: 1 (every point) for nothing, nonsense or less than 2."""
+    try:
+        return max(1, int(float(value)))
+    except (TypeError, ValueError):
+        return 1

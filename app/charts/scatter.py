@@ -554,6 +554,16 @@ class ScatterAxisRenderer(BaseAxisRenderer):
         else:
             scatter_kwargs.pop("label", None)
 
+        from app.charts.time_series import _marker_every
+
+        every = _marker_every(style.get("markevery"))
+        if every > 1:  # a marker on every n-th point: the per-point arrays thinned the same way
+            count = len(x_values)
+            x_values, y_values = x_values[::every], y_values[::every]
+            for key in ("c", "s", "facecolors", "edgecolors"):
+                value = scatter_kwargs.get(key)
+                if hasattr(value, "__len__") and not isinstance(value, str) and len(value) == count:
+                    scatter_kwargs[key] = value[::every]
         scatter_collection = ax.scatter(
             x_values,
             y_values,

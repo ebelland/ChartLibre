@@ -40,3 +40,9 @@ def test_a_series_line_pattern_is_drawn_as_its_tuple():
 
     value, draw = BaseAxisRenderer.series_linestyle(None, {"linestyle": "---.--."}, {})
     assert draw and isinstance(value, tuple)
+
+
+def test_marker_every():
+    from app.charts.time_series import _marker_every
+
+    assert _marker_every(None) == 1 and _marker_every("x") == 1 and _marker_every(0) == 1 and _marker_every(5) == 5

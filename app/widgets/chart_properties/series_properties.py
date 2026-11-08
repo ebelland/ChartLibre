@@ -15,6 +15,7 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
+    QSpinBox,
     QFormLayout,
     QFrame,
     QHBoxLayout,
@@ -152,6 +153,7 @@ class SeriesPropertiesWidget(BaseProperties):
             self._linestyle_combo,
             self._marker_combo,
             self._markersize_spin,
+            self._markevery_spin,
             self._color_combo,
         )
 
@@ -424,6 +426,12 @@ class SeriesPropertiesWidget(BaseProperties):
         # Points, as Matplotlib's markersize. The minimum shows as "Default"
         # and is stored as no value at all: a spin box cannot be empty, and a
         # size of 0 would hide the markers rather than leave them to the style.
+        # A marker on every n-th point only (matplotlib's markevery): dense lines stay readable.
+        self._markevery_spin = QSpinBox(section)
+        self._markevery_spin.setRange(1, 100000)
+        self._markevery_spin.setSpecialValueText(_("Every point"))
+        self._markevery_spin.setSuffix(_(" points"))
+        self._markevery_spin.setToolTip(_("Draw a marker on every n-th point only; the line still joins them all."))
         self._markersize_spin = QDoubleSpinBox(section)
         self._markersize_spin.setRange(0.0, 1000.0)
         self._markersize_spin.setDecimals(1)
@@ -451,6 +459,7 @@ class SeriesPropertiesWidget(BaseProperties):
         form.addRow(_("Line style"), self._linestyle_combo)
         form.addRow(_("Marker"), self._marker_combo)
         form.addRow(_("Marker size"), self._markersize_spin)
+        form.addRow(_("Marker every"), self._markevery_spin)
         form.addRow(_("Color"), self._color_combo)
 
         raw_layout = section.card.layout()
@@ -749,6 +758,10 @@ class SeriesPropertiesWidget(BaseProperties):
             except (TypeError, ValueError):
                 markersize = 0.0
             self._markersize_spin.setValue(max(markersize, 0.0))
+            try:
+                self._markevery_spin.setValue(max(1, int(float(style.get("markevery") or 1))))
+            except (TypeError, ValueError):
+                self._markevery_spin.setValue(1)
             raw_color = style.get("color", "")
             self._set_color_value(str(raw_color or ""))
             self._stored_choices["color"] = (raw_color, self._color_combo.currentIndex())
@@ -802,6 +815,7 @@ class SeriesPropertiesWidget(BaseProperties):
             self._linestyle_combo.setCurrentIndex(0)
             self._marker_combo.setCurrentIndex(0)
             self._markersize_spin.setValue(0.0)
+            self._markevery_spin.setValue(1)
             self._color_combo.setCurrentIndex(0)
 
     def _set_color_value(self, value: str) -> None:
@@ -841,6 +855,7 @@ class SeriesPropertiesWidget(BaseProperties):
             self._linestyle_combo,
             self._marker_combo,
             self._markersize_spin,
+            self._markevery_spin,
             self._color_combo,
         ):
             widget.setEnabled(enabled)
@@ -948,6 +963,7 @@ class SeriesPropertiesWidget(BaseProperties):
                 "marker": self._choice(self._marker_combo, "marker", ""),
                 # None removes the key: the minimum means "leave it to the style".
                 "markersize": self._markersize_spin.value() or None,
+                "markevery": self._markevery_spin.value() if self._markevery_spin.value() > 1 else None,
                 # What the series has, while the combo is left as loaded: it
                 # has no entry for "C0", "0.5" or a colour with alpha, and
                 # would otherwise write "" over them on any other edit.
