@@ -343,7 +343,8 @@ class SettingsDialog(PanelDialog):
         from app.ai import settings as assistant
         from app.scanners.ai_provider_scanner import ai_providers, provider_class
 
-        form = self._section(tr("Assistant"), forms)
+        # Folded like Advanced: most people never open it.
+        form = self._section(tr("Assistant"), forms, collapsible=True, collapsed=True)
         self._assistant_in_navigation = QCheckBox(tr("Show the Assistant in the navigation bar"), card)
         self._assistant_in_navigation.setChecked(assistant.in_navigation())
         form.addRow(tr("Navigation"), self._assistant_in_navigation)
