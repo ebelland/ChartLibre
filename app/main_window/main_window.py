@@ -991,6 +991,7 @@ class MainWindow(QMainWindow):
         "nav_guided": ("#B7791F", "#F0C04A"),
         "nav_assistant": ("#C2417A", "#F27BB0"),
         "database_info": ("#3E5A8A", "#8FA9D6"),
+        "nav_sql_workpad": ("#0F7C8C", "#4FC6D6"),
         "nav_help": ("#5B6474", "#A9B1BD"),
         "settings": ("#5B6474", "#A9B1BD"),
     }
@@ -1079,7 +1080,7 @@ class MainWindow(QMainWindow):
                     _("SymPy commands on the project's tables: get, save, plot"),
                 ),
                 "sql_workpad": NavBarItem(
-                    _("SQL workpad"), self._rail_icon("database_info"), sql_panel,
+                    _("SQL workpad"), self._rail_icon("nav_sql_workpad"), sql_panel,
                     _("SQL on the project's tables; changes are made on a copy and kept only with Apply"),
                 ),
                 "developer": NavBarItem(

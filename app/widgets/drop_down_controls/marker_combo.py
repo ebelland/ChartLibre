@@ -72,14 +72,9 @@ _ENTRIES: tuple[ComboEntry, ...] = (
     ("Vertical line |", "|"),
     ("Horizontal line _", "_"),
     ("Tick left 0", "0"),
-    ("Tick right 1", "1"),
-    ("Tick up 2", "2"),
-    ("Tick down 3", "3"),
-    ("Caret left 4", "4"),
     ("Caret right 5", "5"),
     ("Caret up 6", "6"),
     ("Caret down 7", "7"),
-    ("Caret left base 8", "8"),
     ("Caret right base 9", "9"),
     ("Caret up base 10", "10"),
     ("Caret down base 11", "11"),
@@ -329,7 +324,7 @@ def _draw_tick_left(p: QPainter, cx: float, cy: float, r: float) -> None:
 
 
 def _draw_caret_right(p: QPainter, cx: float, cy: float, r: float) -> None:
-    p.drawPolyline(
+    p.drawPolygon(
         QPolygonF(
             [
                 QPointF(cx - r * 0.55, cy - r),
@@ -341,7 +336,7 @@ def _draw_caret_right(p: QPainter, cx: float, cy: float, r: float) -> None:
 
 
 def _draw_caret_up(p: QPainter, cx: float, cy: float, r: float) -> None:
-    p.drawPolyline(
+    p.drawPolygon(
         QPolygonF(
             [
                 QPointF(cx - r, cy + r * 0.55),
@@ -353,7 +348,7 @@ def _draw_caret_up(p: QPainter, cx: float, cy: float, r: float) -> None:
 
 
 def _draw_caret_down(p: QPainter, cx: float, cy: float, r: float) -> None:
-    p.drawPolyline(
+    p.drawPolygon(
         QPolygonF(
             [
                 QPointF(cx - r, cy - r * 0.55),
@@ -453,12 +448,6 @@ _STROKE_ONLY = {
     "2",
     "3",
     "4",
-    "5",
-    "6",
-    "7",
-    "9",
-    "10",
-    "11",
 }
 
 
@@ -586,7 +575,8 @@ class MarkerStyleCombo(IconComboBox):
         text = (marker or "").strip()
         if self.findData(text, self.ROLE_VALUE) < 0 and is_custom(text):
             self.blockSignals(True)
-            self.insertItem(self.findData(CUSTOM, self.ROLE_VALUE), _marker_icon(text), text, text)
+            at = self.findData(CUSTOM, self.ROLE_VALUE)
+            self.insertItem(at if at >= 0 else self.count(), _marker_icon(text), text, text)
             self.blockSignals(False)
         found = self.set_current_value(text)
         if found:

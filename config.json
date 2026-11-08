@@ -85,6 +85,15 @@
       "SegoeFluent": "E703",
       "ThemeIcon": "network-transmit-receive"
     },
+    "nav_sql_workpad": {
+      "text": "SQL workpad",
+      "description": "SQL on the project's tables; changes are made on a copy and kept only with Apply",
+      "SFSymbol": "terminal",
+      "SegoeFluent": "E756",
+      "ThemeIcon": [
+        "x-office-database"
+      ]
+    },
     "database_info": {
       "text": "Database Info",
       "description": "Tables, size and import links for the current database",

@@ -168,7 +168,8 @@ class LineStyleCombo(IconComboBox):
     def _add_custom(self, text: str) -> None:
         """An entry for the pattern *text*, just above Custom…."""
         self.blockSignals(True)
-        self.insertItem(self.findData(CUSTOM, self.ROLE_VALUE), _line_icon(text), text, text)
+        at = self.findData(CUSTOM, self.ROLE_VALUE)
+        self.insertItem(at if at >= 0 else self.count(), _line_icon(text), text, text)
         self.blockSignals(False)
 
     def _on_activated(self, index: int) -> None:

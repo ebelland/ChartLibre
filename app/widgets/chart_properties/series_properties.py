@@ -456,8 +456,18 @@ class SeriesPropertiesWidget(BaseProperties):
         form.addRow(_("SQL query"), self._sql_query_edit)
         form.addRow(_("Visibility"), flags_row)
         form.addRow(_("Sort"), self._sort_x_check)
-        form.addRow(_("Line style"), self._linestyle_combo)
-        form.addRow(_("Marker"), self._marker_combo)
+        from app.plugin_api.charts import dashes, markers
+        from app.widgets.drop_down_controls.style_chooser import SYMBOLS, StyleChooser
+
+        # One option box each: Standard (the list), Custom (typed), Symbol (markers only).
+        self._linestyle_chooser = StyleChooser(
+            self._linestyle_combo, is_custom=dashes.is_custom, select=self._linestyle_combo.set_current_linestyle,
+            hint=_("e.g. ..--  or  -- . --  or  (0, (5, 2, 1, 2))"), parent=section)
+        self._marker_chooser = StyleChooser(
+            self._marker_combo, is_custom=markers.is_custom, select=self._marker_combo.set_current_marker,
+            hint=_("e.g. ★  or  $\\clubsuit$  or  (5, 1, 0)"), symbols=SYMBOLS, parent=section)
+        form.addRow(_("Line style"), self._linestyle_chooser)
+        form.addRow(_("Marker"), self._marker_chooser)
         form.addRow(_("Marker size"), self._markersize_spin)
         form.addRow(_("Marker every"), self._markevery_spin)
         form.addRow(_("Color"), self._color_combo)
@@ -753,6 +763,8 @@ class SeriesPropertiesWidget(BaseProperties):
             # marker-only series into a line (issue #6). None is not written at all.
             self._load_choice(self._linestyle_combo, "linestyle", style.get("linestyle"), none="none")
             self._load_choice(self._marker_combo, "marker", style.get("marker"), none="")
+            self._linestyle_chooser.sync()
+            self._marker_chooser.sync()
             try:
                 markersize = float(style.get("markersize") or 0.0)
             except (TypeError, ValueError):
