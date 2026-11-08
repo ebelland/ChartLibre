@@ -68,3 +68,21 @@ def test_function_geometry_gp_and_wafer_explain_their_result() -> None:
     assert "Yield 90%" in WaferMapDialog.how_to_read(None, [ns(summary={"Yield (%)": 90.0, "Dies measured": 50})])[0]
     assert "Poisson yield 80%" in WaferMapDialog.how_to_read(None, [ns(summary={"Poisson yield exp(-D A) (%)": 80.0,
                                                                              "Dies": 60})])[0]
+
+
+def test_a_dash_pattern_typed_as_text_is_drawn_as_matplotlib_s_tuple(qapp) -> None:
+    from app.plugin_api.charts import kwarg_spec
+    from app.plugin_api.charts.dashes import is_custom, to_matplotlib
+    from app.widgets.drop_down_controls.line_combo import LineStyleCombo
+
+    assert to_matplotlib("..-") == (0.0, (1.0, 1.6, 1.0, 1.6, 3.7, 1.6))
+    assert to_matplotlib("(0, (5, 2, 1, 2))") == (0.0, (5.0, 2.0, 1.0, 2.0))
+    assert to_matplotlib("--") == "--" and to_matplotlib("abc") is None and not is_custom("--")
+    spec = {"linestyle": {"default": "-", "type": str, "kind": "linestyle"}}
+    assert kwarg_spec.resolve(spec, [{"linestyle": "-."}]) == {"linestyle": "-."}
+    assert kwarg_spec.resolve(spec, [{"linestyle": ". -"}])["linestyle"][1][0] == 1.0
+    assert "linestyle" not in kwarg_spec.resolve(spec, [{"linestyle": "xyz"}])
+    combo = LineStyleCombo()
+    assert combo.set_current_linestyle("..--") and combo.current_linestyle() == "..--"
+    assert combo.set_current_linestyle("--") and combo.current_linestyle() == "--"
+    assert combo.findData("..--") >= 0  # kept in the list once added

@@ -23,6 +23,7 @@ from PySide6.QtCore import QSize, Qt
 from PySide6.QtGui import QColor, QIcon, QPainter, QPen
 from PySide6.QtWidgets import QSizePolicy, QWidget
 
+from app.plugin_api.charts.dashes import is_custom, to_matplotlib
 from app.plugin_api.charts.kwarg_spec import DEFAULT
 from app.styles.style import create_hidpi_pixmap
 from app.widgets.drop_down_controls.icon_combo import ComboEntry, IconComboBox
@@ -44,7 +45,10 @@ _ENTRIES: tuple[ComboEntry, ...] = (
     ("Dash-dot", "-."),
     ("Dotted", ":"),
     ("None", "none"),
+    ("Custom…", "__custom__"),
 )
+#: The entry that asks for a pattern of the user's own (charts.dashes).
+CUSTOM = "__custom__"
 
 #: Matplotlib linestyle code -> Qt pen style. ``None`` means "draw nothing"
 #: (used for the "None" / no-line entry). "Default" is absent deliberately:
@@ -100,6 +104,10 @@ def _resolved_line_icon(linestyle: str, *, faint: bool) -> QIcon:
             pen = QPen(QColor(_LINE_COLOR))
             pen.setWidth(_LINE_WIDTH)
             pen.setStyle(pen_style)
+            pattern = to_matplotlib(linestyle) if is_custom(linestyle) else None
+            if pattern is not None:
+                # A pattern of its own: drawn as it will be, in line widths as matplotlib draws it.
+                pen.setDashPattern([max(0.1, float(step)) for step in pattern[1]])
             if faint:
                 # It used to be drawn dashed regardless, which made the
                 # entry read as a second, washed-out "Dashed" - the
@@ -139,11 +147,46 @@ class LineStyleCombo(IconComboBox):
             icon_size=QSize(_ICON_W, _ICON_H),
         )
         self.setSizePolicy(QSizePolicy.Policy.Expanding,QSizePolicy.Policy.Fixed,)
+        self._previous = self.current_value()
+        self.activated.connect(self._on_activated)
 
     def current_linestyle(self) -> str:
         """Return the selected Matplotlib linestyle code."""
-        return self.current_value()
+        value = self.current_value()
+        return self._previous if value == CUSTOM else value
 
     def set_current_linestyle(self, linestyle: str) -> bool:
-        """Select the entry matching *linestyle* (e.g. ``"--"``)."""
-        return self.set_current_value((linestyle or "").strip())
+        """Select the entry matching *linestyle* (e.g. ``"--"``); a pattern of its own gets an entry of its own."""
+        text = (linestyle or "").rstrip()
+        if self.findData(text, self.ROLE_VALUE) < 0 and is_custom(text):
+            self._add_custom(text)
+        found = self.set_current_value(text)
+        if found:
+            self._previous = text
+        return found
+
+    def _add_custom(self, text: str) -> None:
+        """An entry for the pattern *text*, just above Custom…."""
+        self.blockSignals(True)
+        self.insertItem(self.findData(CUSTOM, self.ROLE_VALUE), _line_icon(text), text, text)
+        self.blockSignals(False)
+
+    def _on_activated(self, index: int) -> None:
+        """Custom… asks for a pattern; a valid one is added and chosen, anything else goes back."""
+        if self.itemData(index, self.ROLE_VALUE) != CUSTOM:
+            self._previous = self.current_value()
+            return
+        from PySide6.QtWidgets import QInputDialog
+
+        from app.utils.i18n import _
+
+        text, ok = QInputDialog.getText(
+            self, _("Line style"),
+            _("A pattern: \"-\" a dash, \".\" a dot, a space a longer gap - for example ..--  or  -- . --\n"
+              "or matplotlib's (offset, (on, off, ...)) in line widths - for example (0, (5, 2, 1, 2))"),
+            text=self._previous if is_custom(self._previous) else "")
+        if ok and is_custom(text.rstrip()):
+            self.set_current_linestyle(text.rstrip())
+        else:
+            self.set_current_value(self._previous)
+        self.currentIndexChanged.emit(self.currentIndex())

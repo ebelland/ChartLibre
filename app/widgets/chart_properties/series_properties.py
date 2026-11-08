@@ -768,6 +768,8 @@ class SeriesPropertiesWidget(BaseProperties):
         text = raw.strip() if isinstance(raw, str) else None
         if text is not None and text.lower() == "none":
             text = none
+        if text is not None and hasattr(combo, "set_current_linestyle"):
+            combo.set_current_linestyle(text)  # a dash pattern of its own gets its entry (charts.dashes)
         index = combo.findData(text) if text is not None else -1
         combo.setCurrentIndex(index if index >= 0 else 0)
         self._stored_choices[key] = (raw, combo.currentIndex())

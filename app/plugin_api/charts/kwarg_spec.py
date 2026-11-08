@@ -206,6 +206,13 @@ def resolve(
         if is_default(value) or value == "":
             continue
         coerced = coerce(value, meta)
+        if coerced is not UNCONVERTIBLE and meta.get("kind") == "linestyle":
+            # A pattern of its own ("..---", "(0, (5, 2))") becomes the tuple matplotlib draws (charts.dashes).
+            from app.plugin_api.charts.dashes import to_matplotlib
+
+            coerced = to_matplotlib(coerced)
+            if coerced is None:
+                coerced = UNCONVERTIBLE
         if coerced is UNCONVERTIBLE:
             if dropped is not None:
                 dropped.append((name, value, meta.get("type")))
