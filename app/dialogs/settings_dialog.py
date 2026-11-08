@@ -30,7 +30,7 @@ from collections.abc import Sequence
 from typing import Any
 
 from PySide6.QtCore import QSize, Qt
-from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap
+from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -54,7 +54,7 @@ from app.plugin_api.charts.render_figure import DEFAULT_MPL_STYLE_KEY
 from app.styles.style import (
     CONFIG_APP_STYLE,
     CardFrame,
-    colored_icon,
+    tile_icon,
     available_app_styles,
     configure_combo_width,
     load_icon,
@@ -178,21 +178,8 @@ def _mpl_style_choices() -> list[tuple[str, str] | None]:
 
 
 def _tile_icon(icon_id: str, colour: str, size: int = 24) -> QIcon:
-    """*icon_id*'s glyph, white, on a rounded square of *colour*: the sidebar's icons in System Settings."""
-    ratio = 3
-    pixmap = QPixmap(size * ratio, size * ratio)
-    pixmap.fill(Qt.GlobalColor.transparent)
-    painter = QPainter(pixmap)
-    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
-    painter.setPen(Qt.PenStyle.NoPen)
-    painter.setBrush(QColor(colour))
-    side = size * ratio
-    painter.drawRoundedRect(0, 0, side, side, side * 0.23, side * 0.23)
-    glyph = colored_icon(load_icon(icon_id), "#ffffff", size).pixmap(int(side * 0.62), int(side * 0.62))
-    painter.drawPixmap(int(side * 0.19), int(side * 0.19), int(side * 0.62), int(side * 0.62), glyph)
-    painter.end()
-    pixmap.setDevicePixelRatio(ratio)
-    return QIcon(pixmap)
+    """*icon_id*'s glyph on a lit tile of *colour* (style.tile_icon), as System Settings' sidebar."""
+    return tile_icon(load_icon(icon_id), colour, size)
 
 
 class SettingsDialog(PanelDialog):

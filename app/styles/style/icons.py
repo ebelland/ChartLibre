@@ -1100,3 +1100,31 @@ def load_icon(icon: str | None) -> QIcon:
 
 
 # ----------------------------------------------------------------------
+
+
+def tile_icon(icon: QIcon, colour: str, size: int = 24) -> QIcon:
+    """*icon*'s glyph, white, on a rounded square of *colour* - lit from above, as macOS's System Settings draws
+    its sidebar's icons: a gradient from a lighter to a darker shade, and a faint light edge."""
+    from PySide6.QtGui import QLinearGradient
+
+    ratio = 3
+    side = size * ratio
+    pixmap = QPixmap(side, side)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    base = QColor(colour)
+    shade = QLinearGradient(QPointF(0, 0), QPointF(0, side))
+    shade.setColorAt(0.0, base.lighter(118))
+    shade.setColorAt(1.0, base.darker(112))
+    rect = QRectF(0.5, 0.5, side - 1, side - 1)
+    radius = side * 0.23
+    painter.setBrush(shade)
+    painter.setPen(QPen(QColor(255, 255, 255, 70), ratio * 0.6))
+    painter.drawRoundedRect(rect, radius, radius)
+    inner = int(side * 0.62)
+    glyph = colored_icon(icon, "#ffffff", size).pixmap(inner, inner)
+    painter.drawPixmap((side - inner) // 2, (side - inner) // 2, inner, inner, glyph)
+    painter.end()
+    pixmap.setDevicePixelRatio(ratio)
+    return QIcon(pixmap)

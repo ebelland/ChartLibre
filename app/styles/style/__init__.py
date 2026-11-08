@@ -73,6 +73,7 @@ from app.styles.style.icons import (
     icon_from_svg_source,
     load_icon,
     substitute_ui_font,
+    tile_icon,
     svg_icon_document,
     symbol_icon,
     theme_is_dark,

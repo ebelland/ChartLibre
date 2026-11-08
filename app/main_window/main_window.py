@@ -73,6 +73,7 @@ from app.plugin_api.charts import layout_presets
 from app.scanners.data_operation_scanner import import_class_from_file
 from app.styles.style import (
     CONTEXT_MENU_ICONS,
+    tile_icon,
     load_icon,
     EXPANDED_CLIENT_AREA_HINT,
     IS_MACOS,
@@ -1000,6 +1001,9 @@ class MainWindow(QMainWindow):
         colours = cls._RAIL_COLOURS.get(action_id)
         if colours is None:
             return icon
+        if IS_MACOS:
+            # A white glyph on a lit square of the row's colour, as System Settings' sidebar.
+            return tile_icon(icon, colours[0], 20)
         return colored_icon(icon, colours[1] if theme_is_dark() else colours[0], 20)
 
     def _create_navigation(self) -> NavigationBar:
@@ -1144,7 +1148,8 @@ class MainWindow(QMainWindow):
 
         return {
             f"{self.RECENT_PREFIX}{operation['name']}": NavBarItem(
-                _(str(operation.get("value") or operation["name"])), plugin_icon(operation), None,
+                _(str(operation.get("value") or operation["name"])),
+                tile_icon(plugin_icon(operation), "#5B6474", 20) if IS_MACOS else plugin_icon(operation), None,
                 _(str(operation.get("description") or "")),
             )
             for operation in recent_analyses.operations(list(data_operations))
