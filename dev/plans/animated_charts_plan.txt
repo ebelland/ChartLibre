@@ -1,0 +1,38 @@
+Animated charts: a chart that moves through a column - time, a year, a step (2026-11-08)
+======================================================================================
+
+What it is
+----------
+Any chart whose series come from a table can be played along one of its columns, the "frame" column: each frame
+draws only the rows with that value (or, cumulative, up to it). As Gapminder's bubbles over the years, a spectrum
+over time, a process as it ran. Nothing new is stored but the settings: the frames are queries on the same data.
+
+A. Chart properties gets an "Animation" page beside Figure, Axis, Series, Overlay:
+     Frame column (any column of the series' table; a date, a number or categories, in their order)
+     Mode: each frame alone / cumulative / trailing (the last N frames, older ones faded)
+     Speed (frames per second, 0.5-30), Loop, Hold the axes (the limits of the whole data, so nothing jumps)
+     A caption with the frame's value, placed like a title (top-right by default)
+   Stored in the figure's options ("animation": {...}), so it is saved with the project and Undo takes it back.
+
+B. Playing: under the chart, while the figure has an animation, a small bar - play/pause, step back/forward, a
+   slider of the frames, the frame's value. It filters each series' query by the frame (the same path as Show only
+   Selected: a WHERE added to the series' own query) and redraws only the data (artists updated, not the figure
+   rebuilt), on a QTimer: no matplotlib FuncAnimation, whose own timer fights Qt's and the live updates.
+   Frames are read once and cached (one query per series, grouped by the frame column).
+
+C. Export: Save as... offers GIF (Pillow, already installed) and MP4 (only when ffmpeg is found; said otherwise).
+   The export draws every frame off screen at the figure's size and dpi, with a progress bar and Stop.
+
+D. Which charts: the ones that draw from rows - scatter, line, bar, histogram, box, bubble... A chart type can say
+   it cannot (Animatable = False: a Sankey, a table, a treemap); the page then says why instead of offering it.
+
+E. Tests: the frame filter on queries (each mode), frames ordered by date, number and category; the page's options
+   saved and restored; a GIF of three frames exported from a small table, offscreen.
+
+Risks
+- Redrawing fast enough: a scatter of 100,000 points at 10 fps is too much for a full redraw; artists updated in
+  place (set_offsets, set_data) are needed, and charts that cannot do that fall back to a slower full redraw
+  with fps limited.
+- Live updates and an animation on the same chart: the animation pauses while the live timer redraws.
+
+Strings listed for translation, not translated. Order: A, B (one commit: usable), C, D, E alongside.

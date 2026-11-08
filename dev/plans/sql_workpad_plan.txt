@@ -1,0 +1,44 @@
+SQL workpad: SQL typed against the project, on a copy until it is kept (2026-11-08)
+================================================================================
+
+What it is
+----------
+A rail panel like the SymPy workpad: an editor for SQL, Run (Ctrl+Return), the result as a table under it, a
+history of the commands. Reading is free; changing the data happens on a copy of the whole project, which is kept
+with Apply or thrown away with Cancel - so a wrong DELETE costs nothing.
+
+A. The session works on a copy: on the first statement that writes, the project database is copied whole with
+   SQLite's backup API (consistent even while the app has it open) into a temporary file, and every statement runs
+   there. The panel says "Working on a copy - Apply to keep, Cancel to throw away", in amber.
+   - Apply: the copy replaces the project (backup API again, copy -> project), then the window reloads its tables
+     and charts; one Undo entry ("SQL workpad") takes the whole of it back.
+   - Cancel, closing the panel or the project, or quitting: the copy is deleted; the project was never touched.
+   Read-only statements run on the project itself while there is no copy, on the copy once there is one.
+
+B. What runs (no "injection" from outside: the user types it, but the guard keeps a slip from doing damage):
+   - one statement per Run; ; inside strings allowed, a second statement refused (sqlite3 complete_statement and
+     a tokenizer, not a split on ";");
+   - refused always: ATTACH, DETACH, PRAGMA that writes (writable_schema, journal_mode...), VACUUM INTO, load_extension,
+     anything on sqlite_master / sqlite_schema, and the application's own tables (names starting with "__",
+     the descriptors of figures, axes and series), which only the application changes;
+   - with Settings' SQL guard on (the default): SELECT and WITH only - the panel says writing needs the guard off;
+     with it off: also INSERT, UPDATE, DELETE, CREATE TABLE / VIEW, DROP and ALTER of the user's own tables;
+   - an authorizer (sqlite3.Connection.set_authorizer) on the copy's connection enforces the same list, so a
+     statement the parser misread is still stopped by SQLite itself;
+   - values the user picks from the panel (a table name from a list) go in as quoted identifiers, never pasted.
+   - each statement has a time limit (progress handler; Stop), and results show at most 10,000 rows.
+
+C. Comfort: table and column names completed as you type; Ctrl+Up/Down through the history; "Save as query" turns a
+   SELECT into a saved query (Q in the Tables list); the result can be copied or exported as CSV.
+
+D. Tests: the guard (each refused statement, two statements in one, strings with ";"), the authorizer catching what
+   the parser lets through, the copy (a DELETE on it leaves the project as it was; Cancel deletes the file; Apply
+   replaces and Undo restores), the guard on/off, the time limit.
+
+Risks
+- A big project: the copy takes as long as copying the file (a 1 GB project, seconds) - it is made only at the
+  first write, with a progress bar.
+- Apply while charts are open: they reload from the replaced database; a chart whose table was dropped says so,
+  as when a table is deleted today.
+
+Strings listed for translation, not translated. Order: A+B (one commit: safe to use), D alongside, then C.
