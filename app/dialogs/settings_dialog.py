@@ -29,6 +29,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QColor, QIcon, QPainter, QPixmap
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
@@ -36,8 +38,11 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QLabel,
     QLineEdit,
+    QListWidget,
+    QListWidgetItem,
     QPushButton,
     QSpinBox,
+    QStackedWidget,
     QVBoxLayout,
     QWidget,
 )
@@ -48,6 +53,8 @@ from app.logs.logger import applogger
 from app.plugin_api.charts.render_figure import DEFAULT_MPL_STYLE_KEY
 from app.styles.style import (
     CONFIG_APP_STYLE,
+    CardFrame,
+    colored_icon,
     available_app_styles,
     configure_combo_width,
     load_icon,
@@ -170,6 +177,24 @@ def _mpl_style_choices() -> list[tuple[str, str] | None]:
     return choices
 
 
+def _tile_icon(icon_id: str, colour: str, size: int = 24) -> QIcon:
+    """*icon_id*'s glyph, white, on a rounded square of *colour*: the sidebar's icons in System Settings."""
+    ratio = 3
+    pixmap = QPixmap(size * ratio, size * ratio)
+    pixmap.fill(Qt.GlobalColor.transparent)
+    painter = QPainter(pixmap)
+    painter.setRenderHint(QPainter.RenderHint.Antialiasing)
+    painter.setPen(Qt.PenStyle.NoPen)
+    painter.setBrush(QColor(colour))
+    side = size * ratio
+    painter.drawRoundedRect(0, 0, side, side, side * 0.23, side * 0.23)
+    glyph = colored_icon(load_icon(icon_id), "#ffffff", size).pixmap(int(side * 0.62), int(side * 0.62))
+    painter.drawPixmap(int(side * 0.19), int(side * 0.19), int(side * 0.62), int(side * 0.62), glyph)
+    painter.end()
+    pixmap.setDevicePixelRatio(ratio)
+    return QIcon(pixmap)
+
+
 class SettingsDialog(PanelDialog):
     """Read and write the machine-level preferences in config.json.
 
@@ -180,7 +205,7 @@ class SettingsDialog(PanelDialog):
     """
 
     def __init__(self, parent: QWidget | None = None) -> None:
-        super().__init__(parent, title=tr("Settings"), icon=load_icon("settings"), size="small")
+        super().__init__(parent, title=tr("Settings"), icon=load_icon("settings"), size="medium")
 
         # Only to preselect the combo: nothing here changes the running app.
         self._entry_style = resolve_app_style()
@@ -283,19 +308,87 @@ class SettingsDialog(PanelDialog):
         note.setProperty("muted", True)
         note.setWordWrap(True)
         self.body_layout.addWidget(note, 0)
-        self.body_layout.addStretch(1)
         _align_labels(forms)
 
         self.add_action("save", self._save)
         self.add_action("close", self.reject)
 
+    #: Each section's page, as macOS's System Settings draws one: (English title) -> (icon, tile colour, sentence).
+    SECTIONS: dict[str, tuple[str, str, str]] = {
+        "Appearance": ("nav_chart_options", "#3b82f6", "The application's style and language."),
+        "Charts": ("chart_from_columns", "#22a06b", "How new charts look and how they are exported."),
+        "Reports": ("project_report", "#e8860c", "What every analysis report adds to its results."),
+        "Assistant": ("nav_assistant", "#8b5cf6", "The AI assistant: its provider, its key and what it may do."),
+        "Advanced": ("settings", "#8a8f98", "The SQL guard and the log."),
+    }
+
+    def _pages(self) -> tuple[QListWidget, QStackedWidget]:
+        """The sidebar of sections and the page beside it, made once, on the first section."""
+        if getattr(self, "_sidebar", None) is None:
+            self._sidebar = QListWidget(self)
+            self._sidebar.setObjectName("settingsSidebar")
+            self._sidebar.setIconSize(QSize(24, 24))
+            self._sidebar.setFixedWidth(200)
+            self._sidebar.setSpacing(2)
+            self._sidebar.setFrameShape(QListWidget.Shape.NoFrame)
+            # System Settings' sidebar: a light grey column, the chosen row a rounded accent.
+            self._sidebar.setStyleSheet(
+                "QListWidget#settingsSidebar { background: rgba(127, 127, 127, 0.08); border-radius: 10px;"
+                " padding: 6px; }"
+                "QListWidget#settingsSidebar::item { padding: 4px 6px; border-radius: 7px; }"
+                "QListWidget#settingsSidebar::item:selected { background: palette(highlight);"
+                " color: palette(highlighted-text); }")
+            self._stack = QStackedWidget(self)
+            self._sidebar.currentRowChanged.connect(self._stack.setCurrentIndex)
+            row = QHBoxLayout()
+            row.setSpacing(16)
+            row.addWidget(self._sidebar)
+            row.addWidget(self._stack, 1)
+            self.body_layout.addLayout(row, 1)
+        return self._sidebar, self._stack
+
     def _section(self, title: str, forms: list[QFormLayout], *, collapsible: bool = False,
                  collapsed: bool = False) -> QFormLayout:
-        """A titled frame and its form; the form, to fill."""
+        """A section: a row of the sidebar, and its page - a heading with its icon and sentence, then the form."""
+        del collapsible, collapsed  # a page of its own now: nothing to fold
+        sidebar, stack = self._pages()
+        icon_id, colour, sentence = self.SECTIONS.get(title, ("settings", "#8a8f98", ""))
+        tile = _tile_icon(icon_id, colour)
+        name = tr(title)
+        item = QListWidgetItem(tile, name)
+        item.setSizeHint(QSize(180, 36))
+        sidebar.addItem(item)
+
+        page = QWidget(stack)
+        column = QVBoxLayout(page)
+        column.setContentsMargins(0, 0, 0, 0)
+        column.setSpacing(12)
+        heading = CardFrame(page, f"settings{title.replace(' ', '')}Heading")
+        heading_layout = heading.layout()
+        picture = QLabel(heading)
+        picture.setPixmap(_tile_icon(icon_id, colour, 56).pixmap(56, 56))
+        picture.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        heading_layout.addWidget(picture)
+        caption = QLabel(name, heading)
+        caption.setProperty("role", "title")
+        caption.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        heading_layout.addWidget(caption)
+        if sentence:
+            words = QLabel(tr(sentence), heading)
+            words.setProperty("muted", True)
+            words.setWordWrap(True)
+            words.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            heading_layout.addWidget(words)
+        column.addWidget(heading)
+        box = CardFrame(page, f"settings{title.replace(' ', '')}Card")
         form = QFormLayout()
         stdSizeAndlayout(form)
-        self.add_card(title, f"settings{title.replace(' ', '')}Card", collapsible=collapsible,
-                      collapsed=collapsed).layout().addLayout(form)
+        box.layout().addLayout(form)
+        column.addWidget(box)
+        column.addStretch(1)
+        stack.addWidget(page)
+        if sidebar.currentRow() < 0:
+            sidebar.setCurrentRow(0)
         forms.append(form)
         return form
 
