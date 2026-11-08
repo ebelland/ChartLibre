@@ -642,6 +642,25 @@ class ChartPanel(ChartToolsMixin, QFrame):
             button.setToolButtonStyle(Qt.ToolButtonStyle.ToolButtonIconOnly)
             button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
             layout.addWidget(button)
+        # Copy and Save, out of the menu: after the navigation, before Delete.
+        separator = QFrame(pill)
+        separator.setObjectName("chartNavSeparator")
+        separator.setFixedSize(1, 16)
+        layout.addSpacing(3)
+        layout.addWidget(separator, 0, Qt.AlignmentFlag.AlignVCenter)
+        layout.addSpacing(3)
+        for action_id, tooltip, handler in (("copy", _("Copy figure"), self.copy_chart_to_clipboard),
+                                            ("save", _("Save as picture"), self.save_chart_as)):
+            button = QToolButton(pill)
+            button.setObjectName("chartToolButton")
+            button.setIcon(load_icon(action_id))
+            button.setIconSize(QSize(18, 18))
+            button.setFixedSize(QSize(28, 28))
+            button.setAutoRaise(True)
+            button.setToolTip(tooltip)
+            button.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+            button.clicked.connect(lambda _checked=False, call=handler: call())
+            layout.addWidget(button)
         # Delete the chart: at the pill's end, apart and in red, as a destructive action (out of the menu).
         separator = QFrame(pill)
         separator.setObjectName("chartNavSeparator")
@@ -1862,8 +1881,6 @@ class ChartPanel(ChartToolsMixin, QFrame):
             self,
             [
                 MenuItem(_("Reload"), _("Reload chart"), PySide6.QtGui.QKeySequence.StandardKey.Refresh, self.reload,False,"reload"),
-                MenuItem(_("Copy"),_("Copy figure"),PySide6.QtGui.QKeySequence.StandardKey.Copy,self.copy_chart_to_clipboard,False,"copy"),
-                MenuItem(_("Save figure"),_("Save as picture"), PySide6.QtGui.QKeySequence.StandardKey.SaveAs,self.save_chart_as,False,"save"),
                 MenuItem(_("Export report…"), _("This chart and its notes as an HTML or PDF report, like File > Export for the whole project"), None, self.export_report, False, "project_report"),
                 MenuItem(_("Export view as CSV…"),_("Save the rows currently on screen as a CSV file"),None,self.export_view_as_csv,False,"export_csv"),
                 MenuItem(

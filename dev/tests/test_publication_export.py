@@ -218,7 +218,7 @@ def test_a_charts_own_report_has_that_chart_alone(qapp, showcase, tmp_path: Path
 
     panel = ChartPanel(repo, ids["Kaplan-Meier"])
     menu_texts = [action.text() for action in panel._build_actions_menu().actions()]
-    assert "Save figure" in menu_texts and "Export report…" in menu_texts
+    assert "Export report…" in menu_texts and "Save figure" not in menu_texts  # Save is on the chart's toolbar
     dialogs: list[ProjectReportDialog] = []
     monkeypatch.setattr(ProjectReportDialog, "exec", lambda self: dialogs.append(self) or 0)
     panel.export_report()
