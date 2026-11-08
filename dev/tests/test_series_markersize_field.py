@@ -38,3 +38,10 @@ def test_changing_it_applies_the_series_style(widget: SeriesPropertiesWidget) ->
     widget._load_series_descriptor(SimpleNamespace(id=1, options={}, sql_query=""))
     widget._markersize_spin.setValue(9.0)
     assert _payload(widget)["markersize"] == 9.0
+
+
+def test_marker_every_is_read_and_written(widget: SeriesPropertiesWidget) -> None:
+    widget._load_series_descriptor(SimpleNamespace(id=1, options={"markevery": 5}, sql_query=""))
+    assert widget._markevery_spin.value() == 5 and _payload(widget)["markevery"] == 5
+    widget._markevery_spin.setValue(1)
+    assert _payload(widget)["markevery"] is None
