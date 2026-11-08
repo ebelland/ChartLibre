@@ -25,3 +25,19 @@ C. Tests: text patterns to tuples ("..---" and friends), the tuple drawn the sam
 Risks: some renderers draw their own lines (box plots, fills) and ignore a dash tuple - the editor is offered only
 where the series is drawn with plot()/scatter() and says so elsewhere.
 Order: A (dashes), B (markers), C alongside.
+
+
+C. Marker rotation by a column (requested 2026-11-08)
+-----------------------------------------------------
+As Colour and Size take a column, scatter / bubble / line markers get "Rotation": a constant angle, or a column
+whose values turn each marker - arrows pointing with the wind direction, a vector field's heading, a ship's course.
+   - Units: degrees (default) or radians; zero to the right or up (compass, clockwise); a "scale" that maps the
+     column's range to 0-360 when the values are not angles.
+   - Drawing: matplotlib has no per-point marker angle in scatter, so the markers are drawn as one
+     PathCollection of rotated copies of the marker path (MarkerStyle(m).get_path().transformed(Affine2D
+     .rotate_deg(a))) - grouped by angle rounded to 1 degree, so 5,000 points cost at most 360 paths; quiver is
+     used instead when the marker is the arrow entry (and the size then is its length).
+   - A new "Arrow →" marker entry (a mathtext "$\rightarrow$" or a path of our own) so it works without typing.
+   - Legend: the series' marker drawn unrotated; a colourbar is not needed.
+   - Tests: angles 0/90/180 give the rotated path's bounds; a column of NaN leaves those points unrotated; SVG export.
+Order: after B's marker editor; strings listed, not translated.

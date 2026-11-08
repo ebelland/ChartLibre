@@ -1,0 +1,34 @@
+"""Markers of one's own: a character, mathtext, (sides, style, angle)."""
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+from app.plugin_api.charts.markers import is_custom, to_matplotlib
+
+
+def test_forms():
+    assert to_matplotlib("o") == "o"
+    assert to_matplotlib("★") == "$★$"
+    assert to_matplotlib("$") == r"$\$$"
+    assert to_matplotlib("(5, 1, 0)") == (5, 1, 0)
+    assert to_matplotlib(r"$\clubsuit$") == r"$\clubsuit$"
+    assert to_matplotlib("中") is None  # not in the shipped font: would differ between systems
+    assert to_matplotlib("(1, 9)") is None and to_matplotlib("abc") is None
+    assert is_custom("A") and not is_custom("s")
+
+
+def test_drawn():
+    fig, ax = plt.subplots()
+    for marker in ("★", "$", "(6, 2, 30)", r"$\clubsuit$"):
+        ax.plot([1, 2], [1, 2], marker=to_matplotlib(marker))
+    fig.canvas.draw()
+    plt.close(fig)
+
+
+def test_combo_keeps_a_custom_marker(qapp):
+    from app.widgets.drop_down_controls.marker_combo import MarkerStyleCombo
+
+    combo = MarkerStyleCombo()
+    assert combo.set_current_marker("★")
+    assert combo.current_marker() == "★"

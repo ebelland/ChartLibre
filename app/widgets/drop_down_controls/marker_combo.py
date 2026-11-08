@@ -83,7 +83,10 @@ _ENTRIES: tuple[ComboEntry, ...] = (
     ("Caret right base 9", "9"),
     ("Caret up base 10", "10"),
     ("Caret down base 11", "11"),
+    ("Custom…", "__custom__"),
 )
+
+CUSTOM = "__custom__"
 
 
 def _regular_polygon(
@@ -361,8 +364,12 @@ def _draw_text_marker(p: QPainter, cx: float, cy: float, _r: float, text: str) -
     any marker Matplotlib gains after this module was written - so an unknown
     marker still previews as something identifiable rather than a blank icon.
     """
-    font = QFont()
-    font.setPointSize(8)
+    if text == CUSTOM:
+        return
+    if len(text) > 2 and text[0] == "$" == text[-1]:
+        text = text[1:-1]
+    font = QFont("DejaVu Sans")
+    font.setPointSize(8 if len(text) > 1 else 11)
     font.setBold(True)
     p.setFont(font)
     rect = QRectF(0, 0, _ICON_SIZE, _ICON_SIZE)
@@ -557,11 +564,49 @@ class MarkerStyleCombo(IconComboBox):
             icon_for=_marker_icon,
             icon_size=QSize(_ICON_SIZE, _ICON_SIZE),
         )
+        self._previous = self.current_value()
+        self.activated.connect(self._on_activated)
 
     def current_marker(self) -> str:
-        """Return the selected Matplotlib marker code."""
-        return self.current_value()
+        """Return the selected Matplotlib marker code (or the custom marker's text)."""
+        value = self.current_value()
+        return self._previous if value == CUSTOM else value
 
     def set_current_marker(self, marker: str) -> bool:
-        """Select the entry matching *marker*."""
-        return self.set_current_value((marker or "").strip())
+        """Select the entry matching *marker*; a marker of its own gets an entry of its own."""
+        from app.plugin_api.charts.markers import is_custom
+
+        text = (marker or "").strip()
+        if self.findData(text, self.ROLE_VALUE) < 0 and is_custom(text):
+            self.blockSignals(True)
+            self.insertItem(self.findData(CUSTOM, self.ROLE_VALUE), _marker_icon(text), text, text)
+            self.blockSignals(False)
+        found = self.set_current_value(text)
+        if found:
+            self._previous = text
+        return found
+
+    # The series panel loads through the same name as the line-style combo.
+    set_current_linestyle = set_current_marker
+
+    def _on_activated(self, index: int) -> None:
+        """Custom… asks for a marker; a valid one is added and chosen, anything else goes back."""
+        if self.itemData(index, self.ROLE_VALUE) != CUSTOM:
+            self._previous = self.current_value()
+            return
+        from PySide6.QtWidgets import QInputDialog
+
+        from app.plugin_api.charts.markers import is_custom
+        from app.utils.i18n import _
+
+        text, ok = QInputDialog.getText(
+            self, _("Marker"),
+            _("One character (for example ★ ♣ A), drawn with the font shipped with the app so it looks the same "
+              "everywhere;\nor matplotlib's mathtext, for example $\\clubsuit$;\n"
+              "or (sides, style, angle) - style 0 a polygon, 1 a star, 2 an asterisk - for example (5, 1, 0)"),
+            text=self._previous if is_custom(self._previous) else "")
+        if ok and is_custom(text.strip()):
+            self.set_current_marker(text.strip())
+        else:
+            self.set_current_value(self._previous)
+        self.currentIndexChanged.emit(self.currentIndex())

@@ -866,6 +866,13 @@ class BaseAxisRenderer:
             return (None, False) if rc_value.lower() in ("", "none") else (None, True)
 
         value = str(raw or "").strip()
+        if value and value.lower() != "none":
+            from app.plugin_api.charts.markers import to_matplotlib  # a character, "$...$", "(5, 1, 0)"
+
+            converted = to_matplotlib(value)
+            if converted is None:
+                return None, True  # not drawable: the style's own marker, not an error
+            return converted, True
         return value, value != ""
 
     @staticmethod
