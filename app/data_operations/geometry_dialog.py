@@ -56,6 +56,7 @@ from app.data.data_source import (
     row_value,
 )
 from app.logs.logger import applogger
+from app.plugin_api import reading_guide
 from app.plugin_api.charts.grids import pivot_to_grid
 from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
@@ -73,7 +74,6 @@ from app.styles.style import CardFrame
 from app.utils import report_html
 from app.utils.config import get_constant
 from app.utils.i18n import _
-from app.widgets import mpl_cursors
 
 ROTATE = "Rotate"
 TRANSLATE = "Translate"
@@ -1121,3 +1121,9 @@ class SeriesGeometryDialog(DataOperationDialogBase):
             roles=roles,
             style=style,
         )
+
+    def how_to_read(self, results: Sequence[Any]) -> list[str]:
+        """The motion and how many points it moved."""
+        if not results:
+            return []
+        return [reading_guide.motion(results[0].model, points=int(np.asarray(results[0].after_x).size))]

@@ -16,6 +16,7 @@ import numpy as np
 import pandas as pd
 
 from app.analysis import gaussian_process as gp
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
     OperationModel,
@@ -239,3 +240,15 @@ class SeriesGPRegressionDialog(DataOperationDialogBase):
         return (result.source_name, result.model,
                 report_html.format_number(result.metadata.get("log_marginal_likelihood")),
                 str(result.metadata.get("kernel", "")))
+
+    def how_to_read(self, results: Sequence[Any]) -> list[str]:
+        """The band's widest point: where the process knows least."""
+        if not results:
+            return []
+        result = results[0]
+        width = np.asarray(result.upper, dtype=float) - np.asarray(result.lower, dtype=float)
+        if not np.isfinite(width).any():
+            return []
+        widest = int(np.nanargmax(width))
+        return [line for line in [reading_guide.gp_band(width[widest], widest_x=np.asarray(result.x)[widest])]
+                if line]

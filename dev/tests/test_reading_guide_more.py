@@ -46,3 +46,25 @@ def test_the_signal_and_numeric_operations_explain_their_result() -> None:
     assert "area under the curve is 4.2" in SeriesCalculusDialog.how_to_read(None, [ns(total=4.2, metadata={})])[0]
     assert SeriesCalculusDialog.how_to_read(None, [ns(total=None, metadata={})]) == []
     assert "geometric mean" in SeriesTransformDialog.how_to_read(None, [ns(model="Log")])[0]
+
+
+def test_function_geometry_gp_and_wafer_explain_their_result() -> None:
+    import types
+
+    import numpy as np
+
+    from app.data_operations.function_dialog import SeriesFunctionDialog
+    from app.data_operations.geometry_dialog import SeriesGeometryDialog
+    from app.data_operations.gp_regression_dialog import SeriesGPRegressionDialog
+    from app.data_operations.wafer_map_dialog import WaferMapDialog
+
+    ns = types.SimpleNamespace
+    assert "(a = 2)" in SeriesFunctionDialog.how_to_read(None, [ns(function_name="Line", params={"a": 2.0})])[0]
+    assert "to 4 points" in SeriesGeometryDialog.how_to_read(None, [ns(model="Rotation", after_x=np.zeros(4))])[0]
+    x = np.linspace(0, 4, 5)
+    gp = ns(x=x, upper=np.array([1, 1, 3, 1, 1.0]), lower=np.zeros(5))
+    assert "spans 3" in SeriesGPRegressionDialog.how_to_read(None, [gp])[0] and "x = 2" in \
+        SeriesGPRegressionDialog.how_to_read(None, [gp])[0]
+    assert "Yield 90%" in WaferMapDialog.how_to_read(None, [ns(summary={"Yield (%)": 90.0, "Dies measured": 50})])[0]
+    assert "Poisson yield 80%" in WaferMapDialog.how_to_read(None, [ns(summary={"Poisson yield exp(-D A) (%)": 80.0,
+                                                                             "Dies": 60})])[0]

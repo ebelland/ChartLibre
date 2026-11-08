@@ -18,6 +18,7 @@ first); it is read when a report is made, so an exported report has it too.
 from __future__ import annotations
 
 import math
+from collections.abc import Mapping
 from typing import Any
 
 from app.utils.config import get_value
@@ -475,3 +476,43 @@ def transform(model: str) -> str:
     """What a transformation changed."""
     return _("{model}: the values are changed, not the rows. Statistics on the new column describe the transformed "
              "scale - a mean of logarithms is a geometric mean, not the arithmetic one.").format(model=_(model))
+
+
+def function_curve(name: str, *, parameters: Mapping[str, Any]) -> str:
+    """A function drawn with given parameters - not fitted to anything."""
+    shown = ", ".join(f"{key} = {_n(value)}" for key, value in parameters.items() if _number(value) is not None)
+    line = _("{name} drawn with the parameters as set{values}: a curve computed, not fitted to the data.").format(
+        name=name, values=f" ({shown})" if shown else "")
+    return line + " " + _("To find the parameters that match measured points, use Fit Curve with this function.")
+
+
+def gp_band(width: Any, *, widest_x: Any) -> str:
+    """A Gaussian process's band: where it knows and where it guesses."""
+    band, where = _number(width), _number(widest_x)
+    if band is None:
+        return ""
+    line = _("The band is the process's 95% range for the curve; at its widest it spans {width}").format(width=_n(band))
+    if where is not None:
+        line += _(" (near x = {x})").format(x=_n(where))
+    return line + ". " + _("Narrow where there are points, wide between and beyond them: there the mean line is "
+                           "a guess, and the band says how loose.")
+
+
+def motion(model: str, *, points: int) -> str:
+    """A geometric transformation: what moved, what stayed."""
+    return _("{model} applied to {points} points: positions change, distances and angles keep what the motion "
+             "keeps (a rotation or a shift keeps both, a scaling neither). The original rows are left as they "
+             "were; the moved ones are in a new query.").format(model=_(model), points=points)
+
+
+def wafer_yield(value: Any, *, dies: Any, kind: str) -> str:
+    """A wafer map's headline number."""
+    number, count = _number(value), _number(dies)
+    if number is None:
+        return ""
+    if kind == "yield":
+        return _("Yield {value}%: the share of the {dies} measured dies inside the limits. Look at the map for where "
+                 "the failures sit - an edge ring, a scratch, a corner - which says more about the cause than the "
+                 "number.").format(value=_n(number), dies=_n(count or 0))
+    return _("Poisson yield {value}%: the share of dies expected free of defects at this defect density and die "
+             "area. Defects in clusters spoil fewer dies than this predicts.").format(value=_n(number))

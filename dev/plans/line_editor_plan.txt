@@ -1,0 +1,27 @@
+An editor for dashes and markers (2026-11-08; the "How to read this" boxes it shared the file with are done)
+=================================================================================================
+
+6. An editor for line dashes and markers
+----------------------------------------
+Today a series' line style is one of matplotlib's four ("-", "--", "-.", ":") and its marker one of its letters.
+
+A. Dashes - a "Line style" field in Series properties with a "..." button opening the editor:
+   - the named ones, and matplotlib's own patterns typed as they are known: "-", "--", "-.", ":", and the
+     dash tuple (offset, (on, off, on, off, ...)) in points;
+   - a pattern typed as text: "-- . -- ." or "..---" (a dash per "-", a dot per ".", a space per " "), turned
+     into the tuple, scaled by the line width as matplotlib does;
+   - a live preview of the line at the series' width and colour; cap style (butt, round, projecting) and join;
+   - saved in the series' style as the tuple, so matplotlib draws it and every export keeps it.
+B. Markers - the same "..." on the Marker field:
+   - matplotlib's markers in a grid to pick from ("o", "s", "^", "D", "*", "P", "X", "h", "$text$"...);
+   - a regular polygon or star: sides, rotation, inner radius ((n, 0|1|2, angle));
+   - a marker drawn from text or a symbol: "$♥$", any character or short TeX;
+   - a path: a small editor of points (click to add, drag to move) or an SVG path ("M0,0 L1,1 ..."), turned into
+     a matplotlib Path, normalised to the marker size; edge and fill colour and edge width;
+   - user markers kept by name in the project (a table __markers__), offered beside matplotlib's.
+   - pictures as markers are the other plan (image_markers_plan.txt) and share its picker.
+C. Tests: text patterns to tuples ("..---" and friends), the tuple drawn the same in PNG and SVG, an SVG path to a
+   Path, a stored marker reloaded with the project.
+Risks: some renderers draw their own lines (box plots, fills) and ignore a dash tuple - the editor is offered only
+where the series is drawn with plot()/scatter() and says so elsewhere.
+Order: A (dashes), B (markers), C alongside.

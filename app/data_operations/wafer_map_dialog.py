@@ -21,6 +21,7 @@ import pandas as pd
 
 from app.analysis import wafer as wf
 from app.data.data_source import quote_identifier
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import DataOperationDialogBase
 from app.plugin_api.data_operations.parameter_spec import (
     BoolParam,
@@ -258,3 +259,15 @@ class WaferMapDialog(DataOperationDialogBase):
             return ""
         subtitle = ", ".join(result.source_name for result in results)
         return self.results_document(subtitle, *(self.report_for(result) for result in results))
+
+    def how_to_read(self, results: Sequence[Any]) -> list[str]:
+        """The yield inside the limits, or the yield the defect density predicts."""
+        if not results:
+            return []
+        summary = results[0].summary
+        if "Yield (%)" in summary:
+            line = reading_guide.wafer_yield(summary["Yield (%)"], dies=summary.get("Dies measured"), kind="yield")
+        else:
+            line = reading_guide.wafer_yield(summary.get("Poisson yield exp(-D A) (%)"), dies=summary.get("Dies"),
+                                             kind="poisson")
+        return [line] if line else []

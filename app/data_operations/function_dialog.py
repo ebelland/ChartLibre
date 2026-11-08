@@ -75,6 +75,7 @@ from app.data_operations.sympy_store import (
     untrusted as stored_untrusted,
 )
 from app.logs.logger import applogger
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
     ResultSeriesSpec,
@@ -941,3 +942,9 @@ class SeriesFunctionDialog(DataOperationDialogBase):
                           [(n, report_html.format_number(v)) for n, v in result.params.items()],
                           align=("left", "right"), empty_message=_("This function takes no parameters.")))
         return report_html.section(result.function_name, *blocks)
+
+    def how_to_read(self, results: Sequence[Any]) -> list[str]:
+        """The curve drawn and the parameters it was drawn with."""
+        if not results:
+            return []
+        return [reading_guide.function_curve(results[0].function_name, parameters=results[0].params or {})]
