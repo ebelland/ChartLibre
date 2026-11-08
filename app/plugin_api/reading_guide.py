@@ -390,3 +390,19 @@ def spectral_peak(frequency: Any) -> str:
     return _("The strongest peak is at frequency {frequency}: a cycle every {period} units of x. A peak matters "
              "when it stands well above its neighbours; in a short series one high bin is often noise.").format(
         frequency=_n(number), period=_n(1 / number))
+
+
+def peaks(count: int, *, x: Any, prominence: Any, width: Any) -> str:
+    """How many peaks were kept, and the most prominent one: where, how tall above its surroundings, how wide."""
+    if count <= 0:
+        return _("No peak passed the filters. Lower the prominence or the height to see the smaller ones; a peak "
+                 "is only as real as it is tall above the noise around it.")
+    where, tall, wide = _number(x), _number(prominence), _number(width)
+    if where is None or tall is None:
+        return ""
+    line = _("{count} peaks kept; the most prominent is at x = {x}, standing {prominence} above the lowest ground "
+             "that separates it from a higher one.").format(count=count, x=_n(where), prominence=_n(tall))
+    if wide is not None:
+        line += " " + _("Its width at half that height is {width} in x: the span to integrate for its area "
+                        "(Calculus).").format(width=_n(wide))
+    return line

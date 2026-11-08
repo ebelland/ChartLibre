@@ -29,6 +29,7 @@ import pandas as pd
 
 from app.analysis import peaks as pk
 from app.analysis.peaks import Peak, PeakSettings, find_peaks_1d, find_peaks_2d
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
     OperationModel,
@@ -329,6 +330,16 @@ class SeriesPeaksDialog(DataOperationDialogBase):
 
     RESULT_TABLE_PREFIX = 'Peaks'
     RESULT_TABLE_VARIANT = None
+
+    def how_to_read(self, results: Sequence[PeakResult]) -> list[str]:
+        """The peaks found in the first series, and its most prominent one."""
+        if not results:
+            return []
+        found = results[0].peaks
+        if not found:
+            return [reading_guide.peaks(0, x=None, prominence=None, width=None)]
+        top = max(found, key=lambda peak: peak.prominence)
+        return [reading_guide.peaks(len(found), x=top.x, prominence=top.prominence, width=top.width)]
 
     def results_subtitle(self, results: Sequence[PeakResult]) -> str:
         return self.current_model()
