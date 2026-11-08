@@ -1,0 +1,64 @@
+Pictures as markers and bars: infographics drawn from data (2026-11-08)
+=======================================================================
+
+What it is
+----------
+A scatter's points drawn as pictures (a flag per country, an icon per species), and a bar drawn as a picture -
+stretched, or stacked as a pictogram (one person = 1,000 people, the last one cut to the fraction). The pictures
+are kept in the project, so it travels whole and exports the same everywhere.
+
+A. Storage: a table __images__ (name TEXT PRIMARY KEY, kind 'svg'|'png'|'jpeg', data BLOB, source TEXT, license
+   TEXT, added TEXT). SVG kept as text (sharp at any size, recoloured by the series' colour when it is a
+   single-colour icon); PNG/JPEG kept as they are, at most 1024 px a side (larger ones scaled on import).
+   Undo covers adding and removing one. The Tables list does not show it (a "__" table), Project > Images does.
+
+B. Where pictures come from - an "Images" dialog (Project page, and from each picture field):
+   - Import from a file (SVG, PNG, JPEG), or paste from the clipboard;
+   - A small library shipped with the app, from open sets whose licence lets a chart that uses them be shared:
+     Lucide (ISC) or Tabler Icons (MIT) - about 200 icons chosen for charts (people, money, buildings, transport,
+     weather, animals, flags of the world from flag-icons (MIT)); searchable by name;
+   - Online, on request: Iconify's search (iconify.design, 200,000 icons from open sets), each with its set's
+     licence shown and stored with it; nothing is sent before the user asks, as for the web sources.
+   - The system's own symbols are not offered for charts: Apple's SF Symbols licence allows them in the user
+     interface of Apple-platform apps only, not in images exported or shared; Windows' Segoe Fluent glyphs and the
+     Linux icon themes have licences of their own. The app keeps using them for its buttons, as it does today.
+
+C. In the charts (one renderer option each, in Series properties):
+   - Scatter / bubble: "Marker picture" - one picture, or a column whose values name pictures (species -> icon),
+     sized by the marker size (or the bubble's size); matplotlib OffsetImage/AnnotationBbox, SVG rasterised at the
+     figure's dpi through QSvgRenderer (no new package).
+   - Bar / column: "Bar picture" - stretched to the bar, or repeated: a pictogram with "one picture = N" (N chosen,
+     or nice-rounded from the data), the last picture clipped to the fraction; a legend line says what one stands for.
+   - Pie / donut: a picture in each slice, or in the hole.
+   - Text and title: a picture beside the title (a logo).
+   Colours: a single-colour SVG takes the series' colour; a multicolour one or a photo keeps its own.
+
+D. Export: SVG and PDF keep the pictures as vectors where they were SVG; PNG at the export's dpi.
+
+E. Tests: the table (add, replace, undo), SVG recolouring, a pictogram's count and clipped last picture, a scatter
+   with a picture column exported to SVG and PNG, offscreen.
+
+Risks
+- Many pictures (a scatter of 5,000 flags) draw slowly: above a threshold the renderer says so and draws a sample,
+  as the downsampling does for points.
+- Licences: every picture keeps its source and licence; the export can list them (credits) in the report.
+
+Strings listed for translation, not translated. Order: A, C for the scatter (usable), B, C for bars, D, E alongside.
+
+
+Other ideas for infographics (not planned yet - to choose from)
+---------------------------------------------------------------
+1. Big number cards: a "KPI" chart type - a value in large type, its unit, the change from the previous period
+   (arrow, colour) and a sparkline; several in a row as a dashboard strip.
+2. Waffle chart: a 10x10 grid of squares (or pictures) filled to a share - "37 of 100".
+3. Annotations with callouts: a label with a line or an arrow to a point, a highlighted band, a note box -
+   placed by dragging, kept with the chart (beyond today's text and reference lines).
+4. Themes for infographics: bolder fonts, flat colours, no axes frame, large titles and a subtitle and a source
+   line at the bottom ("Source: ..."), as newspapers draw charts.
+5. Layout of several charts on one page with text blocks between them (a poster or a report page), exported as
+   one PDF or PNG.
+6. Maps: a choropleth of countries or regions coloured by a value (shapes shipped as GeoJSON, no new package).
+7. Progress and gauge visuals: a progress bar, a ring, a half-donut gauge with its target.
+8. Highlighting: grey everything but the series or the bars that matter, with one click (the "focus" of a story).
+9. Slope and bump charts already exist; a "before/after" arrow chart could join them.
+10. Number formatting for infographics: 1.2k, 3.4M, percentages, units in labels, everywhere at once.
