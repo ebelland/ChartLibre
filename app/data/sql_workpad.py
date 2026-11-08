@@ -20,8 +20,13 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from app.data.repo._common import _READING_PRAGMAS, _WRITE_ACTIONS, _sql_without_comments_and_literals, \
-    is_read_only_select, sql_guard_enabled
+from app.data.repo._common import (
+    _READING_PRAGMAS,
+    _WRITE_ACTIONS,
+    _sql_without_comments_and_literals,
+    is_read_only_select,
+    sql_guard_enabled,
+)
 
 MAX_ROWS = 10_000
 TIME_LIMIT = 15.0  # seconds a statement may run

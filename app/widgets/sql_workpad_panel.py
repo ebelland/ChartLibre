@@ -9,8 +9,8 @@ from PySide6.QtCore import QStringListModel, Qt, Signal
 from PySide6.QtGui import QGuiApplication, QKeySequence, QShortcut, QTextCursor
 from PySide6.QtWidgets import (
     QCompleter,
-    QInputDialog,
     QHBoxLayout,
+    QInputDialog,
     QLabel,
     QPlainTextEdit,
     QPushButton,
@@ -21,9 +21,9 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
+from app.data.sql_workpad import RefusedStatement, SqlSession
 from app.utils.i18n import _
 from app.widgets.nav_bar import NavPanel
-from app.data.sql_workpad import RefusedStatement, SqlSession
 
 
 class SqlWorkpadPanel(NavPanel):
