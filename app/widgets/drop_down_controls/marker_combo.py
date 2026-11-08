@@ -300,20 +300,27 @@ def _draw_horizontal_line(p: QPainter, cx: float, cy: float, r: float) -> None:
     p.drawLine(QPointF(cx - r, cy), QPointF(cx + r, cy))
 
 
+def _draw_tri(p: QPainter, cx: float, cy: float, r: float, angle: float) -> None:
+    """Matplotlib's tri markers: three arms from the centre, one pointing at *angle* (degrees, 0 = right)."""
+    for k in range(3):
+        a = math.radians(angle + 120 * k)
+        p.drawLine(QPointF(cx, cy), QPointF(cx + r * math.cos(a), cy - r * math.sin(a)))
+
+
 def _draw_tri_down(p: QPainter, cx: float, cy: float, r: float) -> None:
-    _draw_triangle_down(p, cx, cy, r * 0.78)
+    _draw_tri(p, cx, cy, r, -90)
 
 
 def _draw_tri_up(p: QPainter, cx: float, cy: float, r: float) -> None:
-    _draw_triangle_up(p, cx, cy, r * 0.78)
+    _draw_tri(p, cx, cy, r, 90)
 
 
 def _draw_tri_left(p: QPainter, cx: float, cy: float, r: float) -> None:
-    _draw_triangle_left(p, cx, cy, r * 0.78)
+    _draw_tri(p, cx, cy, r, 180)
 
 
 def _draw_tri_right(p: QPainter, cx: float, cy: float, r: float) -> None:
-    _draw_triangle_right(p, cx, cy, r * 0.78)
+    _draw_tri(p, cx, cy, r, 0)
 
 
 def _draw_tick_left(p: QPainter, cx: float, cy: float, r: float) -> None:

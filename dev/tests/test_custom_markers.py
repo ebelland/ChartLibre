@@ -9,6 +9,7 @@ from app.plugin_api.charts.markers import is_custom, to_matplotlib
 
 def test_forms():
     assert to_matplotlib("o") == "o"
+    assert to_matplotlib("5") == 5 and to_matplotlib("1") == "1" and to_matplotlib("8") == "8"
     assert to_matplotlib("★") == "$★$"
     assert to_matplotlib("$") == r"$\$$"
     assert to_matplotlib("(5, 1, 0)") == (5, 1, 0)
@@ -32,3 +33,10 @@ def test_combo_keeps_a_custom_marker(qapp):
     combo = MarkerStyleCombo()
     assert combo.set_current_marker("★")
     assert combo.current_marker() == "★"
+
+
+def test_a_series_line_pattern_is_drawn_as_its_tuple():
+    from app.plugin_api.charts.base import BaseAxisRenderer
+
+    value, draw = BaseAxisRenderer.series_linestyle(None, {"linestyle": "---.--."}, {})
+    assert draw and isinstance(value, tuple)

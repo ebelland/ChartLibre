@@ -833,6 +833,11 @@ class BaseAxisRenderer:
             return None, rc_value not in ("", "none")
 
         value = str(raw or "").strip()
+        if value.lower() not in ("", "none"):
+            from app.plugin_api.charts.dashes import to_matplotlib  # "..--", "(0, (5, 2))" -> the tuple drawn
+
+            converted = to_matplotlib(str(raw).rstrip())
+            return (converted if converted is not None else None), True
         return value, value.lower() not in ("", "none")
 
     def series_marker(

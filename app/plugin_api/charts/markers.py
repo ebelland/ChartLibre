@@ -48,11 +48,18 @@ def _valid(marker: Any) -> bool:
     return True
 
 
+#: matplotlib's tick and caret markers are the integers 0-11; the combo keeps them as text. "1"-"4" and "8" are
+#: string codes of their own (tri, octagon), so they stay strings.
+_INTEGER_CODES = {"0", "5", "6", "7", "9", "10", "11"}
+
+
 def to_matplotlib(text: Any) -> Any:
     """What matplotlib draws for *text*; None when it is none of the forms above."""
     if not isinstance(text, str):
         return text
     stripped = text.strip()
+    if stripped in _INTEGER_CODES:
+        return int(stripped)
     if stripped.startswith("("):
         try:
             value = ast.literal_eval(stripped)
