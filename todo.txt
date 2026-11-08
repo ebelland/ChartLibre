@@ -50,6 +50,7 @@ The order is a single recommended backlog. Related items have been merged, and c
 | ID37 | 37 | 2 | **Assistant transparency and Windows release polish** (AI-02, AI-03) | Show requests/cache activity; package Anthropic/keyring support and document secure key storage. | **Core**; improve trust and Windows usability. |
 | ID38 | 38 | 2 | **Windows UI parity** (H-12) | Test dialogs at 1366×768 and 125% scaling in CI. | **Core**; prevents platform-specific friction. |
 | ID41 | 41 | 4 | **Text Explorer** (G-11) | Add word counts, n-grams, and topics for text columns. | **JMP**; weak fit for the primary audience. |
+| ID46 | 46 | 2 | **Marker editor and rotation** (dev/plans/line_editor_plan.txt B, C) | Still missing: a point/SVG-path marker editor and a `__markers__` table of saved markers; marker rotation by a constant or a column (arrows), with an Arrow entry; custom dashes for overlay/reference lines. Custom dashes and markers (character, mathtext, polygon tuple) are done. | **Origin / matplotlib**; vector-field and wind-direction charts. |
 
 ## User-owned / release-readiness tasks
 
