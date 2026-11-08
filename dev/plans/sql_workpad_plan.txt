@@ -41,4 +41,4 @@ Risks
 - Apply while charts are open: they reload from the replaced database; a chart whose table was dropped says so,
   as when a table is deleted today.
 
-Strings listed for translation, not translated. Order: A+B (one commit: safe to use), D alongside, then C.
+Done: A, B, C (completion, history, Save as query, Copy), D. Missing: CSV export of a result, a Stop button (the 15 s limit stops it), views and indexes kept by Apply.

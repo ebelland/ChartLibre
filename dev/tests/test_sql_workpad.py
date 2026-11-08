@@ -70,3 +70,20 @@ def test_apply_and_undo(session):
     assert repo.undo_last() is not None
     assert count(repo) == 2
     assert not repo._con.execute("SELECT 1 FROM sqlite_master WHERE name='N'").fetchone()
+
+
+def test_panel_copy_and_save_query(session, qapp, monkeypatch):
+    from PySide6.QtGui import QGuiApplication
+    from PySide6.QtWidgets import QInputDialog
+
+    from app.widgets.sql_workpad_panel import SqlWorkpadPanel
+
+    _pad, repo, _guard = session
+    panel = SqlWorkpadPanel(None, repo=lambda: repo)
+    panel.run("SELECT a FROM T ORDER BY a")
+    panel.copy_rows()
+    assert QGuiApplication.clipboard().text() == "a\n1\n2"
+    monkeypatch.setattr(QInputDialog, "getText", lambda *a, **k: ("Qa", True))
+    panel.save_as_query()
+    assert any(q.name == "Qa" for q in repo.list_queries())
+    panel._session.cancel()
