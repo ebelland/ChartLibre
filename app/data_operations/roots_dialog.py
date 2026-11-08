@@ -63,6 +63,7 @@ from app.analysis.roots import (
     find_roots,
 )
 from app.logs.logger import applogger
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
     OperationModel,
@@ -469,3 +470,11 @@ class SeriesRootsDialog(DataOperationDialogBase):
             ),
         )
 
+    def how_to_read(self, results: Sequence[Any]) -> list[str]:
+        """How many crossings, and the first."""
+        if not results:
+            return []
+        result = results[0]
+        first = result.roots[0] if result.roots else None
+        return [reading_guide.roots(len(result.roots), level=result.level, first=first.x if first else None,
+                                    rising=bool(first.rising) if first else False)]

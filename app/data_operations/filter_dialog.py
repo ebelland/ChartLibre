@@ -22,7 +22,7 @@ including the same warning when the spacing is not uniform enough to trust.
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 from typing import Any, ClassVar
 
@@ -40,6 +40,7 @@ from app.analysis.filtering import (
     resolve_cutoffs,
     two_cutoffs,
 )
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
     OperationModel,
@@ -266,6 +267,15 @@ class SeriesFilterDialog(DataOperationDialogBase):
             f"Filter_axis{axis_id}_{result.source_name}_{FILTERS[result.model].tag}",
             fallback="Filter_Result",
         )
+
+    def how_to_read(self, results: Sequence[Any]) -> list[str]:
+        """The filter's response and its cut-off."""
+        if not results:
+            return []
+        meta = results[0].metadata
+        return [line for line in [reading_guide.frequency_filter(str(meta.get("response") or results[0].model),
+                                                                 cutoff=meta.get("cutoff"))] if line]
+
 
 def _apply_model(model: str, y: np.ndarray, fs: float, p: Mapping[str, Any]) -> tuple[np.ndarray, dict[str, Any]]:
     """Filter *y* with *model* and the settings *p* (see SeriesFilterDialog.series_settings)."""

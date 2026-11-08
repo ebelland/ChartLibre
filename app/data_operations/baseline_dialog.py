@@ -36,6 +36,7 @@ from app.analysis.baseline import (
     METHOD_RUBBER_BAND,
     correct_baseline,
 )
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
     OperationModel,
@@ -183,3 +184,13 @@ class SeriesBaselineDialog(DataOperationDialogBase):
     RESULT_TABLE_PREFIX = 'Baseline'
     RESULT_TABLE_VARIANT = None
 
+    def how_to_read(self, results: Sequence[Any]) -> list[str]:
+        """How much of what was measured the baseline was."""
+        if not results:
+            return []
+        result = results[0]
+        x = np.asarray(result.x, dtype=float)
+        corrected = np.asarray(result.corrected, dtype=float)
+        signal = float(np.trapezoid(np.nan_to_num(corrected), x)) if x.size > 1 else None
+        return [line for line in [reading_guide.baseline(result.metadata.get("baseline area"),
+                                                         corrected_area=signal)] if line]

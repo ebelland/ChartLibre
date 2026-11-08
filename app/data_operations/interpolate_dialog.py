@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import json
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any, ClassVar
 
@@ -52,6 +52,7 @@ from app.analysis.interpolation import (
 )
 from app.data.data_source import parse_roles, resolve_role_column
 from app.logs.logger import applogger
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
     CallJob,
     DataOperationDialogBase,
@@ -530,3 +531,14 @@ class SeriesInterpolateDialog(DataOperationDialogBase):
                 "dialog": "series_interpolation",
             },
         )
+
+    def how_to_read(self, results: Sequence[Any]) -> list[str]:
+        """How many values were computed, and whether some lie outside the data."""
+        if not results:
+            return []
+        result = results[0]
+        x_eval = np.asarray(result.x_eval, dtype=float)
+        x_data = np.asarray(getattr(result.source, "x", x_eval), dtype=float)
+        outside = bool(x_eval.size and x_data.size and (np.nanmin(x_eval) < np.nanmin(x_data)
+                                                         or np.nanmax(x_eval) > np.nanmax(x_data)))
+        return [reading_guide.interpolation(int(x_eval.size), extrapolated=outside)]

@@ -25,6 +25,7 @@ from app.analysis.transform import (
     TransformSettings,
     transform_values,
 )
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
     OperationModel,
@@ -244,3 +245,7 @@ class SeriesTransformDialog(DataOperationDialogBase):
     def result_row(self, result: TransformResult) -> tuple[str, ...]:
         return (result.source_name, result.model, report_html.format_number(result.y.size, digits=0),
                 self.details(result.metadata))
+
+    def how_to_read(self, results: Sequence[Any]) -> list[str]:
+        """What the transformation did to the values."""
+        return [reading_guide.transform(results[0].model)] if results else []

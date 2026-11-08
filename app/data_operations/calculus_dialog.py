@@ -40,6 +40,7 @@ from app.analysis import calculus as calc
 from app.analysis import symbolic_calculus as symbolic
 from app.data.repo.function_sql import FunctionQuery, function_sql, parse_function_sql
 from app.logs.logger import applogger
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
     OperationModel,
@@ -686,3 +687,10 @@ class SeriesCalculusDialog(DataOperationDialogBase):
         total = report_html.format_number(result.total) if result.total is not None else "&mdash;"
         return (result.source_name, result.model, report_html.format_number(result.y.size, digits=0), total,
                 self.details(result.metadata))
+
+    def how_to_read(self, results: Sequence[Any]) -> list[str]:
+        """An area, when one was computed."""
+        if not results or results[0].total is None:
+            return []
+        return [line for line in [reading_guide.area(results[0].total,
+                                                     per=str(results[0].metadata.get("per") or ""))] if line]

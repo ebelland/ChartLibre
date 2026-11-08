@@ -19,3 +19,30 @@ def test_peaks_says_how_many_and_describes_the_most_prominent() -> None:
     assert len(lines) == 1 and "2 peaks kept" in lines[0] and "x = 5" in lines[0] and "0.8" in lines[0]
     empty = PeakResult(source_name="s", result_name="r", model="m", peaks=[])
     assert "No peak passed" in SeriesPeaksDialog.how_to_read(None, [empty])[0]
+
+
+def test_the_signal_and_numeric_operations_explain_their_result() -> None:
+    import types
+
+    import numpy as np
+
+    from app.data_operations.baseline_dialog import SeriesBaselineDialog
+    from app.data_operations.calculus_dialog import SeriesCalculusDialog
+    from app.data_operations.filter_dialog import SeriesFilterDialog
+    from app.data_operations.roots_dialog import SeriesRootsDialog
+    from app.data_operations.smoothing_dialog import SeriesSmoothingDialog
+    from app.data_operations.transform_dialog import SeriesTransformDialog
+
+    ns = types.SimpleNamespace
+    x = np.linspace(0, 10, 11)
+    assert "over 11 points" in SeriesSmoothingDialog.how_to_read(None, [ns(method="Moving average", y=x)])[0]
+    assert "at 0.5" in SeriesFilterDialog.how_to_read(None, [ns(model="m", metadata={"response": "Low-pass",
+                                                                                      "cutoff": 0.5})])[0]
+    line = SeriesBaselineDialog.how_to_read(None, [ns(x=x, corrected=np.ones(11), metadata={"baseline area": 10.0})])[0]
+    assert "area of 10" in line and "50%" in line
+    root = ns(x=2.5, rising=True)
+    assert "first at x = 2.5, going up" in SeriesRootsDialog.how_to_read(None, [ns(roots=[root], level=0.0)])[0]
+    assert "no crossing" in SeriesRootsDialog.how_to_read(None, [ns(roots=[], level=1.0)])[0]
+    assert "area under the curve is 4.2" in SeriesCalculusDialog.how_to_read(None, [ns(total=4.2, metadata={})])[0]
+    assert SeriesCalculusDialog.how_to_read(None, [ns(total=None, metadata={})]) == []
+    assert "geometric mean" in SeriesTransformDialog.how_to_read(None, [ns(model="Log")])[0]

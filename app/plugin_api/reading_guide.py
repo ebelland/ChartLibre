@@ -406,3 +406,72 @@ def peaks(count: int, *, x: Any, prominence: Any, width: Any) -> str:
         line += " " + _("Its width at half that height is {width} in x: the span to integrate for its area "
                         "(Calculus).").format(width=_n(wide))
     return line
+
+
+def smoothing(method: str, *, points: int) -> str:
+    """What a smoothing kept and what it took out."""
+    return _("{method} over {points} points: the curve keeps the slow trend and loses the quick wiggles. A feature "
+             "narrower than the window is flattened along with the noise - compare it with the original before "
+             "reading peaks or edges from it.").format(method=_(method), points=points)
+
+
+def frequency_filter(response: str, *, cutoff: Any) -> str:
+    """A filter's cut-off, read in the data's own terms."""
+    value = _number(cutoff)
+    if value is None:
+        return ""
+    return _("{response} at {cutoff} (cycles per unit of x): changes on the other side of it are taken out, those on "
+             "this side pass. Near the cut-off both are only partly kept - a peak there loses some of its "
+             "height.").format(response=_(response), cutoff=_n(value))
+
+
+def baseline(area: Any, *, corrected_area: Any) -> str:
+    """How much of the signal the baseline was."""
+    under, signal = _number(area), _number(corrected_area)
+    if under is None:
+        return ""
+    line = _("The baseline taken away has an area of {area} under it.").format(area=_n(under))
+    if signal is not None and abs(signal) + abs(under) > 0:
+        share = 100 * abs(under) / (abs(signal) + abs(under))
+        line += " " + _("That is {share}% of what was measured: the peaks' areas are read from the rest. A baseline "
+                        "that rises into a peak takes part of it too.").format(share=_n(share))
+    return line
+
+
+def roots(count: int, *, level: Any, first: Any, rising: bool) -> str:
+    """Where a series crosses a level."""
+    if count <= 0:
+        return _("The series never reaches {level} in its range: no crossing. A root outside the data would need "
+                 "extrapolation.").format(level=_n(_number(level) or 0))
+    where = _number(first)
+    return _("{count} crossings of {level}; the first at x = {x}, going {way}. Each is where the curve, as "
+             "interpolated between the points, passes the level - finer data move it less.").format(
+        count=count, level=_n(_number(level) or 0), x=_n(where) if where is not None else "?",
+        way=_("up") if rising else _("down"))
+
+
+def area(total: Any, *, per: str = "") -> str:
+    """An area under a curve: what the number is."""
+    value = _number(total)
+    if value is None:
+        return ""
+    unit = f" {per}" if per else ""
+    return _("The area under the curve is {total}{unit}: y summed over x, so its unit is y's times x's. Below zero "
+             "the curve counts negative; for a peak's area alone, take the baseline away first.").format(
+        total=_n(value), unit=unit)
+
+
+def interpolation(points: int, *, extrapolated: bool) -> str:
+    """How far to trust interpolated values."""
+    line = _("{points} values computed between the measured points. They follow the model through the data; they "
+             "are as good as the points are close together.").format(points=points)
+    if extrapolated:
+        line += " " + _("Some lie outside the data's range: there they are a guess, and the further out, the "
+                        "less to trust them.")
+    return line
+
+
+def transform(model: str) -> str:
+    """What a transformation changed."""
+    return _("{model}: the values are changed, not the rows. Statistics on the new column describe the transformed "
+             "scale - a mean of logarithms is a geometric mean, not the arithmetic one.").format(model=_(model))

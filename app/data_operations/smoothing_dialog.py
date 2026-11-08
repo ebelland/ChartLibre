@@ -55,6 +55,7 @@ from app.analysis.smoothing import (
 )
 from app.data.data_source import parse_roles, row_value
 from app.logs.logger import applogger
+from app.plugin_api import reading_guide
 from app.plugin_api.data_operations.dialog_base import (
     DataOperationDialogBase,
     OperationModel,
@@ -813,3 +814,10 @@ class SeriesSmoothingDialog(DataOperationDialogBase):
                     "value": float(scalar_value),
                 }
             )
+
+    def how_to_read(self, results: Sequence[Any]) -> list[str]:
+        """The method and how many points it ran over."""
+        if not results:
+            return []
+        result = results[0]
+        return [reading_guide.smoothing(result.method, points=len(np.asarray(result.y)))]
