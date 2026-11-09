@@ -1026,6 +1026,29 @@ class TablesMixin(_Host):
         ).fetchall()
         return [str(row[0]) for row in rows]
 
+    def unused_generated_tables(self) -> list[str]:
+        """The tables written by operations ("_" names) that no series, saved query or other table's link names.
+
+        A name counts as used when it appears as a word in a series' SQL, a saved query or a series' style - a
+        rough but safe test: a table mentioned anywhere is kept.
+        """
+        import re
+
+        assert self._con is not None
+        generated = [name for name in self.list_table_names() if name.startswith("_") and not name.startswith("__")]
+        if not generated:
+            return []
+        texts: list[str] = []
+        for table, columns in (("__series_descriptors__", ("sql_query", "style_json")), ("__queries__", ("sql",))):
+            if self._con.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=?", (table,)).fetchone():
+                for column in columns:
+                    try:
+                        texts += [str(row[0] or "") for row in self._con.execute(f'SELECT "{column}" FROM {table}')]
+                    except sqlite3.Error:
+                        continue
+        text = "\n".join(texts)
+        return [name for name in generated if not re.search(rf"(?<![\w]){re.escape(name)}(?![\w])", text)]
+
     # Table management (rename/delete with propagation)
     # =====================================================================
     @ensure_connection_wrapper

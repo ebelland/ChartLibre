@@ -612,6 +612,12 @@ class TableListPanel(QWidget):
                 ),
                 None,
                 MenuItem(
+                    text=_("Delete unused generated tables…"),
+                    tooltip=_("Delete the tables written by operations that no chart or saved query uses"),
+                    callback=self.delete_unused_generated,
+                    icon="delete",
+                ),
+                MenuItem(
                     text=_("Show generated tables"),
                     tooltip=_(
                         "Show the tables written by fits, smoothing, outlier "
@@ -809,6 +815,26 @@ class TableListPanel(QWidget):
         if self._repo is None or current is None:
             return
         OperationHistoryDialog(self._repo, current[0], parent=self.window()).exec()
+
+    def delete_unused_generated(self) -> None:
+        """The generated tables nothing uses, listed and deleted once confirmed (Undo takes each back)."""
+        if self._repo is None:
+            return
+        names = self._repo.unused_generated_tables()
+        if not names:
+            QMessageBox.information(self, _("Generated tables"), _("Every generated table is used by a chart or "
+                                                                   "a saved query: nothing to delete."))
+            return
+        shown = "\n".join(names[:20]) + (f"\n… (+{len(names) - 20})" if len(names) > 20 else "")
+        answer = QMessageBox.question(
+            self, _("Generated tables"),
+            _("{count} generated tables are used by no chart and no saved query:\n\n{names}\n\n"
+              "Delete them? Undo takes them back.").format(count=len(names), names=shown))
+        if answer != QMessageBox.StandardButton.Yes:
+            return
+        for name in names:
+            self._repo.delete_table(name)
+        self.reload()
 
     def set_generated_visible(self, visible: bool) -> None:
         """Show or hide the tables written by data operations."""

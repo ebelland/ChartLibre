@@ -10,7 +10,7 @@ loaded on screen. Right-clicking a query preview silently did nothing.
 
 The fix keeps the table-writing items (delete column, hide rows, ensure
 hide/cluster columns, ...) table-only, since a query has nothing in the repo
-for them to write to, but the menu itself - with at least Copy - must
+for them to write to, but the menu itself - with its own entries - must
 still appear.
 """
 from __future__ import annotations
@@ -50,7 +50,7 @@ def test_context_menu_appears_for_a_real_table(qapp, tmp_db_path: Path) -> None:
     assert menu is not None
 
     texts = {action.text() for action in menu.actions() if not action.isSeparator()}
-    assert "Copy" in texts
+    assert "Copy" not in texts  # the Copy button beside the Data title
     # The whole table - edit, export, reload - is the table list's, right
     # above this panel; the preview works on the cells selected in it.
     assert not texts & {"Edit table...", "Refresh data table", "Export rows..."}
@@ -68,7 +68,7 @@ def test_context_menu_still_appears_for_a_saved_query(qapp, tmp_db_path: Path) -
 
     assert menu is not None, "the context menu must not disappear for a saved query"
     texts = {action.text() for action in menu.actions() if not action.isSeparator()}
-    assert "Copy" in texts
+    assert "Copy" not in texts  # the Copy button beside the Data title
     # Table-writing actions do not apply to a query: it has no rowid to
     # address a cell by, and nothing in the repo backs a "hide" or
     # "cluster" column for it.
@@ -87,10 +87,10 @@ def test_the_table_tools_are_in_the_menu_and_copy_writes_the_clipboard(qapp, tmp
     menu = panel._build_context_menu(QPoint(0, 0))
     assert menu is not None
     texts = {action.text() for action in menu.actions() if not action.isSeparator()}
-    assert "Copy" in texts
+    assert "Copy" not in texts  # the Copy button beside the Data title
     assert "Export selected rows..." not in texts  # one cell is not a block to export
     assert "Duplicate table" not in texts  # the table list's, not the preview's
-    assert "Histogram of 'a'" in texts  # one column selected
+    assert "Histogram of 'a'" not in texts  # the chart button beside the Data title
     # Moved into Edit table..., with the rest of the editing.
     assert not texts & {
         "Group and aggregate...", "Add column from SQL expression...", "Delete column 'a'..."

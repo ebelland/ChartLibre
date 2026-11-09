@@ -382,12 +382,8 @@ class TablePreviewPanel(QWidget):
             self.view.setCurrentIndex(clicked)
 
         column = self._current_column_name() if lazy_model is not None else self._query_column_name()
-        items: list[MenuItem | None] = [
-            # No shortcut on the item: Cmd/Ctrl+C is the view's own QShortcut
-            # (see __init__), and a second binding would make both ambiguous.
-            MenuItem(_("Copy"), callback=self._copy_selection, icon="copy"),
-            None,
-        ]
+        # Copy, Column Info and the chart are the buttons beside the Data title: not repeated here.
+        items: list[MenuItem | None] = []
         if column and lazy_model is not None:
             items.append(
                 MenuItem(
@@ -395,27 +391,6 @@ class TablePreviewPanel(QWidget):
                     callback=lambda _=False, col=column: self._show_column_stats(col),
                     icon="column_stats",
                     tooltip=_("Count, empty cells, distinct values, and min, max, mean and median"),
-                )
-            )
-        if column:
-            items.append(
-                MenuItem(
-                    _("Column Info..."),
-                    callback=lambda _=False, col=column: self._open_column_info(col),
-                    icon="column_info",
-                    tooltip=_("Name, type, modelling type, label, unit, missing value codes and value labels "
-                              "of the column"),
-                )
-            )
-        _rows, positions = self._selected_block()
-        selected = self._column_names(positions)
-        if len(selected) == 1:
-            items.append(
-                MenuItem(
-                    _("Histogram of '{column}'").format(column=selected[0]),
-                    callback=lambda _=False, col=selected[0]: self.histogram_requested.emit(str(self._table), col),
-                    icon="column_stats",
-                    tooltip=_("A new figure with this column's histogram, and its statistics in the figure's notes"),
                 )
             )
         if lazy_model is not None:
@@ -427,15 +402,12 @@ class TablePreviewPanel(QWidget):
                     tooltip=_("Open the Query Builder on the selected columns and rows of this table"),
                 )
             )
-        items.append(
-            MenuItem(
-                _("New chart from selected columns"),
-                callback=self._request_chart,
-                icon="chart_from_columns",
-                tooltip=_("Open New plot with the selected columns as x, y and z"),
-            )
-        )
         items.append(None)
+        table_list = getattr(self.window(), "_table_panel", None)
+        if table_list is not None and hasattr(table_list, "delete_unused_generated"):
+            items.append(MenuItem(
+                _("Delete unused generated tables…"), callback=lambda _=False: table_list.delete_unused_generated(),
+                icon="delete", tooltip=_("Delete the tables written by operations that no chart or saved query uses")))
 
         menu = create_menu(self, items, icons=CONTEXT_MENU_ICONS)
 

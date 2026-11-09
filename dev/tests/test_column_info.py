@@ -80,7 +80,8 @@ def test_the_preview_menu_offers_column_info(qapp, repo: SqliteRepo) -> None:
     qapp.processEvents()
     panel.view.setCurrentIndex(panel.view.model().index(0, 1))
     menu = panel._build_context_menu(panel.view.visualRect(panel.view.model().index(0, 1)).center())
-    assert any(action.text() == "Column Info..." for action in menu.actions())
+    # Column Info is the button beside the Data title, no longer repeated in the menu.
+    assert not any(action.text() == "Column Info..." for action in menu.actions())
 
 
 def test_the_format_shows_values_without_changing_them() -> None:
@@ -261,7 +262,7 @@ def test_the_preview_of_a_query_offers_column_info(qapp, repo: SqliteRepo) -> No
     panel.view.setCurrentIndex(panel.view.model().index(0, 1))
     menu = panel._build_context_menu(panel.view.visualRect(panel.view.model().index(0, 1)).center())
     texts = [action.text() for action in menu.actions()]
-    assert "Column Info..." in texts and not any(text.startswith("Statistics of") for text in texts)
+    assert "Column Info..." not in texts and not any(text.startswith("Statistics of") for text in texts)
 
 
 def test_a_cell_with_no_value_is_missing_without_a_code(repo: SqliteRepo) -> None:
