@@ -356,6 +356,9 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
 
         if has_marker:
             common_line_kwargs["marker"] = marker_style
+            marker_colour = str(style.get("markercolor") or "").strip()
+            if marker_colour:  # the markers' own colour; otherwise the line's
+                common_line_kwargs["markerfacecolor"] = common_line_kwargs["markeredgecolor"] = marker_colour
             every = _marker_every(style.get("markevery"))
             if every > 1:
                 common_line_kwargs["markevery"] = every  # a marker on every n-th point, the line on all of them
@@ -392,9 +395,11 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
             # The line as it is, without markers; the pictures at every (n-th) point on top of it.
             every = int(raw_kwargs.pop("markevery", 1) or 1)
             size = raw_kwargs.pop("markersize", None)
+            picture_colour = raw_kwargs.pop("markerfacecolor", None) or flat_color
+            raw_kwargs.pop("markeredgecolor", None)
             raw_kwargs["marker"] = "None"
             drawn = picture_markers.draw(ax, frame["x"].to_numpy()[::every], frame["y"].to_numpy(dtype=float)[::every],
-                                         marker_style, size_points=size, colour=flat_color,
+                                         marker_style, size_points=size, colour=picture_colour,
                                          label="" if has_line else label)
             if not drawn:
                 raw_kwargs["marker"] = "o"

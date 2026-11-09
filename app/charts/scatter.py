@@ -478,6 +478,7 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                       color_values: np.ndarray | None, color_is_discrete: bool, size_values: np.ndarray | None,
                       flat_color: str, label: str | None) -> bool:
         """The series' markers; True when they are in the legend."""
+        flat_color = str(style.get("markercolor") or "").strip() or flat_color  # the markers' own colour
         from app.plugin_api.charts import picture_markers
 
         if picture_markers.is_picture(marker_style):
