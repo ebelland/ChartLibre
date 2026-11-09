@@ -144,6 +144,16 @@ FLASH_COLOR = "#2563EB"
 
 
 #: A series' style keys the chart can show by changing its lines and points, with no new render.
+def _drawn_linestyle(value):
+    """A stored line style as matplotlib takes it: a pattern of its own ("..--") as its dash tuple."""
+    from app.plugin_api.charts.dashes import to_matplotlib
+
+    converted = to_matplotlib(value)
+    if converted is None:
+        raise ValueError(f"not a line style: {value!r}")
+    return converted
+
+
 PREVIEW_STYLE_SETTERS = frozenset({"color", "linestyle", "marker", "markersize"})
 
 
@@ -184,7 +194,7 @@ def _style_steps(
             elif key == "linestyle":
                 if str(value) in _NONE_STYLES or str(artist.get_linestyle()) in _NONE_STYLES:
                     return False, []
-                steps.append(lambda v=value: artist.set_linestyle(v))
+                steps.append(lambda v=value: artist.set_linestyle(_drawn_linestyle(v)))
         elif isinstance(artist, Line2D):
             if key == "color":
                 to_rgba(value)  # ValueError for a colour Matplotlib does not know
@@ -192,7 +202,7 @@ def _style_steps(
             elif key == "linestyle":
                 if str(value) in _NONE_STYLES or artist.get_linestyle() in _NONE_STYLES:
                     return False, []
-                steps.append(lambda v=value: artist.set_linestyle(v))
+                steps.append(lambda v=value: artist.set_linestyle(_drawn_linestyle(v)))
             elif not has_points:
                 if str(artist.get_marker()) in _NONE_STYLES or (key == "marker" and str(value) in _NONE_STYLES):
                     return False, []

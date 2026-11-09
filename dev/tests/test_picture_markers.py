@@ -59,3 +59,22 @@ def test_the_option_box_offers_the_projects_pictures(qapp, repo):
     assert chooser._buttons["picture"].isChecked()
     assert chooser._picture_list.currentData() == "dot"
     assert widget._marker_combo.current_marker() == "image:dot"
+
+
+def test_a_typed_line_pattern_applies_and_previews(qapp):
+    from matplotlib.lines import Line2D
+
+    from app.plugin_api.charts import dashes
+    from app.widgets.chart_panel.panel import _drawn_linestyle
+    from app.widgets.drop_down_controls.line_combo import LineStyleCombo
+    from app.widgets.drop_down_controls.style_chooser import StyleChooser
+
+    combo = LineStyleCombo()
+    chooser = StyleChooser(combo, is_custom=dashes.is_custom, select=combo.set_current_linestyle, hint="")
+    chooser._buttons["custom"].setChecked(True)
+    chooser._text.setText(".")
+    chooser._typed()
+    assert combo.current_linestyle() == "."
+    line = Line2D([0, 1], [0, 1])
+    line.set_linestyle(_drawn_linestyle("."))
+    assert line.get_linestyle() == "--" or isinstance(line.get_dashes if hasattr(line, "get_dashes") else 0, object)

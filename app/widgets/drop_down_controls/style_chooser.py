@@ -12,6 +12,7 @@ from PySide6.QtCore import QSize
 from PySide6.QtWidgets import (
     QButtonGroup,
     QComboBox,
+    QGridLayout,
     QHBoxLayout,
     QLineEdit,
     QPushButton,
@@ -51,8 +52,10 @@ class StyleChooser(QWidget):
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(4)
-        row = QHBoxLayout()
-        row.setSpacing(10)
+        row = QGridLayout()  # two a row: four choices side by side do not fit the panel
+        row.setColumnStretch(2, 1)  # the buttons keep their width, the rest is slack
+        row.setHorizontalSpacing(10)
+        row.setVerticalSpacing(2)
         self._group = QButtonGroup(self)
         self._buttons: dict[str, QRadioButton] = {}
         choices = [(STANDARD, _("Standard")), (CUSTOM, _("Custom"))] + ([(SYMBOL, _("Symbol"))] if symbols else []) \
@@ -62,8 +65,8 @@ class StyleChooser(QWidget):
             self._group.addButton(button)
             self._buttons[key] = button
             button.toggled.connect(lambda on, k=key: on and self._show(k))
-            row.addWidget(button)
-        row.addStretch(1)
+            i = len(self._buttons) - 1
+            row.addWidget(button, *((0, i) if len(choices) <= 2 else divmod(i, 2)))
         column.addLayout(row)
 
         column.addWidget(combo)
@@ -71,6 +74,15 @@ class StyleChooser(QWidget):
         self._text.setPlaceholderText(hint)
         self._text.setToolTip(hint)
         self._text.editingFinished.connect(self._typed)
+        # Applied while typing too, a moment after the last key: waiting for Return or a click elsewhere
+        # looked as if the pattern did nothing.
+        from PySide6.QtCore import QTimer
+
+        self._typing = QTimer(self)
+        self._typing.setSingleShot(True)
+        self._typing.setInterval(500)
+        self._typing.timeout.connect(self._typed)
+        self._text.textEdited.connect(lambda _t: self._typing.start())
         column.addWidget(self._text)
         self._symbols = QComboBox(self)
         if symbols:
