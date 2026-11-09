@@ -197,3 +197,25 @@ def test_set_rows_hidden_counts_only_the_rows_it_changed(tmp_db_path: Path) -> N
     assert repo.set_rows_hidden("t1", [1, 2, 3], True) == 1
     assert repo.set_rows_hidden("t1", [2], False) == 1
     assert sorted(repo.hidden_rowids("t1")) == [1, 3]
+
+
+def test_statistics_of_a_column_opens_the_statistics_analysis(qapp, repo) -> None:
+    import pandas as pd
+    from PySide6.QtCore import QPoint
+
+    from app.widgets.table_preview import TablePreviewPanel
+
+    repo.import_dataframe(pd.DataFrame({"a": [1.0, 2.0]}), table_name="t", normalize_columns=False)
+    panel = TablePreviewPanel(None, repo=repo)
+    panel.set_context(repo, "t")
+    qapp.processEvents()
+    model = panel.view.model()
+    column = next(c for c in range(model.columnCount()) if model._columns[c] == "a")
+    panel.view.setCurrentIndex(model.index(0, column))
+    asked: list = []
+    panel.statistics_requested.connect(lambda table, col: asked.append((table, col)))
+    menu = panel._build_context_menu(QPoint(0, 0))
+    entry = next(a for a in menu.actions() if a.text().startswith("Statistics of"))
+    entry.trigger()
+    assert asked == [("t", "a")]
+    assert not any("unused generated" in a.text() for a in menu.actions())  # the Tables list's

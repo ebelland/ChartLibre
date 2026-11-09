@@ -178,6 +178,8 @@ class TablePreviewPanel(QWidget):
     chart_requested = Signal(str, list)
     #: "Histogram and statistics": the source and its one selected column.
     histogram_requested = Signal(str, str)
+    #: Analysis > Statistics on (table, column): the column's statistics, as the analysis computes them.
+    statistics_requested = Signal(str, str)
     #: A SELECT of the selected cells' columns and rows, for the Query Builder.
     query_requested = Signal(str)
     #: Rows of these tables were marked Selected here: the charts ring them too (todo R-07).
@@ -387,10 +389,10 @@ class TablePreviewPanel(QWidget):
         if column and lazy_model is not None:
             items.append(
                 MenuItem(
-                    _("Statistics of '{column}'").format(column=column),
-                    callback=lambda _=False, col=column: self._show_column_stats(col),
+                    _("Statistics of '{column}'…").format(column=column),
+                    callback=lambda _=False, col=column: self.statistics_requested.emit(str(self._table), col),
                     icon="column_stats",
-                    tooltip=_("Count, empty cells, distinct values, and min, max, mean and median"),
+                    tooltip=_("Analysis > Statistics on this column"),
                 )
             )
         if lazy_model is not None:
@@ -403,11 +405,6 @@ class TablePreviewPanel(QWidget):
                 )
             )
         items.append(None)
-        table_list = getattr(self.window(), "_table_panel", None)
-        if table_list is not None and hasattr(table_list, "delete_unused_generated"):
-            items.append(MenuItem(
-                _("Delete unused generated tables…"), callback=lambda _=False: table_list.delete_unused_generated(),
-                icon="delete", tooltip=_("Delete the tables written by operations that no chart or saved query uses")))
 
         menu = create_menu(self, items, icons=CONTEXT_MENU_ICONS)
 
@@ -524,32 +521,6 @@ class TablePreviewPanel(QWidget):
     # ------------------------------------------------------------------
     # Table tools
     # ------------------------------------------------------------------
-    def _show_column_stats(self, column: str) -> None:
-        if self._repo is None or not self._table:
-            return
-        try:
-            stats = self._repo.column_stats(self._table, column)
-        except Exception as exc:
-            applogger.exception("Column statistics failed: %s", exc)
-            QMessageBox.warning(self, _("Could not do that"), str(exc))
-            return
-        lines = [
-            _("Rows: {n}").format(n=stats["rows"]),
-            _("Empty: {n}").format(n=stats["empty"]),
-            _("Distinct values: {n}").format(n=stats["distinct"]),
-        ]
-        if "mean" in stats:
-            lines += [
-                "",
-                _("Minimum: {v:.6g}").format(v=stats["min"]),
-                _("Maximum: {v:.6g}").format(v=stats["max"]),
-                _("Mean: {v:.6g}").format(v=stats["mean"]),
-                _("Median: {v:.6g}").format(v=stats["median"]),
-            ]
-        QMessageBox.information(
-            self, _("Statistics of '{column}'").format(column=column), "\n".join(lines)
-        )
-
     def _request_query(self) -> None:
         """A SELECT of what is selected: its columns (all when every column is), its rows (all when every row is)."""
         model = self._model()

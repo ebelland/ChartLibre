@@ -331,6 +331,7 @@ class MainWindow(QMainWindow):
         self._table_panel.changed.connect(self.refresh)
         self._preview.chart_requested.connect(self._on_chart_from_columns)
         self._preview.histogram_requested.connect(self._on_histogram_from_column)
+        self._preview.statistics_requested.connect(self._on_statistics_of_column)
         self._preview.selected_rows_changed.connect(self._on_rows_selected)
         self._preview.selected_only_changed.connect(self._on_selected_only_changed)
         self._preview.query_requested.connect(lambda sql: self._on_create_query_table(sql=sql))
@@ -1692,6 +1693,16 @@ class MainWindow(QMainWindow):
             self._on_table_operation_requested(operation, roles=step.roles, kinds=step.kinds)
         else:
             self._open_data_operation_on_table(operation, step.table, step.roles)
+
+    def _on_statistics_of_column(self, table: str, column: str) -> None:
+        """A column's statistics: Analysis > Statistics on the table, the column as its response."""
+        from app.scanners.data_operation_scanner import data_operations
+
+        operation = next((op for op in data_operations if op.get("name") == "SeriesStatisticsDialog"), None)
+        if operation is None:
+            applogger.error("The Statistics analysis is not installed.")
+            return
+        self._open_data_operation_on_table(operation, table, {"response": [column]})
 
     def _open_data_operation_on_table(self, operation: dict, table: str, roles: Mapping[str, list[str]]) -> None:
         """Open a data operation on a table's columns: its response and its time, cast as its Data page reads them."""
