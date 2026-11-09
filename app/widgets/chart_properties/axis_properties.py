@@ -261,7 +261,9 @@ class AxisPropertiesWidget(BaseProperties):
         grid.addWidget(QLabel(_("Visible"), section.card), 4, 0)
         grid.addWidget(self._hide_axis_check, 4, 1)
         # How many points a series of this axis draws at most (it was the figure's, for all its axes at once).
-        from app.widgets.chart_properties.figure_properties import FigurePropertiesWidget
+        from app.widgets.chart_properties.figure_properties import (
+            FigurePropertiesWidget,
+        )
 
         self._max_points_combo = QComboBox(section.card)
         self._max_points_combo.addItem(_("Figure's"), None)
