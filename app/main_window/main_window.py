@@ -967,6 +967,8 @@ class MainWindow(QMainWindow):
                          object_name="projectInfoCard")
         page.add_buttons(_("History"), [NavButton("project_history", self._on_project_history)],
                          object_name="projectHistoryCard")
+        page.add_buttons(_("Pictures"), [NavButton("project_images", self._on_project_images, described=True)],
+                         object_name="projectImagesCard")
         self._database_info_panel = DatabaseInfoPanel(self._repo, page, optimize_action=self._on_optimize_db)
         page.add_widget(self._database_info_panel)
         page.add_buttons(action_presentation("log_viewer")[1],
@@ -3254,6 +3256,16 @@ class MainWindow(QMainWindow):
     #: with hundreds of dangling references does not make a box taller than
     #: the screen.
     MAX_PROBLEMS_SHOWN: int = get_constant("max_problems_shown", 20)
+
+    def _on_project_images(self) -> None:
+        """The project's pictures (markers drawn as pictures); the charts are drawn again afterwards."""
+        if self._repo is None:
+            return
+        from app.dialogs.images_dialog import ImagesDialog
+
+        ImagesDialog(self._repo, cast(QWidget, self)).exec()
+        self._redraw_properties_chart() if hasattr(self, "_redraw_properties_chart") else None
+        self._reload_property_widgets()
 
     def _on_project_info(self) -> None:
         """Author, creation date and notes of the open project."""

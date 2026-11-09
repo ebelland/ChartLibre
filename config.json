@@ -458,6 +458,13 @@
       "SegoeFluent": "E790",
       "ThemeIcon": "applications-graphics"
     },
+    "project_images": {
+      "text": "Pictures...",
+      "description": "The pictures kept in the project for markers drawn as pictures: add, rename, remove, credit",
+      "SFSymbol": "photo.on.rectangle",
+      "SegoeFluent": "E8B9",
+      "ThemeIcon": "insert-image"
+    },
     "project_history": {
       "text": "Project history...",
       "description": "Every operation applied in this project, oldest first: what was run, on which series, with which settings",

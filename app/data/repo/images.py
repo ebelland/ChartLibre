@@ -111,3 +111,33 @@ class ImagesMixin:
         self._con.execute(f"DELETE FROM {TABLE} WHERE name = ?", (str(name),))
         self._commit()
         return True
+
+    @ensure_connection_wrapper
+    def set_image_details(self, name: str, *, source: str, license: str) -> None:
+        """Where the picture came from and its licence (not an Undo step: notes, not data)."""
+        self._con.execute(f"UPDATE {TABLE} SET source = ?, license = ? WHERE name = ?", (source, license, name))
+        self._commit()
+
+    @ensure_connection_wrapper
+    def rename_image(self, old: str, new: str) -> None:
+        """Rename a picture, and the series that draw it with it (one Undo step)."""
+        import json
+
+        new = str(new or "").strip()
+        if not new or self.get_image(old) is None or self.get_image(new) is not None:
+            raise ValueError("A picture can only take a free, non-empty name.")
+        self.snapshot_for_undo([TABLE, "__series_descriptors__"], label=f"Rename picture '{old}'")
+        self._con.execute(f"UPDATE {TABLE} SET name = ? WHERE name = ?", (new, old))
+        for series_id, text in self._con.execute(
+                "SELECT id, style_json FROM __series_descriptors__ WHERE style_json LIKE ?",
+                (f"%image:{old}%",)).fetchall():
+            try:
+                style = json.loads(text or "{}")
+            except ValueError:
+                continue
+            if isinstance(style, dict) and style.get("marker") == f"image:{old}":
+                style["marker"] = f"image:{new}"
+                self._con.execute("UPDATE __series_descriptors__ SET style_json = ? WHERE id = ?",
+                                  (json.dumps(style), series_id))
+        self._commit()
+
