@@ -384,6 +384,15 @@ class SeriesPropertiesWidget(BaseProperties):
                                 if self._current_series_id is not None else None)
             self.function_edit_requested.emit({"series_id": None})  # only drawn again
 
+    def _same_colour_toggled(self, same: bool) -> None:
+        """Unticked: the marker colour starts from the line's (or the list's first), so a colour is stored -
+        left on Default nothing was, and the box ticked itself back on the next reload."""
+        if not same and not self._reloading_depth and not self._marker_colour_combo.current_hex().strip():
+            line = self._color_combo.current_hex().strip()
+            if not (line and self._marker_colour_combo.set_current_hex(line)):
+                self._marker_colour_combo.setCurrentIndex(min(1, self._marker_colour_combo.count() - 1))
+        self._update_default_fields()
+
     def _default_toggled(self, group: str, on: bool) -> None:
         """Default unticked: the fields start from what the style drew, not from "Default" again.
 
@@ -525,7 +534,7 @@ class SeriesPropertiesWidget(BaseProperties):
         self._marker_colour_combo = MatplotlibColorCombo(section, include_none=True, none_label=DEFAULT_COLOR_LABEL)
         stdSizeAndlayout(self._marker_colour_combo, minimum_contents_length=0)
         self._marker_colour_combo.setEnabled(False)
-        self._marker_same_colour.toggled.connect(lambda _same: self._update_default_fields())
+        self._marker_same_colour.toggled.connect(self._same_colour_toggled)
         self._sort_x_check.toggled.connect(self._sort_toggled)
         # Line width in points; the minimum is "Default" (the style's), stored as nothing.
         self._linewidth_spin = QDoubleSpinBox(section)

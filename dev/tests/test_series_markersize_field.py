@@ -87,3 +87,9 @@ def test_unticking_default_stores_a_style_of_its_own(widget: SeriesPropertiesWid
     widget._marker_default.setChecked(False)
     payload = _payload(widget)
     assert payload["linestyle"] not in ("default", "") and payload["marker"] not in ("default", "")
+
+
+def test_unticking_same_colour_stores_a_colour(widget: SeriesPropertiesWidget) -> None:
+    widget._load_series_descriptor(SimpleNamespace(id=1, options={"marker": "o"}, sql_query=""))
+    widget._marker_same_colour.setChecked(False)
+    assert _payload(widget)["markercolor"]
