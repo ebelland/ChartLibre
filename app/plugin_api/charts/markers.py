@@ -84,5 +84,7 @@ def to_matplotlib(text: Any) -> Any:
 
 def is_custom(text: Any) -> bool:
     """Whether *text* is a marker of its own (not a code of matplotlib's) that can be drawn."""
+    if isinstance(text, str) and text.startswith("image:") and len(text) > 6:
+        return True  # a picture of the project (charts.picture_markers)
     return (isinstance(text, str) and text.strip() not in MarkerStyle.markers
             and to_matplotlib(text) is not None)

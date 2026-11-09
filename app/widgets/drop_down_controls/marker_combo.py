@@ -368,6 +368,8 @@ def _draw_text_marker(p: QPainter, cx: float, cy: float, _r: float, text: str) -
     """
     if text == CUSTOM:
         return
+    if text.startswith("image:"):
+        text = "▣"  # a picture of the project: its name is the entry's text
     if len(text) > 2 and text[0] == "$" == text[-1]:
         text = text[1:-1]
     font = QFont("DejaVu Sans")

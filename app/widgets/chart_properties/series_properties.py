@@ -465,7 +465,8 @@ class SeriesPropertiesWidget(BaseProperties):
             hint=_("e.g. ..--  or  -- . --  or  (0, (5, 2, 1, 2))"), parent=section)
         self._marker_chooser = StyleChooser(
             self._marker_combo, is_custom=markers.is_custom, select=self._marker_combo.set_current_marker,
-            hint=_("e.g. ★  or  $\\clubsuit$  or  (5, 1, 0)"), symbols=SYMBOLS, parent=section)
+            hint=_("e.g. ★  or  $\\clubsuit$  or  (5, 1, 0)"), symbols=SYMBOLS,
+            pictures=lambda: self._repo, parent=section)
         form.addRow(_("Line style"), self._linestyle_chooser)
         form.addRow(_("Marker"), self._marker_chooser)
         form.addRow(_("Marker size"), self._markersize_spin)

@@ -36,32 +36,21 @@ from pathlib import Path
 from typing import Any, ClassVar
 
 import app.data.descriptors
+from app.data.repo._common import (
+    READ_FAILURES,
+    _dumps_json,
+    _loads_json,
+    descriptor_write_wrapper,
+    ensure_connection_wrapper,
+    is_read_only_select,
+    sql_guard_enabled,
+)
+from app.data.repo.function_sql import register as register_function_sql
 
 # Re-exported, not just imported: "from app.data.sqlite_repo import
 # DatabaseReport" is what the rest of the application writes, and the split
 # of its helpers into app/data/repo/ is meant to be invisible from outside (todo.txt N-5).
-from app.data.repo._common import (
-    _RETURNS_ROWS_RE,
-    READ_FAILURES,
-    ROW_ID,
-    DatabaseError,
-    DatabasePragmaInfo,
-    DatabaseReport,
-    SavedQuery,
-    StoredFunction,
-    _dumps_json,
-    _is_ident,
-    _loads_json,
-    _quote_ident,
-    check_sql_expression,
-    descriptor_write_wrapper,
-    ensure_connection_wrapper,
-    ensure_read_only_select,
-    is_read_only_select,
-    read_only,
-    sql_guard_enabled,
-)
-from app.data.repo.function_sql import register as register_function_sql
+from app.data.repo.images import ImagesMixin
 from app.data.repo.project import (
     PROJECT_INFO_TABLE,
     PROJECT_PREVIEW_TABLE,
@@ -159,7 +148,7 @@ def read_project_preview(path: Path) -> bytes | None:
 
 
 @dataclass(slots=True)
-class SqliteRepo(TablesMixin, ProjectMixin):
+class SqliteRepo(TablesMixin, ProjectMixin, ImagesMixin):
     """SQLite repository for ChartLibre.
 
     Manages:

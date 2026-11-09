@@ -118,6 +118,19 @@ def render_figure_from_descriptor(
     descriptor: FigureDescriptor,
     repo: SqliteRepo,
 ) -> None:
+    """Render a full figure from a project descriptor; pictures (picture markers) come from *repo*."""
+    from app.plugin_api.charts.picture_markers import pictures_from
+
+    with pictures_from(getattr(repo, "get_image", None)):
+        _render_figure_from_descriptor(figure=figure, descriptor=descriptor, repo=repo)
+
+
+def _render_figure_from_descriptor(
+    *,
+    figure: Figure,
+    descriptor: FigureDescriptor,
+    repo: SqliteRepo,
+) -> None:
     """Render a full figure from a project descriptor.
 
     The renderer deliberately does not own figure width, height, or DPI.  Those

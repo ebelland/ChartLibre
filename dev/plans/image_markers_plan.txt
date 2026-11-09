@@ -43,7 +43,7 @@ Risks
   as the downsampling does for points.
 - Licences: every picture keeps its source and licence; the export can list them (credits) in the report.
 
-Strings listed for translation, not translated. Order: A, C for the scatter (usable), B, C for bars, D, E alongside.
+Done (2026-11-09): A (the table, Undo), C for scatter and line markers (Marker > Picture, Add… from a file; single-colour icons take the series colour; Marker every applies). Missing: the Images dialog and library (B), a column naming pictures, bars, pie, title, D, the credits list.
 
 
 Other ideas for infographics (not planned yet - to choose from)

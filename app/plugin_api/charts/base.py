@@ -873,6 +873,10 @@ class BaseAxisRenderer:
         value = str(raw or "").strip()
         if value and value.lower() != "none":
             from app.plugin_api.charts.markers import to_matplotlib  # a character, "$...$", "(5, 1, 0)"
+            from app.plugin_api.charts.picture_markers import is_picture
+
+            if is_picture(value):
+                return value, True  # "image:<name>": the renderer draws the picture (charts.picture_markers)
 
             converted = to_matplotlib(value)
             if converted is None:

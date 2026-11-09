@@ -386,6 +386,22 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
         raw_kwargs["label"] = label or "_nolegend_"
         legend_handles_found = False
 
+        from app.plugin_api.charts import picture_markers
+
+        if has_marker and picture_markers.is_picture(marker_style):
+            # The line as it is, without markers; the pictures at every (n-th) point on top of it.
+            every = int(raw_kwargs.pop("markevery", 1) or 1)
+            size = raw_kwargs.pop("markersize", None)
+            raw_kwargs["marker"] = "None"
+            drawn = picture_markers.draw(ax, frame["x"].to_numpy()[::every], frame["y"].to_numpy(dtype=float)[::every],
+                                         marker_style, size_points=size, colour=flat_color,
+                                         label="" if has_line else label)
+            if not drawn:
+                raw_kwargs["marker"] = "o"
+            elif not has_line:
+                return bool(label)
+            has_marker = not drawn
+
         if "color" in frame.columns:
             tags.follow(())  # coloured by the column
             # Cluster/color role: ax.plot can only use one color for the

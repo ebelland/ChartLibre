@@ -478,6 +478,17 @@ class ScatterAxisRenderer(BaseAxisRenderer):
                       color_values: np.ndarray | None, color_is_discrete: bool, size_values: np.ndarray | None,
                       flat_color: str, label: str | None) -> bool:
         """The series' markers; True when they are in the legend."""
+        from app.plugin_api.charts import picture_markers
+
+        if picture_markers.is_picture(marker_style):
+            from app.charts.time_series import _marker_every
+
+            every = _marker_every(style.get("markevery"))
+            size = style.get("markersize") or base_kwargs.get("markersize")
+            if picture_markers.draw(ax, x_values[::every], y_values[::every], marker_style, size_points=size,
+                                    colour=flat_color, zorder=float(style.get("zorder") or 2.5), label=label or ""):
+                return bool(label)
+            marker_style = None  # no such picture: the style's own marker
         scatter_kwargs: dict[str, Any] = dict(draw_kwargs)
         scatter_kwargs["marker"] = marker_style
 
