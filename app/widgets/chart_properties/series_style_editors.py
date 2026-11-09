@@ -16,7 +16,7 @@ from typing import Any
 
 from matplotlib import rcParams
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QCheckBox, QDoubleSpinBox, QFormLayout, QSpinBox, QWidget
+from PySide6.QtWidgets import QCheckBox, QDoubleSpinBox, QFormLayout, QSizePolicy, QSpinBox, QWidget
 
 from app.plugin_api.charts import dashes, markers
 from app.plugin_api.charts.kwarg_spec import DEFAULT
@@ -60,7 +60,9 @@ class _StyleEditor(QWidget):
         self._loading = False
         self._kept: dict[str, tuple[Any, int]] = {}  # key -> (stored value, the combo index it showed as)
         self.form = QFormLayout(self)
-        self.form.setContentsMargins(0, 0, 0, 0)
+        # A little room above and below: folded to its check box, the macOS box (with its focus ring) was cut.
+        self.form.setContentsMargins(0, 4, 0, 4)
+        self.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)
         self.form.setVerticalSpacing(10)
         self.default_check = QCheckBox(_("Default (the axis style)"), self)
         self.default_check.toggled.connect(self._default_toggled)
@@ -103,6 +105,7 @@ class _StyleEditor(QWidget):
         shown = not self.default_check.isChecked()
         for widget in self._fields:
             self.form.setRowVisible(widget, shown)
+        self.updateGeometry()  # the card around it takes the new height at once
 
     def load(self, style: Mapping[str, Any]) -> None:
         self._loading = True

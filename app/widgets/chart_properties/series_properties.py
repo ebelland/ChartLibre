@@ -448,6 +448,7 @@ class SeriesPropertiesWidget(BaseProperties):
         def group(title: str, name: str, rows: list[tuple[str, QWidget]]) -> TitledCard:
             # The app's own card: the title outside, the grey rounded box below (as the other panels).
             card = TitledCard(self, title, name)
+            card.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Minimum)  # never below its height
             box_form = QFormLayout()
             stdSizeAndlayout(box_form)
             box_form.setVerticalSpacing(10)
