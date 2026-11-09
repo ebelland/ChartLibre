@@ -1300,8 +1300,9 @@ class ChartPanel(ChartToolsMixin, QFrame):
             points = artist.get_offsets()
             pairs = [(float(points[i][0]), float(points[i][1])) for i in indices]
         else:
-            x_data, y_data = artist.get_data()
-            pairs = [(float(x_data[i]), float(y_data[i])) for i in indices]
+            # get_xydata is the line in axis units: dates already numbers (get_data kept them as datetimes).
+            xy = artist.get_xydata()
+            pairs = [(float(xy[i][0]), float(xy[i][1])) for i in indices]
 
         axes = artist.axes
         # Matplotlib invents a label for an artist that was not given one -
