@@ -365,13 +365,13 @@ def test_one_column_makes_a_histogram_figure_with_its_statistics(qapp, tmp_path:
     window._on_histogram_from_column("people", "name")  # text: nothing to draw
     assert shown == ["chart.histogram_no_numbers"]
 
-    # The menu offers it only with exactly one column selected.
+    # Not in the menu: the chart button beside the Data title does it.
     preview = window._preview
     preview.set_context(repo, "people")
     model = preview.view.model()
     preview.view.selectionModel().select(model.index(0, 0), preview.view.selectionModel().SelectionFlag.ClearAndSelect)
     texts = [action.text() for action in preview._build_context_menu(preview.view.visualRect(model.index(0, 0)).center()).actions()]
-    assert any(text.startswith("Histogram of") for text in texts)
+    assert not any(text.startswith("Histogram of") for text in texts)  # the chart button beside the Data title
     assert not any(text == "Duplicate table" for text in texts)
     window.close()
     repo.close()
