@@ -208,17 +208,12 @@ class SeriesPropertiesWidget(BaseProperties):
         self._selector_section = self._build_selector_section()
         root.addWidget(self._selector_section, 0)
 
+        # Built for its controls; what shows is its four cards (Query, Legend, Line, Marker).
         self._options_section = self._build_options_section()
-        self._options_section.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-        )
-        self._options_section.title_label.setSizePolicy(
-            QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed
-        )
-        self._options_section.card.setSizePolicy(
-            QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Expanding
-        )
-        root.addWidget(self._options_section, 1)
+        self._options_section.setVisible(False)
+        for card in self._groups:
+            root.addWidget(card, 0)
+        root.addStretch(1)
 
         self._function_section = self._build_function_section()
         root.addWidget(self._function_section, 0)
@@ -533,25 +528,27 @@ class SeriesPropertiesWidget(BaseProperties):
         self._line_default.toggled.connect(lambda _on: self._update_default_fields())
         self._marker_default.toggled.connect(lambda _on: self._update_default_fields())
 
-        def group(title: str, rows: list[tuple[str, QWidget]]) -> QGroupBox:
-            box = QGroupBox(title, section)
-            box_form = QFormLayout(box)
+        def group(title: str, name: str, rows: list[tuple[str, QWidget]]) -> TitledCard:
+            # The app's own card: the title outside, the grey rounded box below (as the other panels).
+            card = TitledCard(self, title, name)
+            box_form = QFormLayout()
             stdSizeAndlayout(box_form)
+            box_form.setVerticalSpacing(10)
             for label, widget in rows:
                 box_form.addRow(label, widget) if label else box_form.addRow(widget)
-            return box
+            card.card.layout().addLayout(box_form)
+            return card
 
         self._groups = [
-            group(_("Query"), [("", self._sql_query_edit), ("", self._sort_x_check)]),
-            group(_("Legend"), [(_("Label"), self._legend_label_edit), ("", flags_row)]),
-            group(_("Line"), [("", self._line_default), (_("Style"), self._linestyle_chooser),
-                              (_("Width"), self._linewidth_spin), (_("Color"), self._color_combo)]),
-            group(_("Marker"), [("", self._marker_default), (_("Marker"), self._marker_chooser), (_("Size"), self._markersize_spin),
-                                (_("Every"), self._markevery_spin), ("", self._marker_same_colour),
-                                (_("Color"), self._marker_colour_combo)]),
+            group(_("Query"), "seriesQueryCard", [("", self._sql_query_edit), ("", self._sort_x_check)]),
+            group(_("Legend"), "seriesLegendCard", [(_("Label"), self._legend_label_edit), ("", flags_row)]),
+            group(_("Line"), "seriesLineCard", [("", self._line_default), (_("Style"), self._linestyle_chooser),
+                                                (_("Width"), self._linewidth_spin), (_("Color"), self._color_combo)]),
+            group(_("Marker"), "seriesMarkerCard", [
+                ("", self._marker_default), (_("Marker"), self._marker_chooser), (_("Size"), self._markersize_spin),
+                (_("Every"), self._markevery_spin), ("", self._marker_same_colour),
+                (_("Color"), self._marker_colour_combo)]),
         ]
-        for box in self._groups:
-            form.addRow(box)
 
         raw_layout = section.card.layout()
         if not isinstance(raw_layout, QVBoxLayout):

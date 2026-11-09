@@ -78,3 +78,17 @@ def test_a_typed_line_pattern_applies_and_previews(qapp):
     line = Line2D([0, 1], [0, 1])
     line.set_linestyle(_drawn_linestyle("."))
     assert line.get_linestyle() == "--" or isinstance(line.get_dashes if hasattr(line, "get_dashes") else 0, object)
+
+
+def test_a_picture_marker_with_the_rolling_mean(qapp, repo):
+    repo.add_image("dot", SVG)
+    repo.import_dataframe(pd.DataFrame({"a": np.arange(30.0), "b": np.arange(30.0)}), table_name="d",
+                          normalize_columns=False)
+    figure_id = int(repo.create_figure_descriptor(name="F"))
+    axis_id = int(repo.create_axis_descriptor(figure_id=figure_id, axis_index=0, chart_type="Time Series", title="t",
+                                              x_label="x", y_label="y", options={"show_rolling": True}))
+    repo.create_series_descriptor(axis_id=axis_id, series_index=0, name="s", sql_query="SELECT a AS x, b AS y FROM d",
+                                  roles={"x": "x", "y": "y"}, style={"marker": "image:dot", "linestyle": "-"})
+    figure = Figure()
+    render_figure_from_descriptor(figure=figure, descriptor=repo.load_figure_descriptor(figure_id), repo=repo)
+    assert figure.axes[0].lines and any(isinstance(a, AnnotationBbox) for a in figure.axes[0].get_children())

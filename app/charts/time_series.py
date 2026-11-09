@@ -359,6 +359,12 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
             marker_colour = str(style.get("markercolor") or "").strip()
             if marker_colour:  # the markers' own colour; otherwise the line's
                 common_line_kwargs["markerfacecolor"] = common_line_kwargs["markeredgecolor"] = marker_colour
+            try:  # the series' own marker size (points); otherwise the axis option or the style
+                size = float(style.get("markersize") or 0)
+            except (TypeError, ValueError):
+                size = 0.0
+            if size > 0:
+                common_line_kwargs["markersize"] = size
             every = _marker_every(style.get("markevery"))
             if every > 1:
                 common_line_kwargs["markevery"] = every  # a marker on every n-th point, the line on all of them
@@ -485,9 +491,11 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
         )
         rolling_kwargs["linestyle"] = rolling_linestyle
 
-        # Rolling line should not show markers unless explicitly desired.
-        if not has_marker:
+        # Rolling line should not show markers unless explicitly desired - and never a picture (picture_markers).
+        if not has_marker or str(rolling_kwargs.get("marker", "")).startswith("image:"):
             rolling_kwargs["marker"] = "None"
+            for key in ("markevery", "markerfacecolor", "markeredgecolor"):
+                rolling_kwargs.pop(key, None)
 
         if label:
             rolling_kwargs["label"] = f"{label} (rolling)" if raw_drawn else label

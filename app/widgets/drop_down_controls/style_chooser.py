@@ -52,10 +52,10 @@ class StyleChooser(QWidget):
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
         column.setSpacing(4)
-        row = QGridLayout()  # two a row: four choices side by side do not fit the panel
-        row.setColumnStretch(2, 1)  # the buttons keep their width, the rest is slack
+        row = QGridLayout()  # one choice a line, what it needs beside it
+        row.setColumnStretch(1, 1)
         row.setHorizontalSpacing(10)
-        row.setVerticalSpacing(2)
+        row.setVerticalSpacing(8)
         self._group = QButtonGroup(self)
         self._buttons: dict[str, QRadioButton] = {}
         choices = [(STANDARD, _("Standard")), (CUSTOM, _("Custom"))] + ([(SYMBOL, _("Symbol"))] if symbols else []) \
@@ -65,11 +65,9 @@ class StyleChooser(QWidget):
             self._group.addButton(button)
             self._buttons[key] = button
             button.toggled.connect(lambda on, k=key: on and self._show(k))
-            i = len(self._buttons) - 1
-            row.addWidget(button, *((0, i) if len(choices) <= 2 else (i, 0)))  # more than two: one a line
+            row.addWidget(button, len(self._buttons) - 1, 0)
         column.addLayout(row)
 
-        column.addWidget(combo)
         self._text = QLineEdit(self)
         self._text.setPlaceholderText(hint)
         self._text.setToolTip(hint)
@@ -83,7 +81,6 @@ class StyleChooser(QWidget):
         self._typing.setInterval(500)
         self._typing.timeout.connect(self._typed)
         self._text.textEdited.connect(lambda _t: self._typing.start())
-        column.addWidget(self._text)
         self._symbols = QComboBox(self)
         if symbols:
             from app.plugin_api.charts.markers import _dejavu_has
@@ -97,7 +94,6 @@ class StyleChooser(QWidget):
                     self._symbols.addItem(symbol, symbol)
             self._symbols.setIconSize(QSize(16, 16))
             self._symbols.activated.connect(lambda _i: self._select_value(self._symbols.currentData()))
-        column.addWidget(self._symbols)
         self._picture_row = QWidget(self)
         picture_row = QHBoxLayout(self._picture_row)
         picture_row.setContentsMargins(0, 0, 0, 0)
@@ -110,15 +106,18 @@ class StyleChooser(QWidget):
         add.setToolTip(_("Add an SVG, PNG or JPEG picture to the project and use it as the marker"))
         add.clicked.connect(self._add_picture)
         picture_row.addWidget(add)
-        column.addWidget(self._picture_row)
+        self._editors = {STANDARD: combo, CUSTOM: self._text, SYMBOL: self._symbols, PICTURE: self._picture_row}
+        for index, (key, _label) in enumerate(choices):
+            row.addWidget(self._editors[key], index, 1)
+        for key, editor in self._editors.items():
+            if key not in self._buttons:
+                editor.setVisible(False)
         self._buttons[STANDARD].setChecked(True)
         self._show(STANDARD)
 
     def _show(self, key: str) -> None:
-        self._combo.setVisible(key == STANDARD)
-        self._text.setVisible(key == CUSTOM)
-        self._symbols.setVisible(key == SYMBOL)
-        self._picture_row.setVisible(key == PICTURE)
+        for other, editor in self._editors.items():  # all shown, beside their choice; only the chosen one on
+            editor.setEnabled(other == key)
         if key == PICTURE:
             self._fill_pictures()
             name = self._picture_list.currentData()
