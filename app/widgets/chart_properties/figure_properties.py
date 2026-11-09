@@ -342,8 +342,9 @@ class FigurePropertiesWidget(BaseProperties):
         lay.addWidget(self._build_name_section())
         lay.addWidget(self._build_view_section())
         lay.addWidget(self._build_style_section())
-        lay.addWidget(self._build_grid_section())
         lay.addWidget(self._build_options_section())
+        lay.addWidget(self._build_grid_section())
+        lay.addWidget(self._build_panel_letters_section())
 
         lay.addWidget(self._build_margins_section())
         lay.addStretch(1)
@@ -407,18 +408,22 @@ class FigurePropertiesWidget(BaseProperties):
         style_section = TitledCard(self, _("Style"), "figureStyleCard")
         style_section_lay = style_section.card.layout()
 
+        # The style's name, shown, not typed: Browse… picks it. Drawn as plain text, not as a field.
         self._style_edit = QLineEdit(style_section)
         self._style_edit.setReadOnly(True)
-        style_section_lay.addWidget(self._style_edit)
+        self._style_edit.setFrame(False)
+        self._style_edit.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self._style_edit.setStyleSheet("QLineEdit { background: transparent; }")
+        self._style_edit.setToolTip(_("The figure's style - Browse… chooses another"))
 
-        # Browse and Edit side by side, Apply to all under them: three buttons in one
-        # row did not fit the panel's width.
+        # Name and Browse… on one line; Apply to all and Edit on the next.
         style_buttons_row = QWidget(style_section)
         style_buttons_lay = QGridLayout(style_buttons_row)
         style_buttons_lay.setContentsMargins(0, 0, 0, 0)
         style_buttons_lay.setSpacing(8)
         style_buttons_lay.setColumnStretch(0, 1)
         style_buttons_lay.setColumnStretch(1, 1)
+        style_buttons_lay.addWidget(self._style_edit, 0, 0)
 
         self._btn_browse = create_action_button(
             parent=style_buttons_row,
@@ -428,14 +433,7 @@ class FigurePropertiesWidget(BaseProperties):
             presentation=(load_icon("open"), _("Browse…"),
                           _("Pick a .mplstyle file from the mplstyles folder")),
         )
-        style_buttons_lay.addWidget(self._btn_browse, 0, 0)
-        self._btn_edit = create_action_button(
-                             parent=style_buttons_row,
-                             action_id="edit",
-                             action=self._edit_current_style,
-                             layout=None,
-                         )
-        style_buttons_lay.addWidget(self._btn_edit, 0, 1)
+        style_buttons_lay.addWidget(self._btn_browse, 0, 1)
         self._btn_style_to_all = create_action_button(
             parent=style_buttons_row,
             action_id="copy",
@@ -444,10 +442,16 @@ class FigurePropertiesWidget(BaseProperties):
             presentation=(load_icon("copy"), _("Apply to all figures"),
                           _("Give every figure of the project this style")),
         )
-        style_buttons_lay.addWidget(self._btn_style_to_all, 1, 0, 1, 2)
+        style_buttons_lay.addWidget(self._btn_style_to_all, 1, 0)
+        self._btn_edit = create_action_button(
+                             parent=style_buttons_row,
+                             action_id="edit",
+                             action=self._edit_current_style,
+                             layout=None,
+                         )
+        style_buttons_lay.addWidget(self._btn_edit, 1, 1)
         # No Apply button: every control on this panel applies itself a
-        # short moment after it changes (see _connect_auto_apply). Reload
-        # and Edit stay - they are style actions, not "commit the form".
+        # short moment after it changes (see _connect_auto_apply).
 
         style_section_lay.addWidget(style_buttons_row)
         return style_section
@@ -561,26 +565,30 @@ class FigurePropertiesWidget(BaseProperties):
         mosaic_lay.addWidget(self._mosaic_edit, 1)
         grid_section_lay.addWidget(mosaic_row)
 
-        # Letters for the panels, for a paper's text to refer to.
-        self._panel_labels_combo = QComboBox(grid_section)
+        return grid_section
+
+    def _build_panel_letters_section(self) -> QWidget:
+        """Letters for the panels, for a paper's text to refer to: a card of its own, closed like Grid."""
+        section = TitledCard(self, _("Panel letters"), "figurePanelLettersCard", collapsible=True)
+        self._panel_labels_combo = QComboBox(section)
         self._configure_combo_width(self._panel_labels_combo, minimum_contents_length=10)
         for value, text in panel_labels.STYLES:
             self._panel_labels_combo.addItem(_(text), value)
         self._panel_labels_combo.setToolTip(_("Write a letter on each panel of a multi-axis figure."))
-        self._panel_position_combo = QComboBox(grid_section)
+        self._panel_position_combo = QComboBox(section)
         self._configure_combo_width(self._panel_position_combo, minimum_contents_length=10)
         for value, text in panel_labels.POSITIONS:
             self._panel_position_combo.addItem(_(text), value)
-        grid_section_lay.addWidget(
+        section.card.layout().addWidget(
             PairGrid(
                 [
-                    (QLabel(_("Panel letters"), grid_section), self._panel_labels_combo),
-                    (QLabel(_("Position"), grid_section), self._panel_position_combo),
+                    (QLabel(_("Letters"), section), self._panel_labels_combo),
+                    (QLabel(_("Position"), section), self._panel_position_combo),
                 ],
-                grid_section,
+                section,
             )
         )
-        return grid_section
+        return section
 
     def _build_options_section(self) -> QWidget:
         """The Figure options card."""
@@ -654,6 +662,7 @@ class FigurePropertiesWidget(BaseProperties):
         # means for it.
         self._downsample_combo = QComboBox(opts_section)
         self._configure_combo_width(self._downsample_combo, minimum_contents_length=14)
+        self._downsample_combo.setVisible(False)  # moved to the axis (Max points); kept for the loading code
         # The label is one word: a long one ("Downsample large series above")
         # sets the width of the label column for the whole form, and every
         # other row - Width and Height in particular - loses that width to a
@@ -688,7 +697,6 @@ class FigurePropertiesWidget(BaseProperties):
                     pair(_("Height"), self._fig_height_cm),
                     pair(_("Journal"), self._journal_combo),
                     pair(_("Figure layout"), self._fig_layout_mode),
-                    pair(_("Downsample"), self._downsample_combo),
                     pair(_("Border"), self._fig_frameon),
                 ],
                 opts_section,
@@ -1381,7 +1389,8 @@ class FigurePropertiesWidget(BaseProperties):
             ),
             "panel_labels": str(self._panel_labels_combo.currentData() or "") or None,
             "panel_label_position": str(self._panel_position_combo.currentData() or "outside"),
-            OPT_DOWNSAMPLE_THRESHOLD: int(self._downsample_combo.currentData() or 0),
+            # Max points is the axis' now (Axis > Max points); a figure's earlier value is kept as it is,
+            # the axes without their own still read it.
             OPT_SHARED_VERTICAL_SPACE: float(self._shared_vspace.value()),
             OPT_SHARED_HORIZONTAL_SPACE: float(self._shared_hspace.value()),
             OPT_FIGURE_WIDTH_CM: float(self._fig_width_cm.value()),

@@ -24,3 +24,13 @@ def test_drawn(qapp, repo, chart):
         len(line.get_xdata()[::line.get_markevery()]) for line in ax.lines
         if line.get_marker() not in ("None", "") and isinstance(line.get_markevery(), int)]
     assert 4 in drawn, (drawn, [(ln.get_marker(), ln.get_markevery()) for ln in ax.lines])
+
+
+def test_max_points_is_the_axis_own_else_the_figures():
+    from types import SimpleNamespace
+
+    from app.plugin_api.charts.render_figure import _axis_downsample_threshold
+
+    assert _axis_downsample_threshold(SimpleNamespace(options={}), 1000) == 1000
+    assert _axis_downsample_threshold(SimpleNamespace(options={"downsample_threshold": 100}), 1000) == 100
+    assert _axis_downsample_threshold(SimpleNamespace(options={"downsample_threshold": 0}), 1000) == 0

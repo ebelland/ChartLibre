@@ -142,7 +142,8 @@ def _render_figure_from_descriptor(
 
     with _figure_style_context(descriptor):
         _apply_figure_options(figure, descriptor)
-        downsample_threshold = _figure_downsample_threshold(descriptor)
+        figure_threshold = _figure_downsample_threshold(descriptor)
+        downsample_threshold = figure_threshold
 
         all_axes = list(descriptor.axes or [])
         twin_targets = _twin_targets(all_axes)
@@ -204,6 +205,7 @@ def _render_figure_from_descriptor(
             ax._chartlibre_axis_id = int(axis_desc.id)
 
             chart_type = str(axis_desc.name or "").strip()
+            downsample_threshold = _axis_downsample_threshold(axis_desc, figure_threshold)
             series_list = _build_series_data_list(
                 repo=repo,
                 axis_desc=axis_desc,
@@ -802,6 +804,18 @@ def _figure_downsample_threshold(descriptor: FigureDescriptor) -> int:
     except (TypeError, ValueError):
         return DEFAULT_DOWNSAMPLE_THRESHOLD
     return max(0, threshold)
+
+
+def _axis_downsample_threshold(axis_desc: AxisDescriptor, figure_threshold: int) -> int:
+    """The axis' own "Max points" (axis option), else the figure's - where it was kept before."""
+    options = axis_desc.options if isinstance(axis_desc.options, dict) else {}
+    raw = options.get(OPT_DOWNSAMPLE_THRESHOLD)
+    if raw in (None, ""):
+        return figure_threshold
+    try:
+        return max(0, int(raw))
+    except (TypeError, ValueError):
+        return figure_threshold
 
 
 def _build_series_data_list(

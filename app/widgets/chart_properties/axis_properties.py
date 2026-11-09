@@ -137,6 +137,7 @@ class AxisPropertiesWidget(BaseProperties):
             self._projection_combo,
             *self._share_checks.values(),
             self._hide_axis_check,
+            self._max_points_combo,
             self._lines_combo,
             *self._extended_option_widgets(),
             self._font_scale,
@@ -259,6 +260,17 @@ class AxisPropertiesWidget(BaseProperties):
         add_field(3, 2, _("Font"), self._font_scale)
         grid.addWidget(QLabel(_("Visible"), section.card), 4, 0)
         grid.addWidget(self._hide_axis_check, 4, 1)
+        # How many points a series of this axis draws at most (it was the figure's, for all its axes at once).
+        from app.widgets.chart_properties.figure_properties import FigurePropertiesWidget
+
+        self._max_points_combo = QComboBox(section.card)
+        self._max_points_combo.addItem(_("Figure's"), None)
+        for label, value, tooltip in FigurePropertiesWidget.DOWNSAMPLE_THRESHOLDS:
+            self._max_points_combo.addItem(_(label), value)
+            self._max_points_combo.setItemData(self._max_points_combo.count() - 1, _(tooltip),
+                                               Qt.ItemDataRole.ToolTipRole)
+        self._max_points_combo.setToolTip(_("Draw at most this many points per series, sampling the rest away."))
+        add_field(4, 2, _("Max points"), self._max_points_combo)
 
         def check_row(checks: list[QCheckBox]) -> QWidget:
             holder = QWidget(section.card)
@@ -1132,6 +1144,7 @@ class AxisPropertiesWidget(BaseProperties):
             self._axis_label_edit,
             self._projection_combo,
             self._hide_axis_check,
+            self._max_points_combo,
             self._renderer_value,
             self._tabs,
         )
@@ -1266,6 +1279,8 @@ class AxisPropertiesWidget(BaseProperties):
             self._hide_axis_check.setChecked(
                 bool(options.get("hide_axis", options.get("hidden", False)))
             )
+            index = self._max_points_combo.findData(options.get("downsample_threshold"))
+            self._max_points_combo.setCurrentIndex(max(0, index))
             self._lines_combo.setCurrentIndex(
                 max(0, self._lines_combo.findData(str(options.get("label_multialignment") or "center")))
             )
@@ -1299,6 +1314,7 @@ class AxisPropertiesWidget(BaseProperties):
                 self._projection_combo,
                 *self._share_checks.values(),
                 self._hide_axis_check,
+            self._max_points_combo,
                 self._lines_combo,
             )
             + self._extended_option_widgets()
@@ -1313,6 +1329,7 @@ class AxisPropertiesWidget(BaseProperties):
                 self._coordinates[axis] = dict(self._COORDINATE_DEFAULTS)
             self._projection_combo.setCurrentIndex(0)
             self._hide_axis_check.setChecked(False)
+            self._max_points_combo.setCurrentIndex(0)
             self._lines_combo.setCurrentIndex(0)
             self._font_scale.set_factor(1.0)
             self._clear_extended_axis_options()
@@ -1474,6 +1491,7 @@ class AxisPropertiesWidget(BaseProperties):
             "sharey": bool(self._share_checks["y"].isChecked()),
             "sharez": bool(self._share_checks["z"].isChecked()),
             "hide_axis": bool(self._hide_axis_check.isChecked()),
+            "downsample_threshold": self._max_points_combo.currentData(),  # None: the figure's
             "label_multialignment": str(self._lines_combo.currentData() or "center"),
             "font_scale": float(self._font_scale.factor()),
             # The renderer's own name, never the translated one the panel shows.
