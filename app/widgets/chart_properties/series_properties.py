@@ -384,6 +384,23 @@ class SeriesPropertiesWidget(BaseProperties):
                                 if self._current_series_id is not None else None)
             self.function_edit_requested.emit({"series_id": None})  # only drawn again
 
+    def _default_toggled(self, group: str, on: bool) -> None:
+        """Default unticked: the fields start from what the style drew, not from "Default" again.
+
+        Left on the combo's Default entry the series stored "default" once more, and the box ticked itself
+        back on the next reload.
+        """
+        if not on and not self._reloading_depth:
+            from matplotlib import rcParams
+
+            if group == "line" and self._linestyle_combo.current_value() == DEFAULT:
+                drawn = str(rcParams.get("lines.linestyle", "-") or "-")
+                self._linestyle_combo.set_current_linestyle(drawn if drawn.lower() not in ("", "none") else "-")
+            if group == "marker" and self._marker_combo.current_value() == DEFAULT:
+                drawn = str(rcParams.get("lines.marker", "") or "")
+                self._marker_combo.set_current_marker(drawn if drawn.lower() not in ("", "none") else "o")
+        self._update_default_fields()
+
     def _update_default_fields(self) -> None:
         """The fields of a group set to Default are disabled; the marker colour only when it is its own."""
         line_on = self._line_default.isEnabled() and not self._line_default.isChecked()
@@ -524,8 +541,8 @@ class SeriesPropertiesWidget(BaseProperties):
         self._line_fields = [self._linestyle_chooser, self._linewidth_spin, self._color_combo]
         self._marker_fields = [self._marker_chooser, self._markersize_spin, self._markevery_spin,
                                self._marker_same_colour, self._marker_colour_combo]
-        self._line_default.toggled.connect(lambda _on: self._update_default_fields())
-        self._marker_default.toggled.connect(lambda _on: self._update_default_fields())
+        self._line_default.toggled.connect(lambda on: self._default_toggled("line", on))
+        self._marker_default.toggled.connect(lambda on: self._default_toggled("marker", on))
 
         def group(title: str, name: str, rows: list[tuple[str, QWidget]]) -> TitledCard:
             # The app's own card: the title outside, the grey rounded box below (as the other panels).

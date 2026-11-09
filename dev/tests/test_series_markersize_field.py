@@ -78,3 +78,12 @@ def test_default_groups_and_line_width(widget: SeriesPropertiesWidget) -> None:
     widget._line_default.setChecked(False)
     widget._linewidth_spin.setValue(2.5)
     assert _payload(widget)["linewidth"] == 2.5
+
+
+def test_unticking_default_stores_a_style_of_its_own(widget: SeriesPropertiesWidget) -> None:
+    widget._load_series_descriptor(SimpleNamespace(id=1, options={"linestyle": "default", "marker": "default"},
+                                                   sql_query=""))
+    widget._line_default.setChecked(False)
+    widget._marker_default.setChecked(False)
+    payload = _payload(widget)
+    assert payload["linestyle"] not in ("default", "") and payload["marker"] not in ("default", "")
