@@ -48,6 +48,16 @@ class StyleChooser(QWidget):
         index = combo.findData("__custom__")
         if index >= 0:
             combo.removeItem(index)  # the option box takes its place
+        # *combo* holds the value (custom ones get entries there) and stays hidden; Standard shows a list of
+        # the standard entries only, so typing a pattern or picking a symbol does not change what it shows.
+        combo.setParent(self)
+        combo.setVisible(False)
+        self._shown = type(combo)(self)
+        index = self._shown.findData("__custom__")
+        if index >= 0:
+            self._shown.removeItem(index)
+        self._shown.setSizePolicy(combo.sizePolicy())
+        self._shown.activated.connect(lambda _i: self._select_value(str(self._shown.currentData() or "")))
 
         column = QVBoxLayout(self)
         column.setContentsMargins(0, 0, 0, 0)
@@ -106,7 +116,7 @@ class StyleChooser(QWidget):
         add.setToolTip(_("Add an SVG, PNG or JPEG picture to the project and use it as the marker"))
         add.clicked.connect(self._add_picture)
         picture_row.addWidget(add)
-        self._editors = {STANDARD: combo, CUSTOM: self._text, SYMBOL: self._symbols, PICTURE: self._picture_row}
+        self._editors = {STANDARD: self._shown, CUSTOM: self._text, SYMBOL: self._symbols, PICTURE: self._picture_row}
         for index, (key, _label) in enumerate(choices):
             row.addWidget(self._editors[key], index, 1)
         for key, editor in self._editors.items():
@@ -120,10 +130,14 @@ class StyleChooser(QWidget):
             editor.setEnabled(other == key)
         if key == STANDARD and self._is_custom(self._value()) and not self._syncing:
             # Standard chosen: a value of its own no longer stands - the list's first concrete entry does.
-            for index in range(self._combo.count()):
-                if str(self._combo.itemData(index) or "").lower() not in ("", "default", "none", "__custom__"):
-                    self._combo.setCurrentIndex(index)  # Solid for a line, Circle for a marker
-                    break
+            value = str(self._shown.currentData() or "")
+            if value.lower() in ("", "default", "none"):
+                for index in range(self._shown.count()):
+                    if str(self._shown.itemData(index) or "").lower() not in ("", "default", "none"):
+                        self._shown.setCurrentIndex(index)  # Solid for a line, Point for a marker
+                        value = str(self._shown.itemData(index))
+                        break
+            self._select_value(value)
         if key == PICTURE:
             self._fill_pictures()
             name = self._picture_list.currentData()
@@ -204,6 +218,10 @@ class StyleChooser(QWidget):
             key = PICTURE
         elif self._is_custom(value):
             key = SYMBOL if SYMBOL in self._buttons and self._symbols.findData(value) >= 0 else CUSTOM
+        if key == STANDARD:
+            self._shown.blockSignals(True)
+            self._shown.setCurrentIndex(max(0, self._shown.findData(value)))
+            self._shown.blockSignals(False)
         if key == CUSTOM:
             self._text.setText(value)
             self._text.setStyleSheet("")

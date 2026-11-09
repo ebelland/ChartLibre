@@ -92,3 +92,21 @@ def test_a_picture_marker_with_the_rolling_mean(qapp, repo):
     figure = Figure()
     render_figure_from_descriptor(figure=figure, descriptor=repo.load_figure_descriptor(figure_id), repo=repo)
     assert figure.axes[0].lines and any(isinstance(a, AnnotationBbox) for a in figure.axes[0].get_children())
+
+
+def test_typing_a_pattern_leaves_the_standard_list_as_it_was(qapp):
+    from app.plugin_api.charts import dashes
+    from app.widgets.drop_down_controls.line_combo import LineStyleCombo
+    from app.widgets.drop_down_controls.style_chooser import StyleChooser
+
+    combo = LineStyleCombo()
+    chooser = StyleChooser(combo, is_custom=dashes.is_custom, select=combo.set_current_linestyle, hint="")
+    combo.set_current_linestyle("--")
+    chooser.sync()
+    assert chooser._shown.currentData() == "--"
+    chooser._buttons["custom"].setChecked(True)
+    chooser._text.setText("..--")
+    chooser._typed()
+    assert combo.current_linestyle() == "..--" and chooser._shown.currentData() == "--"
+    chooser._buttons["standard"].setChecked(True)
+    assert combo.current_linestyle() == "--"
