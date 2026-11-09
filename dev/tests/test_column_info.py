@@ -13,12 +13,11 @@ def _survey() -> pd.DataFrame:
                          "grade": ["3", "4", "5", "3", "4", "5"]})
 
 
-def test_value_labels_in_the_frame() -> None:
+def test_the_frame_as_the_analyses_read_it() -> None:
     frame = _survey()
-    infos = {"sex": cm.ColumnInfo(value_labels={"1": "male", "2": "female"})}
-    read = cm.apply_to_frame(frame, infos)
+    read = cm.apply_to_frame(frame, {"sex": cm.ColumnInfo(kind="nominal")})
     assert read["score"].isna().sum() == 0  # a code such as -999 is the data's: Fill missing values empties it
-    assert read["sex"].tolist() == ["male", "female"] * 3
+    assert read["sex"].tolist() == frame["sex"].tolist()  # value labels taken out: the codes as stored
     assert frame["score"].isna().sum() == 0  # the table's own values are untouched
     assert cm.forced_kinds({"grade": cm.ColumnInfo(kind="ordinal"), "sex": cm.ColumnInfo()}) == {"grade": "ordinal"}
 
@@ -42,15 +41,12 @@ def test_the_dialog_renames_casts_and_describes_in_one_undo_step(qapp, repo: Sql
     dialog.data_type.setCurrentIndex(dialog.data_type.findData("INTEGER"))
     dialog.modelling.setCurrentIndex(dialog.modelling.findData("ordinal"))
     dialog.unit.setText("stars")
-    dialog._fill_from_data()
-    assert [dialog.labels.item(r, 0).text() for r in range(dialog.labels.rowCount())] == ["3", "4", "5"]
-    dialog.labels.item(0, 1).setText("fair")
     dialog._apply()
     assert dialog.result() == dialog.DialogCode.Accepted
     declared = {str(row[1]): str(row[2]) for row in repo.table_info("survey")}
     assert declared.get("level") == "INTEGER" and "grade" not in declared
     info = cm.column_info(repo, "survey")["level"]
-    assert (info.kind, info.unit, info.value_labels) == ("ordinal", "stars", {"3": "fair"})
+    assert (info.kind, info.unit) == ("ordinal", "stars")
     repo.undo_last()
     assert "grade" in repo.table_frame("survey").columns and cm.column_info(repo, "survey") == {}
 
@@ -60,11 +56,10 @@ def test_an_analysis_takes_the_forced_type_and_the_emptied_codes(qapp, repo: Sql
 
     repo.import_dataframe(_survey(), table_name="survey", normalize_columns=False)
     repo.fill_missing("survey", "score", "null", codes=["-999"])  # the table editor's Fill missing values
-    cm.set_column_info(repo, "survey", "sex", cm.ColumnInfo(kind="nominal", value_labels={"1": "m", "2": "f"}))
+    cm.set_column_info(repo, "survey", "sex", cm.ColumnInfo(kind="nominal"))
     dialog = TimeSeriesDialog(repo=repo, table="survey")
     try:
         assert dialog._frame["score"].isna().sum() == 2
-        assert set(dialog._frame["sex"]) == {"m", "f"}
         assert dialog.roles_widget.casting().kinds["sex"] == "nominal"
         assert len(dialog.row_ids) == 6 and np.array_equal(dialog.row_ids.to_numpy(), np.arange(1, 7))
     finally:
@@ -116,36 +111,6 @@ def test_the_preview_shows_the_format_and_copies_the_stored_value(qapp, repo: Sq
     index = model.index(0, column)
     assert model.data(index, Qt.ItemDataRole.DisplayRole) == "12.5%"
     assert float(model.data(index, Qt.ItemDataRole.EditRole)) == 0.125
-
-
-def test_value_labels_are_what_the_preview_shows_for_a_stored_value() -> None:
-    info = cm.ColumnInfo(value_labels={"1": "male", "2": "female"})
-    assert cm.format_value(1, info) == "male"
-    assert cm.format_value(2.0, info) == "female"  # a number column keeps integers as floats
-    assert cm.format_value("1", info) == "male"
-    assert cm.format_value(3, info) == "3"  # no label: as stored
-    assert cm.format_value(None, info) == ""
-    # a label wins over the number format of the same column
-    both = cm.ColumnInfo(format="fixed", decimals=1, value_labels={"1": "male"})
-    assert cm.format_value(1, both) == "male" and cm.format_value(2, both) == "2.0"
-
-
-def test_the_preview_shows_value_labels_and_edits_the_stored_value(qapp, repo: SqliteRepo) -> None:
-    from PySide6.QtCore import Qt
-
-    from app.widgets.table_preview import TablePreviewPanel
-
-    repo.import_dataframe(pd.DataFrame({"sex": [1, 2, 1, 3]}), table_name="people", normalize_columns=False)
-    cm.set_column_info(repo, "people", "sex", cm.ColumnInfo(value_labels={"1": "male", "2": "female"}))
-    panel = TablePreviewPanel(None, repo=repo)
-    panel.set_context(repo, "people")
-    qapp.processEvents()
-    model = panel.view.model()
-    column = next(c for c in range(model.columnCount()) if model._columns[c] == "sex")
-    shown = [model.data(model.index(row, column), Qt.ItemDataRole.DisplayRole) for row in range(4)]
-    stored = [model.data(model.index(row, column), Qt.ItemDataRole.EditRole) for row in range(4)]
-    assert shown == ["male", "female", "male", "3"]
-    assert stored == ["1", "2", "1", "3"]  # editing and copying see the values
 
 
 def test_the_arrows_go_through_the_columns_saving_each_on_the_way(qapp, repo: SqliteRepo) -> None:
@@ -221,7 +186,7 @@ def test_column_info_is_two_columns_with_the_charts_arrows(qapp, repo: SqliteRep
     repo.import_dataframe(_survey(), table_name="survey", normalize_columns=False)
     dialog = ColumnInfoDialog(repo, "survey", "score")
     try:
-        assert dialog.column(0).isAncestorOf(dialog.name) and dialog.column(1).isAncestorOf(dialog.labels)
+        assert dialog.column(0).isAncestorOf(dialog.name) and dialog.column(1).isAncestorOf(dialog.summary)
         assert dialog.previous_button.objectName() == dialog.next_button.objectName() == "chartJumpArrow"
         assert dialog.minimumSizeHint().height() <= 690
     finally:

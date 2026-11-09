@@ -1,4 +1,4 @@
-"""What a table's columns are, beyond their values: label, unit, notes, modelling type, value labels (R-08).
+"""What a table's columns are, beyond their values: label, unit, notes, modelling type, format (R-08).
 
 As JMP's Column Info. Kept with the table's information (``__table_descriptors__``,
 key "columns": one entry per column name), so it travels with the project and
@@ -9,8 +9,6 @@ undoes with it. What it changes:
 * a cell with no value is missing: SQL NULL, and in a text column an empty
   or blank string, as in JMP. Codes standing for one (-999, "NA") are made
   empty cells in the data itself, by the table editor's Fill missing values;
-* value_labels - {stored value: label} (1 -> "male"): the analyses see the
-  labels, as levels;
 * format - how its values are shown (Best, Fixed, Percent, Scientific,
   thousands separator, a date/time pattern): the table preview's text only,
   never the values themselves;
@@ -22,7 +20,7 @@ from __future__ import annotations
 
 import math
 from collections.abc import Callable, Mapping
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from typing import Any
 
 import numpy as np
@@ -45,7 +43,6 @@ class ColumnInfo:
     notes: str = ""
     #: The modelling type forced; "" lets the values decide.
     kind: str = ""
-    value_labels: dict[str, str] = field(default_factory=dict)
     #: How the values are shown (FORMATS); "" shows them as stored.
     format: str = ""
     decimals: int = 2
@@ -53,7 +50,7 @@ class ColumnInfo:
     pattern: str = DEFAULT_DATE_PATTERN
 
     def is_empty(self) -> bool:
-        return not (self.label or self.unit or self.notes or self.kind or self.value_labels
+        return not (self.label or self.unit or self.notes or self.kind
                     or self.format)
 
     @classmethod
@@ -66,7 +63,6 @@ class ColumnInfo:
             decimals = 2
         return cls(label=str(values.get("label") or ""), unit=str(values.get("unit") or ""),
                    notes=str(values.get("notes") or ""), kind=kind if kind in KINDS else "",
-                   value_labels={str(k): str(v) for k, v in dict(values.get("value_labels") or {}).items()},
                    format=shown if shown in dict(FORMATS) else "", decimals=decimals,
                    pattern=str(values.get("pattern") or DEFAULT_DATE_PATTERN))
 
@@ -110,29 +106,13 @@ def blank_as_missing(column: pd.Series) -> pd.Series:
 
 
 def apply_to_frame(frame: pd.DataFrame, infos: Mapping[str, ColumnInfo]) -> pd.DataFrame:
-    """*frame* as the analyses should read it: cells with no value empty, value labels in place of the codes."""
+    """*frame* as the analyses should read it: cells with no value empty.
+
+    Value labels (1 -> "male") were applied here; taken out for now - a query joining a table of labels does
+    it, and the analyses read the query."""
     result = frame.copy()
     for name in result.columns:
         result[name] = blank_as_missing(result[name])
-    for name, info in infos.items():
-        if name not in result.columns:
-            continue
-        column = result[name]
-        if info.value_labels:
-            keys = {code.strip(): label for code, label in info.value_labels.items()}
-
-            def label_of(value: Any) -> Any:
-                if value is None or (isinstance(value, float) and np.isnan(value)):
-                    return value
-                text = str(value).strip()
-                if text in keys:
-                    return keys[text]
-                if isinstance(value, float) and value.is_integer():  # 1.0 stored for 1
-                    return keys.get(str(int(value)), value)
-                return value
-
-            column = column.map(label_of)
-        result[name] = column
     return result
 
 
@@ -141,28 +121,10 @@ def forced_kinds(infos: Mapping[str, ColumnInfo]) -> dict[str, str]:
     return {name: info.kind for name, info in infos.items() if info.kind}
 
 
-def value_label_of(value: Any, labels: Mapping[str, str]) -> str | None:
-    """The label of a stored *value* ({"1": "male"}); None when it has none.
-
-    A stored 1.0 is the key "1": a number column keeps its integers as floats.
-    """
-    keys = [str(value)]
-    if isinstance(value, (float, np.floating)) and float(value).is_integer():
-        keys.append(str(int(value)))
-    for key in keys:
-        if key in labels:
-            return labels[key]
-    return None
-
-
 def format_value(value: Any, info: ColumnInfo) -> str:
     """*value* as the column's format shows it; as stored when it does not apply (text in a number format)."""
     if value is None or (isinstance(value, float) and np.isnan(value)):
         return ""
-    if info.value_labels:
-        label = value_label_of(value, info.value_labels)
-        if label is not None:
-            return label
     kind, decimals = info.format, info.decimals
     if kind == "datetime":
         moment = pd.to_datetime(value, errors="coerce") if not isinstance(value, (int, float)) else pd.NaT

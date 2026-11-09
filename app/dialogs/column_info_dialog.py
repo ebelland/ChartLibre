@@ -7,7 +7,6 @@ Opened from a column's context menu in the table preview. What it changes:
 * the modelling type forced - Continuous, Ordinal, Nominal - which every
   analysis then takes for the column, whatever its values suggest;
 * label, unit, notes;
-* value labels, which the analyses show in place of the codes.
 
 The description is kept with the table (app.data.column_metadata); OK is
 one undo step for all of it. The arrows at the top go to the previous or next
@@ -20,18 +19,13 @@ from typing import Any
 
 import pandas as pd
 from PySide6.QtWidgets import (
-    QAbstractItemView,
     QComboBox,
     QFormLayout,
     QHBoxLayout,
-    QHeaderView,
     QLabel,
     QLineEdit,
     QPlainTextEdit,
-    QPushButton,
     QSpinBox,
-    QTableWidget,
-    QTableWidgetItem,
     QWidget,
 )
 
@@ -40,7 +34,6 @@ from app.data.repo.project import CAST_TYPES
 from app.dialogs.two_panels_dialog_base import Column, ColumnsDialog
 from app.logs.logger import applogger
 from app.styles.style import stdSizeAndlayout
-from app.utils.coercion import to_numbers
 from app.utils.i18n import _
 from app.utils.messages import show_message
 from app.widgets.chart_jump_bar import jump_arrow
@@ -49,8 +42,6 @@ from app.widgets.chart_jump_bar import jump_arrow
 MODELLING_TYPES: tuple[tuple[str, str], ...] = (
     ("", "From the values"), ("continuous", "Continuous"), ("ordinal", "Ordinal"), ("nominal", "Nominal"),
 )
-#: A column with more distinct values than this is not offered "Fill from the data".
-MAX_LABELLED_VALUES = 100
 #: The columns the application keeps on a table for itself: the arrows pass them by.
 APPLICATION_COLUMNS = frozenset({"Hide", "Selected", "_id"})
 
@@ -142,31 +133,10 @@ class ColumnInfoDialog(ColumnsDialog):
 
         # -- The values and their labels. Codes for missing values (-999, NA) are made empty cells in the
         # data itself: the table editor's Fill missing values.
-        values_card = self.add_column_card(1, _("Values"), "columnValuesCard", stretch=1)
+        values_card = self.add_column_card(1, _("Values"), "columnValuesCard")
         self.summary = QLabel("", values_card)
         self.summary.setProperty("muted", True)
         values_card.layout().addWidget(self.summary)
-        self.labels = QTableWidget(0, 2, values_card)
-        self.labels.setHorizontalHeaderLabels([_("Value"), _("Label")])
-        self.labels.verticalHeader().setVisible(False)
-        self.labels.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.Stretch)
-        self.labels.setSelectionBehavior(QAbstractItemView.SelectionBehavior.SelectRows)
-        self.labels.setMinimumHeight(self.labels.verticalHeader().defaultSectionSize() * 4 + 30)
-        self.labels.setToolTip(_("Value labels: the analyses show the label in place of the value (1 -> male)."))
-        values_card.layout().addWidget(self.labels, 1)
-        row = QHBoxLayout()
-        stdSizeAndlayout(row)
-        fill = QPushButton(_("Fill from the data"), values_card)
-        fill.setToolTip(_("A row for each distinct value not listed yet (up to {n}).").format(n=MAX_LABELLED_VALUES))
-        fill.clicked.connect(self._fill_from_data)
-        add = QPushButton(_("Add"), values_card)
-        add.clicked.connect(lambda: self._add_label_row("", ""))
-        remove = QPushButton(_("Remove"), values_card)
-        remove.clicked.connect(self._remove_label_rows)
-        for button in (fill, add, remove):
-            row.addWidget(button)
-        row.addStretch(1)
-        values_card.layout().addLayout(row)
 
         self.add_action("apply", self._apply, default=True)
         self.add_action("close", self.reject)
@@ -212,9 +182,6 @@ class ColumnInfoDialog(ColumnsDialog):
         self.pattern.setText(info.pattern)
         self._show_format()
         self.summary.setText(self._summary())
-        self.labels.setRowCount(0)
-        for value, text in info.value_labels.items():
-            self._add_label_row(value, text)
         index = self._table_columns.index(column) if column in self._table_columns else -1
         self.position.setText(_("Column {number} of {count}").format(number=index + 1, count=len(self._table_columns))
                               if index >= 0 else "")
@@ -265,39 +232,11 @@ class ColumnInfoDialog(ColumnsDialog):
         return _("{count} values, {empty} empty, {distinct} distinct").format(
             count=len(present), empty=len(self._values) - len(present), distinct=present.astype(str).nunique())
 
-    def _add_label_row(self, value: str, text: str) -> None:
-        position = self.labels.rowCount()
-        self.labels.insertRow(position)
-        self.labels.setItem(position, 0, QTableWidgetItem(str(value)))
-        self.labels.setItem(position, 1, QTableWidgetItem(str(text)))
-
-    def _fill_from_data(self) -> None:
-        present = self._values.dropna()
-        present = present[present.astype(str).str.strip() != ""]
-        listed = {self.labels.item(r, 0).text().strip() for r in range(self.labels.rowCount())
-                  if self.labels.item(r, 0)}
-        distinct = pd.unique(present.map(lambda v: str(int(v)) if isinstance(v, float) and v.is_integer() else str(v)))
-        if len(distinct) > MAX_LABELLED_VALUES:
-            show_message(self, "column_info.too_many_values", count=len(distinct), limit=MAX_LABELLED_VALUES)
-            return
-        for value in sorted(distinct, key=lambda v: (to_numbers(v), v)):
-            if value not in listed:
-                self._add_label_row(value, "")
-
-    def _remove_label_rows(self) -> None:
-        for position in sorted({index.row() for index in self.labels.selectedIndexes()}, reverse=True):
-            self.labels.removeRow(position)
-
     def info(self) -> cm.ColumnInfo:
         """The description as the dialog holds it now."""
-        labels: dict[str, str] = {}
-        for position in range(self.labels.rowCount()):
-            value, text = self.labels.item(position, 0), self.labels.item(position, 1)
-            if value and text and value.text().strip() and text.text().strip():
-                labels[value.text().strip()] = text.text().strip()
         return cm.ColumnInfo(label=self.label.text().strip(), unit=self.unit.text().strip(),
                              notes=self.notes.toPlainText().strip(), kind=str(self.modelling.currentData() or ""),
-                             value_labels=labels, format=str(self.format.currentData() or ""),
+                             format=str(self.format.currentData() or ""),
                              decimals=self.decimals.value(),
                              pattern=self.pattern.text().strip() or cm.DEFAULT_DATE_PATTERN)
 

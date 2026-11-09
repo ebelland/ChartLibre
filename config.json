@@ -1217,11 +1217,6 @@
       "title": "Column Info",
       "text": "{count} value(s) could not be read as {kind} and were left empty."
     },
-    "column_info.too_many_values": {
-      "level": "info",
-      "title": "Column Info",
-      "text": "The column has {count} distinct values: value labels are for columns of at most {limit}."
-    },
     "import.no_table_name": {
       "level": "warning",
       "title": "Import",
