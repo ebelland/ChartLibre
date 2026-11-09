@@ -6,7 +6,6 @@ participation), ordering, deletion, and the series SQL query.
 from __future__ import annotations
 
 import re
-
 from functools import cache
 from typing import Any
 
@@ -17,16 +16,16 @@ from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
     QDoubleSpinBox,
-    QGroupBox,
-    QSpinBox,
     QFormLayout,
     QFrame,
+    QGroupBox,
     QHBoxLayout,
     QLabel,
     QLineEdit,
     QPlainTextEdit,
     QScrollArea,
     QSizePolicy,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
