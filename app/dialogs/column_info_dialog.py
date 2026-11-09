@@ -53,7 +53,7 @@ class ColumnInfoDialog(ColumnsDialog):
         # Two columns, the column's description and its values side by side: one tall column was taller than
         # a laptop's screen.
         super().__init__(parent, title=_("Column Info: {column}").format(column=column), size=None,
-                         columns=(Column(), Column()))
+                         columns=(Column(),))  # one column: the Values card is gone
         self._repo, self._table, self._column = repo, table, column
         #: Whether a column was saved while moving between them: Close then says so, as OK would.
         self._saved = False
@@ -131,12 +131,6 @@ class ColumnInfoDialog(ColumnsDialog):
         for signal in (self.format.currentIndexChanged, self.decimals.valueChanged, self.pattern.textChanged):
             signal.connect(lambda *_args: self._show_format())
 
-        # -- The values and their labels. Codes for missing values (-999, NA) are made empty cells in the
-        # data itself: the table editor's Fill missing values.
-        values_card = self.add_column_card(1, _("Values"), "columnValuesCard")
-        self.summary = QLabel("", values_card)
-        self.summary.setProperty("muted", True)
-        values_card.layout().addWidget(self.summary)
 
         self.add_action("apply", self._apply, default=True)
         self.add_action("close", self.reject)
@@ -181,7 +175,6 @@ class ColumnInfoDialog(ColumnsDialog):
         self.decimals.setValue(info.decimals)
         self.pattern.setText(info.pattern)
         self._show_format()
-        self.summary.setText(self._summary())
         index = self._table_columns.index(column) if column in self._table_columns else -1
         self.position.setText(_("Column {number} of {count}").format(number=index + 1, count=len(self._table_columns))
                               if index >= 0 else "")
@@ -225,12 +218,6 @@ class ColumnInfoDialog(ColumnsDialog):
         info = cm.ColumnInfo(format=kind, decimals=self.decimals.value(), pattern=self.pattern.text())
         self.example.setText(_("{stored} is shown {shown}").format(stored=first, shown=cm.format_value(first, info))
                              if kind and first is not None else "")
-
-    def _summary(self) -> str:
-        present = self._values.dropna()
-        present = present[present.astype(str).str.strip() != ""]
-        return _("{count} values, {empty} empty, {distinct} distinct").format(
-            count=len(present), empty=len(self._values) - len(present), distinct=present.astype(str).nunique())
 
     def info(self) -> cm.ColumnInfo:
         """The description as the dialog holds it now."""
