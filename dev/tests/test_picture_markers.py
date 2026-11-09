@@ -55,10 +55,10 @@ def test_the_option_box_offers_the_projects_pictures(qapp, repo):
     widget = SeriesPropertiesWidget()
     widget._repo = repo
     widget._load_series_descriptor(SimpleNamespace(id=1, options={"marker": "image:dot"}, sql_query=""))
-    chooser = widget._marker_chooser
+    chooser = widget._marker_editor.chooser
     assert chooser._buttons["picture"].isChecked()
     assert chooser._picture_list.currentData() == "dot"
-    assert widget._marker_combo.current_marker() == "image:dot"
+    assert widget._marker_editor.combo.current_marker() == "image:dot"
 
 
 def test_a_typed_line_pattern_applies_and_previews(qapp):

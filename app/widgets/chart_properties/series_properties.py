@@ -15,7 +15,6 @@ from PySide6.QtGui import QBrush, QColor, QIcon, QPainter, QPen, QTextOption
 from PySide6.QtWidgets import (
     QCheckBox,
     QComboBox,
-    QDoubleSpinBox,
     QFormLayout,
     QFrame,
     QHBoxLayout,
@@ -24,7 +23,6 @@ from PySide6.QtWidgets import (
     QPlainTextEdit,
     QScrollArea,
     QSizePolicy,
-    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
@@ -42,12 +40,10 @@ from app.utils.config import get_constant
 from app.utils.i18n import _
 from app.utils.messages import ask
 from app.widgets.chart_properties.base_properties import BaseProperties
-from app.widgets.drop_down_controls.color_combo import (
-    DEFAULT_COLOR_LABEL,
-    MatplotlibColorCombo,
+from app.widgets.chart_properties.series_style_editors import (
+    LineStyleEditor,
+    MarkerStyleEditor,
 )
-from app.widgets.drop_down_controls.line_combo import LineStyleCombo
-from app.widgets.drop_down_controls.marker_combo import MarkerStyleCombo
 
 AxisDescriptorLike = Any
 SeriesDescriptorLike = Any
@@ -148,7 +144,6 @@ class SeriesPropertiesWidget(BaseProperties):
         self._current_series_id: int | None = None
         self._series_map: dict[int, SeriesDescriptorLike] = {}
         #: key -> (stored value, combo index it was loaded as); see _load_choice.
-        self._stored_choices: dict[str, tuple[Any, int]] = {}
 
         self._build_ui()
         self._install_auto_apply(self._emit_series_options_requested)
@@ -168,16 +163,8 @@ class SeriesPropertiesWidget(BaseProperties):
             self._visible_check,
             self._show_in_legend_check,
             self._sort_x_check,
-            self._linestyle_combo,
-            self._marker_combo,
-            self._markersize_spin,
-            self._markevery_spin,
-            self._linewidth_spin,
-            self._line_default,
-            self._marker_default,
-            self._marker_same_colour,
-            self._marker_colour_combo,
-            self._color_combo,
+            self._line_editor,
+            self._marker_editor,
         )
 
     def _build_ui(self) -> None:
@@ -384,45 +371,6 @@ class SeriesPropertiesWidget(BaseProperties):
                                 if self._current_series_id is not None else None)
             self.function_edit_requested.emit({"series_id": None})  # only drawn again
 
-    def _same_colour_toggled(self, same: bool) -> None:
-        """Unticked: the marker colour starts from the line's (or the list's first), so a colour is stored -
-        left on Default nothing was, and the box ticked itself back on the next reload."""
-        if not same and not self._reloading_depth and not self._marker_colour_combo.current_hex().strip():
-            line = self._color_combo.current_hex().strip()
-            if not (line and self._marker_colour_combo.set_current_hex(line)):
-                self._marker_colour_combo.setCurrentIndex(min(1, self._marker_colour_combo.count() - 1))
-        self._update_default_fields()
-
-    def _default_toggled(self, group: str, on: bool) -> None:
-        """Default unticked: the fields start from what the style drew, not from "Default" again.
-
-        Left on the combo's Default entry the series stored "default" once more, and the box ticked itself
-        back on the next reload.
-        """
-        if not on and not self._reloading_depth:
-            from matplotlib import rcParams
-
-            if group == "line" and self._linestyle_combo.current_value() == DEFAULT:
-                drawn = str(rcParams.get("lines.linestyle", "-") or "-")
-                self._linestyle_combo.set_current_linestyle(drawn if drawn.lower() not in ("", "none") else "-")
-            if group == "marker" and self._marker_combo.current_value() == DEFAULT:
-                drawn = str(rcParams.get("lines.marker", "") or "")
-                self._marker_combo.set_current_marker(drawn if drawn.lower() not in ("", "none") else "o")
-        self._update_default_fields()
-
-    def _update_default_fields(self) -> None:
-        """A group on Default folds to its one line: its fields are hidden, not shown greyed out."""
-        enabled = self._line_default.isEnabled()
-        for box, fields, name in ((self._line_default, self._line_fields, "seriesLineCard"),
-                                  (self._marker_default, self._marker_fields, "seriesMarkerCard")):
-            shown = not box.isChecked()
-            form = getattr(self, "_group_forms", {}).get(name)
-            for widget in fields:
-                if form is not None:
-                    form.setRowVisible(widget, shown)
-                widget.setEnabled(enabled)
-        self._marker_colour_combo.setEnabled(enabled and not self._marker_same_colour.isChecked())
-
     def _sort_toggled(self, on: bool) -> None:
         """Add or remove ORDER BY <x> at the end of the query (the query is applied as typed)."""
         if self._reloading_depth:
@@ -489,72 +437,11 @@ class SeriesPropertiesWidget(BaseProperties):
         flags_layout.addWidget(self._show_in_legend_check, 0)
         flags_layout.addStretch(1)
 
-        self._linestyle_combo = LineStyleCombo(section)
-        self._marker_combo = MarkerStyleCombo(section)
-        # Points, as Matplotlib's markersize. The minimum shows as "Default"
-        # and is stored as no value at all: a spin box cannot be empty, and a
-        # size of 0 would hide the markers rather than leave them to the style.
-        # A marker on every n-th point only (matplotlib's markevery): dense lines stay readable.
-        self._markevery_spin = QSpinBox(section)
-        self._markevery_spin.setRange(1, 100000)
-        self._markevery_spin.setSpecialValueText(_("Every point"))
-        self._markevery_spin.setSuffix(_(" points"))
-        self._markevery_spin.setToolTip(_("Draw a marker on every n-th point only; the line still joins them all."))
-        self._markersize_spin = QDoubleSpinBox(section)
-        self._markersize_spin.setRange(0.0, 1000.0)
-        self._markersize_spin.setDecimals(1)
-        self._markersize_spin.setSingleStep(0.5)
-        self._markersize_spin.setSpecialValueText(_("Default"))
-        self._markersize_spin.setToolTip(_("Marker size in points. Default leaves it to the style."))
-        # "Default", not "(none)": an empty colour is not "this series has
-        # no colour", it is "let the style sheet's cycle pick one" - which
-        # is what the renderer does with it, and what the Line style and
-        # Marker combos next to it already call their own first entry.
-        self._color_combo = MatplotlibColorCombo(
-            section,
-            include_none=True,
-            none_label=DEFAULT_COLOR_LABEL,
-        )
-
-        stdSizeAndlayout(self._linestyle_combo, minimum_contents_length=0)
-        stdSizeAndlayout(self._marker_combo, minimum_contents_length=0)
-        stdSizeAndlayout(self._color_combo, minimum_contents_length=0)
-
-        from app.plugin_api.charts import dashes, markers
-        from app.widgets.drop_down_controls.style_chooser import SYMBOLS, StyleChooser
-
-        # One option box each: Standard (the list), Custom (typed), Symbol and Picture (markers only).
-        self._linestyle_chooser = StyleChooser(
-            self._linestyle_combo, is_custom=dashes.is_custom, select=self._linestyle_combo.set_current_linestyle,
-            hint=_("e.g. ..--  or  -- . --  or  (0, (5, 2, 1, 2))"), parent=section)
-        self._marker_chooser = StyleChooser(
-            self._marker_combo, is_custom=markers.is_custom, select=self._marker_combo.set_current_marker,
-            hint=_("e.g. ★  or  $\\clubsuit$  or  (5, 1, 0)"), symbols=SYMBOLS,
-            pictures=lambda: self._repo, parent=section)
-        # The markers' own colour, or the line's (the default).
-        self._marker_same_colour = QCheckBox(_("Same colour as the line"), section)
-        self._marker_same_colour.setChecked(True)
-        self._marker_colour_combo = MatplotlibColorCombo(section, include_none=True, none_label=DEFAULT_COLOR_LABEL)
-        stdSizeAndlayout(self._marker_colour_combo, minimum_contents_length=0)
-        self._marker_colour_combo.setEnabled(False)
-        self._marker_same_colour.toggled.connect(self._same_colour_toggled)
+        # The line and the markers, each a class of its own (series_style_editors).
+        self._line_editor = LineStyleEditor(section)
+        self._marker_editor = MarkerStyleEditor(section, repo=lambda: self._repo,
+                                                line_colour=lambda: self._line_editor.colour())
         self._sort_x_check.toggled.connect(self._sort_toggled)
-        # Line width in points; the minimum is "Default" (the style's), stored as nothing.
-        self._linewidth_spin = QDoubleSpinBox(section)
-        self._linewidth_spin.setRange(0.0, 50.0)
-        self._linewidth_spin.setDecimals(1)
-        self._linewidth_spin.setSingleStep(0.25)
-        self._linewidth_spin.setSpecialValueText(_("Default"))
-        self._linewidth_spin.setToolTip(_("Line width in points. Default leaves it to the style."))
-        # "Default": the whole line, or all the markers, as the axis' style draws them - the fields below are
-        # disabled and nothing of their own is stored.
-        self._line_default = QCheckBox(_("Default (the axis style)"), section)
-        self._marker_default = QCheckBox(_("Default (the axis style)"), section)
-        self._line_fields = [self._linestyle_chooser, self._linewidth_spin, self._color_combo]
-        self._marker_fields = [self._marker_chooser, self._markersize_spin, self._markevery_spin,
-                               self._marker_same_colour, self._marker_colour_combo]
-        self._line_default.toggled.connect(lambda on: self._default_toggled("line", on))
-        self._marker_default.toggled.connect(lambda on: self._default_toggled("marker", on))
 
         self._group_forms: dict[str, QFormLayout] = {}
 
@@ -573,12 +460,8 @@ class SeriesPropertiesWidget(BaseProperties):
         self._groups = [
             group(_("Query"), "seriesQueryCard", [("", self._sql_query_edit), ("", self._sort_x_check)]),
             group(_("Legend"), "seriesLegendCard", [(_("Label"), self._legend_label_edit), ("", flags_row)]),
-            group(_("Line"), "seriesLineCard", [("", self._line_default), (_("Style"), self._linestyle_chooser),
-                                                (_("Width"), self._linewidth_spin), (_("Color"), self._color_combo)]),
-            group(_("Marker"), "seriesMarkerCard", [
-                ("", self._marker_default), (_("Marker"), self._marker_chooser), (_("Size"), self._markersize_spin),
-                (_("Every"), self._markevery_spin), ("", self._marker_same_colour),
-                (_("Color"), self._marker_colour_combo)]),
+            group(_("Line"), "seriesLineCard", [("", self._line_editor)]),
+            group(_("Marker"), "seriesMarkerCard", [("", self._marker_editor)]),
         ]
 
         raw_layout = section.card.layout()
@@ -879,80 +762,12 @@ class SeriesPropertiesWidget(BaseProperties):
                 self._sql_query_edit.setPlainText(with_sort(sql, self._x_column))
             self._sort_x_check.setEnabled(bool(self._x_column))
             self._sort_x_check.setChecked(is_sorted(self._sql_query_edit.toPlainText()))
-            try:
-                self._linewidth_spin.setValue(max(0.0, float(style.get("linewidth") or 0.0)))
-            except (TypeError, ValueError):
-                self._linewidth_spin.setValue(0.0)
-            is_default = lambda key: str(style.get(key, "")).strip().lower() == DEFAULT  # noqa: E731
-            self._line_default.setChecked(is_default("linestyle") and not style.get("linewidth")
-                                          and not style.get("color"))
-            self._marker_default.setChecked(is_default("marker") and not style.get("markersize")
-                                            and not style.get("markevery") and not style.get("markercolor"))
-            marker_colour = str(style.get("markercolor") or "")
-            self._marker_same_colour.setChecked(not marker_colour)
-            if not (marker_colour and (self._marker_colour_combo.set_current_hex(marker_colour)
-                                       or self._marker_colour_combo.set_current_name(marker_colour))):
-                self._marker_colour_combo.setCurrentIndex(0)
-            self._update_default_fields()
 
-            # An absent key is read as None, not as DEFAULT: absent means "no line" (a
-            # scatter's markers only), where "default" means "the style's line". Sent
-            # back as the DEFAULT sentinel, the first edit of any other field turned a
-            # marker-only series into a line (issue #6). None is not written at all.
-            self._load_choice(self._linestyle_combo, "linestyle", style.get("linestyle"), none="none")
-            self._load_choice(self._marker_combo, "marker", style.get("marker"), none="")
-            self._linestyle_chooser.sync()
-            self._marker_chooser.sync()
-            try:
-                markersize = float(style.get("markersize") or 0.0)
-            except (TypeError, ValueError):
-                markersize = 0.0
-            self._markersize_spin.setValue(max(markersize, 0.0))
-            try:
-                self._markevery_spin.setValue(max(1, int(float(style.get("markevery") or 1))))
-            except (TypeError, ValueError):
-                self._markevery_spin.setValue(1)
-            raw_color = style.get("color", "")
-            self._set_color_value(str(raw_color or ""))
-            self._stored_choices["color"] = (raw_color, self._color_combo.currentIndex())
-
-    def _load_choice(self, combo: QComboBox, key: str, raw: Any, *, none: str) -> None:
-        """Select what a stored line style / marker shows as, remembering the stored value.
-
-        A stored style is what the series *has*, the combo only what it can
-        show: "", "None" and an explicit no-line / no-marker all read as the
-        combo's None entry (*none*), and a value the combo has no entry for
-        (a dash pattern, "dashed") shows as Default. Writing the combo's
-        reading back on the next edit of any other field changed the series -
-        a chosen None became Default, a custom dash a solid line - so the
-        stored value is kept, and sent back for as long as the combo is left
-        on what it was loaded as.
-        """
-        text = raw.strip() if isinstance(raw, str) else None
-        if text is not None and text.lower() == "none":
-            text = none
-        if text is not None and hasattr(combo, "set_current_linestyle"):
-            combo.set_current_linestyle(text)  # a dash pattern of its own gets its entry (charts.dashes)
-        index = combo.findData(text) if text is not None else -1
-        combo.setCurrentIndex(index if index >= 0 else 0)
-        self._stored_choices[key] = (raw, combo.currentIndex())
-
-    def _choice(self, combo: QComboBox, key: str, fallback: str) -> Any:
-        """The value to store for *combo*: the loaded one while it is untouched."""
-        stored = self._stored_choices.get(key)
-        if stored is not None and combo.currentIndex() == stored[1]:
-            return stored[0]
-        return str(combo.currentData() or fallback)
-
-    def _choice_color(self) -> Any:
-        stored = self._stored_choices.get("color")
-        if stored is not None and self._color_combo.currentIndex() == stored[1]:
-            return stored[0] if stored[0] is not None else ""
-        return self._color_combo.current_hex().strip()
+            self._line_editor.load(style)
+            self._marker_editor.load(style)
 
     def _clear_series_fields(self) -> None:
         """Clear form fields for the no-selection state."""
-        self._stored_choices.clear()
         self._function_section.hide()
         self._function_query = None
         with self._reloading_controls():
@@ -962,25 +777,8 @@ class SeriesPropertiesWidget(BaseProperties):
             self._visible_check.setChecked(True)
             self._show_in_legend_check.setChecked(True)
             self._sort_x_check.setChecked(False)
-            self._marker_same_colour.setChecked(True)
-            self._marker_colour_combo.setCurrentIndex(0)
-            self._linestyle_combo.setCurrentIndex(0)
-            self._marker_combo.setCurrentIndex(0)
-            self._markersize_spin.setValue(0.0)
-            self._markevery_spin.setValue(1)
-            self._color_combo.setCurrentIndex(0)
-
-    def _set_color_value(self, value: str) -> None:
-        """Select a color by hex value or Matplotlib color name."""
-        matched = False
-
-        if value:
-            matched = self._color_combo.set_current_hex(value)
-            if not matched:
-                matched = self._color_combo.set_current_name(value)
-
-        if not matched:
-            self._color_combo.setCurrentIndex(0)
+            self._line_editor.clear()
+            self._marker_editor.clear()
 
     # ------------------------------------------------------------------
     # Events and actions
@@ -1004,20 +802,11 @@ class SeriesPropertiesWidget(BaseProperties):
             self._visible_check,
             self._show_in_legend_check,
             self._sort_x_check,
-            self._linestyle_combo,
-            self._marker_combo,
-            self._markersize_spin,
-            self._markevery_spin,
-            self._linewidth_spin,
-            self._line_default,
-            self._marker_default,
-            self._marker_same_colour,
-            self._marker_colour_combo,
-            self._color_combo,
+            self._line_editor,
+            self._marker_editor,
         ):
             widget.setEnabled(enabled)
-        if enabled:
-            self._update_default_fields()  # a group on Default keeps its fields off
+
 
     def _on_series_combo_changed(self, index: int) -> None:
         """Handle series selector changes."""
@@ -1107,17 +896,9 @@ class SeriesPropertiesWidget(BaseProperties):
 
         self.series_order_requested.emit(ordered_ids)
 
-    def _with_defaults(self, payload: dict[str, Any]) -> dict[str, Any]:
-        """A group set to Default stores the style's sentinel and nothing of its own."""
-        if self._line_default.isChecked():
-            payload.update(linestyle=DEFAULT, linewidth=None, color="")
-        if self._marker_default.isChecked():
-            payload.update(marker=DEFAULT, markersize=None, markevery=None, markercolor=None)
-        return payload
-
     def _emit_series_options_requested(self) -> None:
         """Emit the current form payload."""
-        self.series_options_requested.emit(self._with_defaults(
+        self.series_options_requested.emit(
             {
                 "series_id": self._current_series_id,
                 "also_series_ids": list(self._also_ids),
@@ -1126,17 +907,8 @@ class SeriesPropertiesWidget(BaseProperties):
                 "visible": bool(self._visible_check.isChecked()),
                 "show_in_legend": bool(self._show_in_legend_check.isChecked()),
                 "sort_x": None,  # the sort is the query's ORDER BY now: the old key is removed
-                "markercolor": None if self._marker_same_colour.isChecked()
-                else (self._marker_colour_combo.current_hex().strip() or None),
-                "linestyle": self._choice(self._linestyle_combo, "linestyle", "-"),
-                "marker": self._choice(self._marker_combo, "marker", ""),
-                # None removes the key: the minimum means "leave it to the style".
-                "markersize": self._markersize_spin.value() or None,
-                "linewidth": self._linewidth_spin.value() or None,
-                "markevery": self._markevery_spin.value() if self._markevery_spin.value() > 1 else None,
-                # What the series has, while the combo is left as loaded: it
-                # has no entry for "C0", "0.5" or a colour with alpha, and
-                # would otherwise write "" over them on any other edit.
-                "color": self._choice_color(),
+                # The line's and the markers' keys; None removes one (series_style_editors).
+                **self._line_editor.values(),
+                **self._marker_editor.values(),
             }
-        ))
+        )

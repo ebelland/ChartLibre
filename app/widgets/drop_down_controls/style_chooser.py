@@ -17,6 +17,7 @@ from PySide6.QtWidgets import (
     QLineEdit,
     QPushButton,
     QRadioButton,
+    QSizePolicy,
     QVBoxLayout,
     QWidget,
 )
@@ -109,6 +110,9 @@ class StyleChooser(QWidget):
         picture_row.setContentsMargins(0, 0, 0, 0)
         self._picture_list = QComboBox(self._picture_row)
         self._picture_list.setToolTip(_("The pictures kept in this project"))
+        self._picture_list.setSizeAdjustPolicy(QComboBox.SizeAdjustPolicy.AdjustToMinimumContentsLengthWithIcon)
+        self._picture_list.setMinimumContentsLength(12)
+        self._picture_list.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Fixed)
         self._picture_list.activated.connect(
             lambda _i: self._select_value(PREFIX + str(self._picture_list.currentData() or "")))
         picture_row.addWidget(self._picture_list, 1)

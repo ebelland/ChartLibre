@@ -23,27 +23,27 @@ def _payload(widget: SeriesPropertiesWidget) -> dict[str, Any]:
 
 def test_the_field_shows_the_series_markersize(widget: SeriesPropertiesWidget) -> None:
     widget._load_series_descriptor(SimpleNamespace(id=1, options={"markersize": 6.5}, sql_query=""))
-    assert widget._markersize_spin.value() == 6.5
+    assert widget._marker_editor.size_spin.value() == 6.5
     assert _payload(widget)["markersize"] == 6.5
 
 
 def test_a_series_without_one_shows_default_and_stores_nothing(widget: SeriesPropertiesWidget) -> None:
     widget._load_series_descriptor(SimpleNamespace(id=1, options={}, sql_query=""))
-    assert widget._markersize_spin.value() == 0.0
-    assert widget._markersize_spin.text() == "Default"
+    assert widget._marker_editor.size_spin.value() == 0.0
+    assert widget._marker_editor.size_spin.text() == "Default"
     assert _payload(widget)["markersize"] is None  # None removes the key from the style
 
 
 def test_changing_it_applies_the_series_style(widget: SeriesPropertiesWidget) -> None:
     widget._load_series_descriptor(SimpleNamespace(id=1, options={}, sql_query=""))
-    widget._markersize_spin.setValue(9.0)
+    widget._marker_editor.size_spin.setValue(9.0)
     assert _payload(widget)["markersize"] == 9.0
 
 
 def test_marker_every_is_read_and_written(widget: SeriesPropertiesWidget) -> None:
     widget._load_series_descriptor(SimpleNamespace(id=1, options={"markevery": 5}, sql_query=""))
-    assert widget._markevery_spin.value() == 5 and _payload(widget)["markevery"] == 5
-    widget._markevery_spin.setValue(1)
+    assert widget._marker_editor.every_spin.value() == 5 and _payload(widget)["markevery"] == 5
+    widget._marker_editor.every_spin.setValue(1)
     assert _payload(widget)["markevery"] is None
 
 
@@ -60,11 +60,11 @@ def test_sort_by_x_is_the_querys_order_by() -> None:
 def test_the_sort_box_edits_the_query_and_the_marker_colour(widget: SeriesPropertiesWidget) -> None:
     widget._load_series_descriptor(SimpleNamespace(id=1, options={"markercolor": "#ff0000"},
                                                    sql_query="SELECT a AS x FROM t", roles={"x": "x"}))
-    assert not widget._marker_same_colour.isChecked()
+    assert not widget._marker_editor.same_colour_check.isChecked()
     assert _payload(widget)["markercolor"].lower() == "#ff0000"
     widget._sort_x_check.setChecked(True)
     assert widget._sql_query_edit.toPlainText().endswith('ORDER BY "x"')
-    widget._marker_same_colour.setChecked(True)
+    widget._marker_editor.same_colour_check.setChecked(True)
     assert _payload(widget)["markercolor"] is None
 
 
@@ -72,33 +72,33 @@ def test_default_groups_and_line_width(widget: SeriesPropertiesWidget) -> None:
     widget._load_series_descriptor(SimpleNamespace(id=1, options={"linestyle": "default", "marker": "default"},
                                                    sql_query=""))
     widget._set_editing_enabled(True) if hasattr(widget, "_set_editing_enabled") else None
-    assert widget._line_default.isChecked() and widget._marker_default.isChecked()
+    assert widget._line_editor.default_check.isChecked() and widget._marker_editor.default_check.isChecked()
     payload = _payload(widget)
     assert payload["linestyle"] == "default" and payload["marker"] == "default" and payload["linewidth"] is None
-    widget._line_default.setChecked(False)
-    widget._linewidth_spin.setValue(2.5)
+    widget._line_editor.default_check.setChecked(False)
+    widget._line_editor.width_spin.setValue(2.5)
     assert _payload(widget)["linewidth"] == 2.5
 
 
 def test_unticking_default_stores_a_style_of_its_own(widget: SeriesPropertiesWidget) -> None:
     widget._load_series_descriptor(SimpleNamespace(id=1, options={"linestyle": "default", "marker": "default"},
                                                    sql_query=""))
-    widget._line_default.setChecked(False)
-    widget._marker_default.setChecked(False)
+    widget._line_editor.default_check.setChecked(False)
+    widget._marker_editor.default_check.setChecked(False)
     payload = _payload(widget)
     assert payload["linestyle"] not in ("default", "") and payload["marker"] not in ("default", "")
 
 
 def test_unticking_same_colour_stores_a_colour(widget: SeriesPropertiesWidget) -> None:
     widget._load_series_descriptor(SimpleNamespace(id=1, options={"marker": "o"}, sql_query=""))
-    widget._marker_same_colour.setChecked(False)
+    widget._marker_editor.same_colour_check.setChecked(False)
     assert _payload(widget)["markercolor"]
 
 
 def test_a_group_on_default_folds_to_one_line(widget: SeriesPropertiesWidget) -> None:
     widget._load_series_descriptor(SimpleNamespace(id=1, options={"linestyle": "default", "marker": "o"}, sql_query=""))
     widget.show()
-    assert widget._linewidth_spin.isHidden() and not widget._markersize_spin.isHidden()
-    widget._line_default.setChecked(False)
-    assert not widget._linewidth_spin.isHidden()
+    assert widget._line_editor.width_spin.isHidden() and not widget._marker_editor.size_spin.isHidden()
+    widget._line_editor.default_check.setChecked(False)
+    assert not widget._line_editor.width_spin.isHidden()
     widget.hide()

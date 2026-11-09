@@ -57,8 +57,8 @@ def test_touching_the_combo_writes_the_new_choice(series_widget: SeriesPropertie
     seen: list[dict[str, Any]] = []
     series_widget.series_options_requested.connect(seen.append)
     series_widget._load_series_descriptor(SimpleNamespace(id=1, options={"marker": "", "linestyle": ""}, sql_query=""))
-    series_widget._marker_combo.setCurrentIndex(series_widget._marker_combo.findData("o"))
-    series_widget._linestyle_combo.setCurrentIndex(series_widget._linestyle_combo.findData("--"))
+    series_widget._marker_editor.combo.setCurrentIndex(series_widget._marker_editor.combo.findData("o"))
+    series_widget._line_editor.combo.setCurrentIndex(series_widget._line_editor.combo.findData("--"))
     series_widget._emit_series_options_requested()
     assert (seen[-1]["marker"], seen[-1]["linestyle"]) == ("o", "--")
 
