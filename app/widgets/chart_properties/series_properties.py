@@ -411,14 +411,17 @@ class SeriesPropertiesWidget(BaseProperties):
         self._update_default_fields()
 
     def _update_default_fields(self) -> None:
-        """The fields of a group set to Default are disabled; the marker colour only when it is its own."""
-        line_on = self._line_default.isEnabled() and not self._line_default.isChecked()
-        marker_on = self._marker_default.isEnabled() and not self._marker_default.isChecked()
-        for widget in self._line_fields:
-            widget.setEnabled(line_on)
-        for widget in self._marker_fields:
-            widget.setEnabled(marker_on)
-        self._marker_colour_combo.setEnabled(marker_on and not self._marker_same_colour.isChecked())
+        """A group on Default folds to its one line: its fields are hidden, not shown greyed out."""
+        enabled = self._line_default.isEnabled()
+        for box, fields, name in ((self._line_default, self._line_fields, "seriesLineCard"),
+                                  (self._marker_default, self._marker_fields, "seriesMarkerCard")):
+            shown = not box.isChecked()
+            form = getattr(self, "_group_forms", {}).get(name)
+            for widget in fields:
+                if form is not None:
+                    form.setRowVisible(widget, shown)
+                widget.setEnabled(enabled)
+        self._marker_colour_combo.setEnabled(enabled and not self._marker_same_colour.isChecked())
 
     def _sort_toggled(self, on: bool) -> None:
         """Add or remove ORDER BY <x> at the end of the query (the query is applied as typed)."""
@@ -553,6 +556,8 @@ class SeriesPropertiesWidget(BaseProperties):
         self._line_default.toggled.connect(lambda on: self._default_toggled("line", on))
         self._marker_default.toggled.connect(lambda on: self._default_toggled("marker", on))
 
+        self._group_forms: dict[str, QFormLayout] = {}
+
         def group(title: str, name: str, rows: list[tuple[str, QWidget]]) -> TitledCard:
             # The app's own card: the title outside, the grey rounded box below (as the other panels).
             card = TitledCard(self, title, name)
@@ -562,6 +567,7 @@ class SeriesPropertiesWidget(BaseProperties):
             for label, widget in rows:
                 box_form.addRow(label, widget) if label else box_form.addRow(widget)
             card.card.layout().addLayout(box_form)
+            self._group_forms[name] = box_form
             return card
 
         self._groups = [

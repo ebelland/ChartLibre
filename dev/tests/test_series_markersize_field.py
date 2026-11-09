@@ -93,3 +93,12 @@ def test_unticking_same_colour_stores_a_colour(widget: SeriesPropertiesWidget) -
     widget._load_series_descriptor(SimpleNamespace(id=1, options={"marker": "o"}, sql_query=""))
     widget._marker_same_colour.setChecked(False)
     assert _payload(widget)["markercolor"]
+
+
+def test_a_group_on_default_folds_to_one_line(widget: SeriesPropertiesWidget) -> None:
+    widget._load_series_descriptor(SimpleNamespace(id=1, options={"linestyle": "default", "marker": "o"}, sql_query=""))
+    widget.show()
+    assert widget._linewidth_spin.isHidden() and not widget._markersize_spin.isHidden()
+    widget._line_default.setChecked(False)
+    assert not widget._linewidth_spin.isHidden()
+    widget.hide()
