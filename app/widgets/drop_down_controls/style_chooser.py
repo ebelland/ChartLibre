@@ -118,6 +118,12 @@ class StyleChooser(QWidget):
     def _show(self, key: str) -> None:
         for other, editor in self._editors.items():  # all shown, beside their choice; only the chosen one on
             editor.setEnabled(other == key)
+        if key == STANDARD and self._is_custom(self._value()) and not self._syncing:
+            # Standard chosen: a value of its own no longer stands - the list's first concrete entry does.
+            for index in range(self._combo.count()):
+                if str(self._combo.itemData(index) or "").lower() not in ("", "default", "none", "__custom__"):
+                    self._combo.setCurrentIndex(index)  # Solid for a line, Circle for a marker
+                    break
         if key == PICTURE:
             self._fill_pictures()
             name = self._picture_list.currentData()
@@ -181,8 +187,17 @@ class StyleChooser(QWidget):
         self._select_value(PREFIX + name)
         self._picture_list.setCurrentIndex(self._picture_list.findData(name))
 
+    _syncing = False
+
     def sync(self) -> None:
         """Show the choice that holds what the combo has now (after a series is loaded)."""
+        self._syncing = True
+        try:
+            self._sync()
+        finally:
+            self._syncing = False
+
+    def _sync(self) -> None:
         value = self._value()
         key = STANDARD
         if value.startswith(PREFIX) and PICTURE in self._buttons:

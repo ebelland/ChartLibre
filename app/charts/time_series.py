@@ -489,6 +489,9 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
             )
             or default_rolling_linestyle
         )
+        if not raw_drawn and "linestyle" in common_line_kwargs and not style.get("rolling_linestyle"):
+            # The rolling mean is the only line drawn: the series' own line style is its style.
+            rolling_linestyle = common_line_kwargs["linestyle"]
         rolling_kwargs["linestyle"] = rolling_linestyle
 
         # Rolling line should not show markers unless explicitly desired - and never a picture (picture_markers).
