@@ -66,7 +66,7 @@ class StyleChooser(QWidget):
             self._buttons[key] = button
             button.toggled.connect(lambda on, k=key: on and self._show(k))
             i = len(self._buttons) - 1
-            row.addWidget(button, *((0, i) if len(choices) <= 2 else divmod(i, 2)))
+            row.addWidget(button, *((0, i) if len(choices) <= 2 else (i, 0)))  # more than two: one a line
         column.addLayout(row)
 
         column.addWidget(combo)
