@@ -39,7 +39,6 @@ from app.utils.config import get_section, update_section
 from app.utils.i18n import _
 from app.utils.import_runner import refresh_link
 from app.utils.messages import ask
-from app.widgets.analysis_panel import plot_operation, plugin_icon
 
 # Tables written by a data operation are prefixed, so the list can hide the
 # whole class of them without keeping a registry of what it produced.
@@ -572,37 +571,9 @@ class TableListPanel(QWidget):
 
         selected_sources = self.selected_sources()
         has_query = any(kind != "table" for _name, kind in selected_sources)
-        has_function = any(kind == "function" for _name, kind in selected_sources)
-        delete_text, delete_tip = self._delete_texts(selected_sources)
 
+        # New Chart, Edit, Rename and Delete are the buttons beside the Tables title: not repeated here.
         items: list[MenuItem | None] = []
-        if callable(getattr(parent, "_on_new_plot_tab", None)):
-            items.append(
-                MenuItem(
-                    # The Analysis panel's name for it: one action, one name (todo H-14).
-                    text=_("New Chart"),
-                    tooltip=_("A new chart of this table"),
-                    callback=self._on_new_plot_tab,
-                    # Built from the same source as the "New Chart" row of the
-                    # Analysis panel (analysis_panel.plot_operation ->
-                    # NewPlotTabDialog.Icon), rather than the
-                    # unrelated "plot" catalogue/file icon, so the same action
-                    # carries the same glyph everywhere it appears.
-                    icon=plugin_icon(plot_operation()),
-                )
-            )
-            items.append(None)
-
-        items.extend(self._edit_items(parent, selected_sources, has_query))
-        if len(selected_sources) == 1:
-            items.append(
-                MenuItem(
-                    text=_("Rename…"),
-                    tooltip=_("Rename the selected table, saved query or stored function"),
-                    callback=self._rename_table,
-                    icon="rename",
-                )
-            )
         if len(selected_sources) == 1 and not has_query:
             items.append(
                 MenuItem(
@@ -638,13 +609,6 @@ class TableListPanel(QWidget):
                     tooltip=_("Save the whole table, or what the query returns, as CSV or Excel"),
                     callback=self._export_table,
                     icon="export_rows",
-                ),
-                None,
-                MenuItem(
-                    text=delete_text,
-                    tooltip=delete_tip,
-                    callback=self._delete_selected,
-                    icon="delete",
                 ),
                 None,
                 MenuItem(

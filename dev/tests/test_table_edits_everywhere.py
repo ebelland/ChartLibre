@@ -178,15 +178,9 @@ def test_a_stored_function_has_edit_which_opens_functions_on_it(
     panel.setParent(window)
     panel.reload()
     _select(panel, "Line")
-    shown: list = []
-    monkeypatch.setattr(table_list_module, "create_menu", lambda _parent, items, **_k: shown.extend(items) or
-                        type("M", (), {"exec": lambda *_a: None})())
-    panel._show_context_menu(panel._view.visualRect(panel._view.currentIndex()).center())
-    entry = next(item for item in shown if item is not None and item.text == "Edit function…")
-    entry.callback()
+    # Edit is the button beside the Tables title (no longer repeated in the right-click menu).
+    panel.edit_selected()
     assert edited == ["Line"]
-    texts = [item.text for item in shown if item is not None]
-    assert "Edit table..." not in texts and "Rename…" in texts  # renamed here, with the charts that draw it
 
     figure_id = int(repo.create_figure_descriptor(name="F"))
     dialog = SeriesFunctionDialog(repo=repo, figure_id=figure_id, parent=None)
