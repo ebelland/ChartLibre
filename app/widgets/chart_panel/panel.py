@@ -184,6 +184,10 @@ def _style_steps(
     steps: list[Any] = []
     for key, value in changes.items():
         if key not in _follows(artist):
+            if key == "linestyle" and isinstance(artist, Line2D) and str(artist.get_linestyle()) not in _NONE_STYLES:
+                # A line of the series that keeps a style of its own (the rolling mean) may take the series'
+                # style now: only a render knows.
+                return False, []
             continue
         if isinstance(artist, Patch) and not isinstance(artist, Wedge):
             # A step line (Stairs) and its legend swatch: an outline, and a fill if it has one.

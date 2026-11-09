@@ -489,8 +489,11 @@ class TimeSeriesAxisRenderer(BaseAxisRenderer):
             )
             or default_rolling_linestyle
         )
-        if not raw_drawn and "linestyle" in common_line_kwargs and not style.get("rolling_linestyle"):
-            # The rolling mean is the only line drawn: the series' own line style is its style.
+        own = str(style.get("linestyle") or "").strip().lower()
+        if (own not in ("", "default", "none") and "linestyle" in common_line_kwargs
+                and not style.get("rolling_linestyle")):
+            # A line style chosen for the series is the rolling mean's too (it is the line the eye follows);
+            # left on Default, the rolling mean keeps the axis' rolling style (dashed).
             rolling_linestyle = common_line_kwargs["linestyle"]
         rolling_kwargs["linestyle"] = rolling_linestyle
 
