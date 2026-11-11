@@ -51,6 +51,8 @@ The order is a single recommended backlog. Related items have been merged, and c
 | ID38 | 38 | 2 | **Windows UI parity** (H-12) | Test dialogs at 1366×768 and 125% scaling in CI. | **Core**; prevents platform-specific friction. |
 | ID41 | 41 | 4 | **Text Explorer** (G-11) | Add word counts, n-grams, and topics for text columns. | **JMP**; weak fit for the primary audience. |
 | ID46 | 46 | 2 | **Marker editor and rotation** (dev/plans/line_editor_plan.txt B, C) | Still missing: a point/SVG-path marker editor and a `__markers__` table of saved markers; marker rotation by a constant or a column (arrows), with an Arrow entry; custom dashes for overlay/reference lines. Custom dashes and markers (character, mathtext, polygon tuple) are done. | **Origin / matplotlib**; vector-field and wind-direction charts. |
+| ID47 | 47 | 1 | **Navigation bar polish** (requested 2026-11-11) | "Hide sidebar": a slightly taller icon, like Claude's own; Workspace moved beside it as a plain vector house icon; the bar divided into sections. | **Core**; a clearer, calmer window frame. |
+| ID48 | 48 | 2 | **Preferences: icons and an advanced mode** (requested 2026-11-11) | Each section with an icon of its own (not alike); an "Advanced mode" setting - off, the window hides the assistant, the workpads (SymPy, SQL) and the other expert tools. | **Core**; a simpler first contact for students. |
 
 ## User-owned / release-readiness tasks
 
